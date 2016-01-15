@@ -16,11 +16,15 @@ public class TileUI extends JPanel {
 	public static Image WUMPUS_IMG;
 	public static Image PIT_IMG;
 	public static Image GOLD_IMG;
+	public static Image BREEZE_IMG;
+	public static Image STENCH_IMG;
 	
 	public static final void initImages() throws IOException {
 		TileUI.WUMPUS_IMG = ImageIO.read( new File( "wumpus.gif" ) ).getScaledInstance( 50 , 50 , Image.SCALE_SMOOTH );
 		TileUI.PIT_IMG = ImageIO.read( new File( "pit.gif" ) ).getScaledInstance( 50 , 50 , Image.SCALE_SMOOTH );
 		TileUI.GOLD_IMG = ImageIO.read( new File( "gold.gif" ) ).getScaledInstance( 50 , 50 , Image.SCALE_SMOOTH );
+		TileUI.BREEZE_IMG = ImageIO.read( new File( "breeze.png" ) ).getScaledInstance( 50 , 25 , Image.SCALE_SMOOTH );
+		TileUI.STENCH_IMG = ImageIO.read( new File( "stench.png" ) ).getScaledInstance( 50 , 25 , Image.SCALE_SMOOTH );
 	}
 
 	/**
@@ -90,9 +94,26 @@ public class TileUI extends JPanel {
 		g.drawImage( img , topX , topY , null );
 	}
 	
+	private void drawImageInTopLeftCorner( Graphics g , Image img ) {
+		g.drawImage( img , 0 , 5 , null );
+	}
+	
+	private void drawImageInTopRightCorner( Graphics g , Image img ) {
+		int topX = this.getWidth() - img.getWidth( null );
+		g.drawImage( img , topX , 5 , null );
+	}
+	
 	@Override
 	public void paintComponent( Graphics g ) {
 		super.paintComponent( g );
+		
+		if ( drawBreeze ) {
+			drawImageInTopLeftCorner( g , TileUI.BREEZE_IMG );
+		}
+		
+		if ( drawStench ) {
+			drawImageInTopRightCorner( g , TileUI.STENCH_IMG );
+		}
 		
 		//if it's a pit, we just draw the pit
 		if ( drawPit ) {

@@ -52,6 +52,8 @@ public class EnvironmentUI extends JPanel {
 				this.tiles[ r ][ c ].setDrawWumpus( map.shouldRenderWumpus( r , c ) );
 				this.tiles[ r ][ c ].setDrawPit( map.shouldRenderPit( r , c ) );
 				this.tiles[ r ][ c ].setDrawGold( map.shouldRenderGold( r , c ) );
+				this.tiles[ r ][ c ].setDrawStench( map.shouldRenderStench( r , c ) );
+				this.tiles[ r ][ c ].setDrawBreeze( map.shouldRenderBreeze( r , c ) );
 			}
 		}
 	}

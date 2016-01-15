@@ -31,10 +31,15 @@ public class EnvironmentUI extends JPanel {
 		this.numCols = map.getNumCols();
 		this.tiles = new TileUI[ numRows ][ numCols ];
 		
-		setLayout( new GridLayout( numRows , numCols , 5 , 5 ) );
+		setLayout( new GridLayout( numRows , numCols , 0 , 0 ) );
 		for ( int r=0 ; r<numRows ; ++r ) {
-			for ( int c=0 ; r<numCols ; ++c ) {
-				this.tiles[ r ][ c ] = new TileUI();
+			for ( int c=0 ; c<numCols ; ++c ) {
+				tiles[ r ][ c ] = new TileUI();
+			}
+		}
+		for ( int r=numRows-1 ; r>=0 ; --r ) {
+			for ( int c=0 ; c<numCols ; ++c ) {
+				add( tiles[ r ][ c ] );
 			}
 		}
 	}
@@ -44,7 +49,9 @@ public class EnvironmentUI extends JPanel {
 		super.paintComponent( g );
 		for ( int r=0 ; r<numRows ; ++r ) {
 			for ( int c=0 ; c<numCols ; ++c ) {
-				
+				this.tiles[ r ][ c ].setDrawWumpus( map.shouldRenderWumpus( r , c ) );
+				this.tiles[ r ][ c ].setDrawPit( map.shouldRenderPit( r , c ) );
+				this.tiles[ r ][ c ].setDrawGold( map.shouldRenderGold( r , c ) );
 			}
 		}
 	}

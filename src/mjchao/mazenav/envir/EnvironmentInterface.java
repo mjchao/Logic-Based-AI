@@ -8,4 +8,7 @@ package mjchao.mazenav.envir;
  */
 public class EnvironmentInterface {
 
+	public EnvironmentInterface( Environment envir ) {
+		
+	}
 }

@@ -1,5 +1,6 @@
 package mjchao.mazenav.ui;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Image;
@@ -7,6 +8,7 @@ import java.io.File;
 import java.io.IOException;
 
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
 import javax.swing.JPanel;
 
 public class TileUI extends JPanel {
@@ -16,9 +18,9 @@ public class TileUI extends JPanel {
 	public static Image GOLD_IMG;
 	
 	public static final void initImages() throws IOException {
-		TileUI.WUMPUS_IMG = ImageIO.read( new File( "wumpus.gif" ) );
-		TileUI.PIT_IMG = ImageIO.read( new File( "pit.gif" ) );
-		TileUI.GOLD_IMG = ImageIO.read( new File( "gold.gif" ) );
+		TileUI.WUMPUS_IMG = ImageIO.read( new File( "wumpus.gif" ) ).getScaledInstance( 50 , 50 , Image.SCALE_SMOOTH );
+		TileUI.PIT_IMG = ImageIO.read( new File( "pit.gif" ) ).getScaledInstance( 50 , 50 , Image.SCALE_SMOOTH );
+		TileUI.GOLD_IMG = ImageIO.read( new File( "gold.gif" ) ).getScaledInstance( 50 , 50 , Image.SCALE_SMOOTH );
 	}
 
 	/**
@@ -33,7 +35,7 @@ public class TileUI extends JPanel {
 	private boolean drawBreeze = false;
 	
 	public TileUI() {
-		
+		setBorder( BorderFactory.createLineBorder( Color.BLACK , 3 ) );
 	}
 	
 	public void setDrawWumpus( boolean b ) {
@@ -83,7 +85,7 @@ public class TileUI extends JPanel {
 	private void drawImageInBottomHalf( Graphics g , Image img ) {
 		int width = this.getWidth();
 		int imgWidth = img.getWidth( null );
-		int topX = width/2 - imgWidth/;2
+		int topX = width/2 - imgWidth/2;
 		int topY = this.getHeight() - img.getHeight( null );
 		g.drawImage( img , topX , topY , null );
 	}

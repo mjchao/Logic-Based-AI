@@ -7,13 +7,17 @@ package mjchao.mazenav.envir;
  *
  */
 class Environment {
+	public static final double PIT_PROBABILITY = 0.5;
 
 	public static final Environment createRandom( int rows , int cols ) {
 		Environment rtn = new Environment( rows , cols );
 		
-		int wumpusRow = (int)(Math.random()*rows);
-		int wumpusCol = (int)(Math.random()*cols);
-		
+		int wumpusRow = 0 , wumpusCol = 0;
+		while ( wumpusRow == 0 && wumpusCol == 0 ) {
+			wumpusRow = (int)(Math.random()*rows);
+			wumpusCol = (int)(Math.random()*cols);
+		}
+
 		int goldRow = (int)(Math.random()*rows);
 		int goldCol = (int)(Math.random()*cols);
 		
@@ -23,8 +27,14 @@ class Environment {
 				boolean hasGold = ( r == goldRow && c == goldCol );
 				
 				//10% chance that a given square has a pit
-				boolean hasPit = (Math.random() <= 0.1 );
-				rtn.tiles[ r ][ c ] = new Tile( hasWumpus , hasGold , hasPit );
+				//given that the square does not have gold or the wumpus
+				boolean hasPit = (!hasWumpus && !hasGold && Math.random() <= PIT_PROBABILITY );
+				
+				//cannot have starting square be a pit
+				if ( r == 0 && c == 0 ) {
+					hasPit = false;
+				}
+				rtn.tiles[ r ][ c ] = new Tile( hasWumpus , hasPit , hasGold );
 			}
 		}
 		

@@ -10,8 +10,6 @@ package mjchao.mazenav.envir;
 public class EnvironmentUIMap {
 
 	private final Environment envir;
-	private final int[] dx = { 1 , 0 , -1 , 0 };
-	private final int[] dy = { 0 , 1 , 0 , -1 };
 	
 	public EnvironmentUIMap( Environment envir ) {
 		this.envir = envir;
@@ -38,30 +36,10 @@ public class EnvironmentUIMap {
 	}
 	
 	public boolean shouldRenderStench( int row , int col ) {
-		for ( int i=0 ; i<4 ; ++i ) {
-			int neighborRow = row+dy[ i ];
-			int neighborCol = col+dx[ i ];
-			if ( 0 <= neighborRow && neighborRow < envir.getNumRows() &&
-					0 <= neighborCol && neighborCol < envir.getNumCols() ) {
-				if ( envir.getTile( neighborRow , neighborCol ).hasWumpus() )  {
-					return true;
-				}
-			}
-		}
-		return false;
+		return envir.hasStench( row , col );
 	}
 	
 	public boolean shouldRenderBreeze( int row , int col ) {
-		for ( int i=0 ; i<4 ; ++i ) {
-			int neighborRow = row+dy[ i ];
-			int neighborCol = col+dx[ i ];
-			if ( 0 <= neighborRow && neighborRow < envir.getNumRows() &&
-					0 <= neighborCol && neighborCol < envir.getNumCols() ) {
-				if ( envir.getTile( neighborRow , neighborCol ).hasPit() )  {
-					return true;
-				}
-			}
-		}
-		return false;
+		return envir.hasBreeze( row , col );
 	}
 }

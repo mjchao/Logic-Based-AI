@@ -37,6 +37,7 @@ public class TileUI extends JPanel {
 	private boolean drawGold = false;
 	private boolean drawStench = false;
 	private boolean drawBreeze = false;
+	private boolean drawAgent = false;
 	
 	public TileUI() {
 		setBorder( BorderFactory.createLineBorder( Color.BLACK , 3 ) );
@@ -60,6 +61,10 @@ public class TileUI extends JPanel {
 	
 	public void setDrawBreeze( boolean b ) {
 		drawBreeze = b;
+	}
+	
+	public void setDrawAgent( boolean b ) {
+		drawAgent = b;
 	}
 	
 	@Override

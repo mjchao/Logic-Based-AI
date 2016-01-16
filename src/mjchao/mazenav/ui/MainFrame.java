@@ -23,10 +23,8 @@ public class MainFrame extends JFrame {
 
 	private final EnvironmentUI ui;
 	
-	public MainFrame() {
-		Object[] envirData = EnvironmentFactory.createRandom( 3 , 3 );
-		
-		ui = new EnvironmentUI( (EnvironmentUIMap) envirData[ 1 ] );
+	public MainFrame( EnvironmentUIMap map ) {
+		ui = new EnvironmentUI( map );
 		
 		setLayout( new BorderLayout() );
 		add( new JScrollPane(ui) , BorderLayout.CENTER );

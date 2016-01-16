@@ -10,8 +10,8 @@ import java.util.ArrayList;
  */
 class Environment {
 	
-	private final static int[] dx = { 0 , 1 , 0 , -1 };
-	private final static int[] dy = { 1 , 0 , -1 , 0 };
+	private final static int[] dRow = { 1 , 0 , -1 , 0 };
+	private final static int[] dCol = { 0 , 1 , 0 , -1 };
 	
 	public static final double PIT_PROBABILITY = 0.5;
 
@@ -95,21 +95,25 @@ class Environment {
 	}
 	
 	public ArrayList< Percept > forward() {
-		int targetRow = agent.row + dx[ agent.dir ];
-		int targetCol = agent.col + dy[ agent.dir ];
-		if ( targetRow < numRows ) {
+		int targetRow = agent.row + dRow[ agent.dir ];
+		int targetCol = agent.col + dCol[ agent.dir ];
+		System.out.println( targetRow + " " + targetCol );
+		if ( 0 <= targetRow && targetRow < numRows &&
+				0 <= targetCol && targetCol < numCols ) {
 			agent.row = targetRow;
 			agent.col = targetCol;
 		}
 		return getMoveToPercepts( targetRow , targetCol );
 	}
 	
-	public void turnLeft() {
+	public ArrayList< Percept > turnLeft() {
 		agent.dir = (agent.dir + 1) % 4;
+		return new ArrayList< Percept >();
 	}
 	
-	public void turnRight() {
+	public ArrayList< Percept > turnRight() {
 		agent.dir = (agent.dir - 1) % 4;
+		return new ArrayList< Percept >();
 	}
 	
 	public ArrayList< Percept > shoot() {
@@ -130,8 +134,8 @@ class Environment {
 				rtn.add( Percept.Scream );
 				tiles[ checkRow ][ checkCol ] = new Tile( false , toCheck.hasPit() , toCheck.hasGold() );
 			}
-			checkRow += dx[ agent.dir ];
-			checkCol += dy[ agent.dir ];
+			checkRow += dRow[ agent.dir ];
+			checkCol += dCol[ agent.dir ];
 		}
 		return rtn;
 	}
@@ -144,7 +148,7 @@ class Environment {
 		return rtn;
 	}
 	
-	public void grab() {
+	public ArrayList< Percept > grab() {
 		if ( tiles[ agent.row ][ agent.col ].hasGold() ) {
 			
 			//if the agent is on a tile with gold, the
@@ -154,6 +158,7 @@ class Environment {
 			tiles[ agent.row ][ agent.col ] = new Tile( false , false , false );
 			agent.hasGold = true;
 		}
+		return new ArrayList< Percept >();
 	}
 	
 	public ArrayList< Percept > getTilePercepts() {
@@ -173,8 +178,8 @@ class Environment {
 	
 	public boolean hasStench( int row , int col ) {
 		for ( int i=0 ; i<4 ; ++i ) {
-			int neighborRow = row+dy[ i ];
-			int neighborCol = col+dx[ i ];
+			int neighborRow = row+dRow[ i ];
+			int neighborCol = col+dCol[ i ];
 			if ( 0 <= neighborRow && neighborRow < numRows &&
 					0 <= neighborCol && neighborCol < numCols ) {
 				if ( tiles[ neighborRow ][ neighborCol ].hasWumpus() )  {
@@ -187,8 +192,8 @@ class Environment {
 	
 	public boolean hasBreeze( int row , int col ) {
 		for ( int i=0 ; i<4 ; ++i ) {
-			int neighborRow = row+dy[ i ];
-			int neighborCol = col+dx[ i ];
+			int neighborRow = row+dRow[ i ];
+			int neighborCol = col+dCol[ i ];
 			if ( 0 <= neighborRow && neighborRow < numRows &&
 					0 <= neighborCol && neighborCol < numCols ) {
 				if ( tiles[ neighborRow ][ neighborCol ].hasPit() )  {
@@ -197,6 +202,10 @@ class Environment {
 			}
 		}
 		return false;
+	}
+	
+	public boolean hasAgent( int row , int col ) {
+		return agent.row == row && agent.col == col;
 	}
 	
 	/**

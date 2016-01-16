@@ -42,4 +42,8 @@ public class EnvironmentUIMap {
 	public boolean shouldRenderBreeze( int row , int col ) {
 		return envir.hasBreeze( row , col );
 	}
+	
+	public boolean shouldRenderAgent( int row , int col ) {
+		return envir.hasAgent( row , col );
+	}
 }

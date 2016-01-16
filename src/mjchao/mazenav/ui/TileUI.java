@@ -18,6 +18,7 @@ public class TileUI extends JPanel {
 	public static Image GOLD_IMG;
 	public static Image BREEZE_IMG;
 	public static Image STENCH_IMG;
+	public static Image AGENT_IMG;
 	
 	public static final void initImages() throws IOException {
 		TileUI.WUMPUS_IMG = ImageIO.read( new File( "wumpus.gif" ) ).getScaledInstance( 50 , 50 , Image.SCALE_SMOOTH );
@@ -25,6 +26,7 @@ public class TileUI extends JPanel {
 		TileUI.GOLD_IMG = ImageIO.read( new File( "gold.gif" ) ).getScaledInstance( 50 , 50 , Image.SCALE_SMOOTH );
 		TileUI.BREEZE_IMG = ImageIO.read( new File( "breeze.png" ) ).getScaledInstance( 50 , 25 , Image.SCALE_SMOOTH );
 		TileUI.STENCH_IMG = ImageIO.read( new File( "stench.png" ) ).getScaledInstance( 50 , 25 , Image.SCALE_SMOOTH );
+		TileUI.AGENT_IMG = ImageIO.read( new File( "agent.gif" ) ).getScaledInstance( 50 , 50 , Image.SCALE_SMOOTH );
 	}
 
 	/**
@@ -127,15 +129,16 @@ public class TileUI extends JPanel {
 		}
 		if ( drawWumpus && !drawGold ) {
 			drawImageInCenter( g , TileUI.WUMPUS_IMG );
-			return;
 		}
 		if ( !drawWumpus && drawGold ) {
 			drawImageInCenter( g , TileUI.GOLD_IMG );
-			return;
 		}
 		if ( drawWumpus && drawGold ) {
 			drawImageInTopHalf( g , TileUI.WUMPUS_IMG );
 			drawImageInBottomHalf( g , TileUI.GOLD_IMG );
+		}
+		if ( drawAgent ) {
+			drawImageInCenter( g , TileUI.AGENT_IMG );
 		}
 		
 	}

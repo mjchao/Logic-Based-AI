@@ -15,7 +15,7 @@ public class Main {
 	public static final void main( String[] args ) throws IOException {
 		TileUI.initImages();
 		
-		Object[] envirData = EnvironmentFactory.createRandom( 9 , 9 );
+		Object[] envirData = EnvironmentFactory.createRandom( 5 , 5 );
 		
 		MainFrame f = new MainFrame( (EnvironmentUIMap) envirData[ 1 ] );
 		

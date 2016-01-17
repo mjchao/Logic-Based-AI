@@ -40,6 +40,16 @@ public class Function extends Symbol {
 	 */
 	private ArrayList< String > argTypes = new ArrayList< String >();
 	
+	/**
+	 * Creates a function with the given name, definition, and
+	 * argument types
+	 * 
+	 * @param name						the name of this function as it is to
+	 * 									appear in FOL expressions
+	 * @param definitionClassInstance	an instance of the class definition how
+	 * 									this function operates
+	 * @param argTypes					the types of the arguments to this function
+	 */
 	public Function( String name , Object definitionClassInstance , String... argTypes ) {
 		super( name );
 		this.definitionClassInstance = definitionClassInstance;
@@ -64,18 +74,23 @@ public class Function extends Symbol {
 	}
 	
 	/**
-	 * Invokes this function on some FOL objects 
+	 * Invokes this function with a given list of FOL objects as
+	 * arguments.
 	 * 
 	 * @param args							a list of FOL objects, which are the arguments to this function
 	 * @return								whatever the FOL function is defined to return
-	 * @throws NoSuchMethodException		should not be thrown - the constructor checks that
-	 * 										the function definition exists
 	 * @throws IllegalAccessException		if this function cannot be accessed due to some language restrictions
-	 * @throws IllegalArgumentException		should not be thrown - the constructor checks that the
-	 * 										function definition class contains the function definition 
+	 * @throws IllegalArgumentException		if this FOL function received too few arguments or arguments 
+	 * 										with incorrect types
 	 * @throws InvocationTargetException	if this function throws an exception while executing
 	 */
-	public ObjectFOL operate( ObjectFOL... args ) throws NoSuchMethodException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+	public ObjectFOL operate( ObjectFOL... args ) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		
+		if ( args.length < argTypes.size() ) {
+			throw new IllegalArgumentException( "Too few arguments.\n" +
+								"Found: " + args.length + "\n" +
+								"Expected: " + argTypes.size() );
+		}
 		
 		//check that arguments types are what we expect
 		for ( int i=0 ; i<args.length ; ++i ) {
@@ -86,8 +101,18 @@ public class Function extends Symbol {
 			}
 		}
 		
-		Method toExecute = definitionClassInstance.getClass().getMethod( name , parameterTypes );
-		return (ObjectFOL) toExecute.invoke( definitionClassInstance , (Object[]) args );
+		try {
+			Method toExecute = definitionClassInstance.getClass().getMethod( name , parameterTypes );
+			return (ObjectFOL) toExecute.invoke( definitionClassInstance , (Object[]) args );
+		}
+		catch ( NoSuchMethodException e ) {
+			
+			//NoSuchMethodException should never be thrown - the constructor
+			//checks that the method is already defined
+			System.err.println( "Terminating with fatal exception:" );
+			e.printStackTrace();
+			return null;
+		}
 	}
 	
 }

@@ -17,7 +17,7 @@ The agent must find the gold. When the agent reaches the square with the gold, t
 The world is static, but unknown. The agent starts in square (0, 0). Square (0, 0) is guaranteed to be empty and have no "Stench" or "Breeze" or "Glitter" percepts. The agent knows nothing else and must explore the world. Given percept sequences, the agent must deduce where the Pits and Wumpus are to avoid them. To win, the agent must find the gold and return to square (0, 0).
 
 #Examples of Challenges
-Here are two 5x5 maps that demonstrate two challenges of this problem.
+Here are two 5x5 maps that demonstrate two challenges of this problem. Recall that we as observers can see the entire map, but the agent actually starts with no knowledge except for the fact that its starting square (0, 0) and the neighboring squares (1, 0) and (0, 1) are empty. Everything else beyond that is unknown.
 
 ##Killing the Wumpus
 

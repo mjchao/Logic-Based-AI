@@ -17,6 +17,12 @@ public class EnvironmentInterface {
 	}
 	
 	public ArrayList< Percept > performAction( Action a ) {
+		if ( !envir.alive() ) {
+			
+			//dead
+			return null;
+		}
+		
 		if ( a == Action.TurnLeft ) {
 			return envir.turnLeft();
 		}

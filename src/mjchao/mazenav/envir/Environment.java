@@ -13,7 +13,7 @@ class Environment {
 	private final static int[] dRow = { 1 , 0 , -1 , 0 };
 	private final static int[] dCol = { 0 , 1 , 0 , -1 };
 	
-	public static final double PIT_PROBABILITY = 0.5;
+	public static final double PIT_PROBABILITY = 0.1;
 
 	public static final Environment createRandom( int rows , int cols ) {
 		Environment rtn = new Environment( rows , cols );
@@ -49,6 +49,7 @@ class Environment {
 	
 	private final Tile[][] tiles;
 	private Agent agent;
+	private boolean alive = true;
 	private final int numRows;
 	private final int numCols;
 	
@@ -83,9 +84,11 @@ class Environment {
 			Tile targetTile = tiles[ destRow ][ destCol ];
 			if ( targetTile.hasWumpus() ) {
 				rtn.add( Percept.Die );
+				alive = false;
 			}
 			if ( targetTile.hasPit() ) {
 				rtn.add( Percept.Die );
+				alive = false;
 			}
 		}
 		else {
@@ -206,6 +209,10 @@ class Environment {
 	
 	public boolean hasAgent( int row , int col ) {
 		return agent.row == row && agent.col == col;
+	}
+	
+	public boolean alive() {
+		return alive;
 	}
 	
 	/**

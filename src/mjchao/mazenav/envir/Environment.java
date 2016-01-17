@@ -173,7 +173,8 @@ class Environment {
 		if ( hasStench( agent.row , agent.col ) ) {
 			rtn.add( Percept.Stench );
 		}
-		if ( hasBreeze( agent.row , agent.col ) ) {
+		int breezes = countBreezes( agent.row , agent.col );
+		for ( int i=0 ; i<breezes ; ++i ) {
 			rtn.add( Percept.Breeze );
 		}
 		return rtn;
@@ -193,18 +194,37 @@ class Environment {
 		return false;
 	}
 	
-	public boolean hasBreeze( int row , int col ) {
+	/**
+	 * Returns the number of breezes the agent should feel,
+	 * corresponding to the number of pits in adjacent
+	 * squares
+	 * 
+	 * @param row
+	 * @param col
+	 * @return
+	 */
+	public int countBreezes( int row , int col ) {
+		int count = 0;
 		for ( int i=0 ; i<4 ; ++i ) {
 			int neighborRow = row+dRow[ i ];
 			int neighborCol = col+dCol[ i ];
 			if ( 0 <= neighborRow && neighborRow < numRows &&
 					0 <= neighborCol && neighborCol < numCols ) {
 				if ( tiles[ neighborRow ][ neighborCol ].hasPit() )  {
-					return true;
+					++count;
+					
+					//Return here if we choose to go back to the
+					//single-breeze model where there is no indication
+					//of how many adjacent pits there are
+					//return count;
 				}
 			}
 		}
-		return false;
+		return count;
+	}
+	
+	public boolean hasBreeze( int row , int col ) {
+		return countBreezes( row , col ) > 0;
 	}
 	
 	public boolean hasAgent( int row , int col ) {

@@ -19,13 +19,21 @@ class Environment {
 		Environment rtn = new Environment( rows , cols );
 		
 		int wumpusRow = 0 , wumpusCol = 0;
-		while ( wumpusRow == 0 && wumpusCol == 0 ) {
+		
+		//wumpus cannot be on starting square or squares
+		//adjacent to starting square
+		while ( (wumpusRow == 0 && wumpusCol == 0) ||
+				(wumpusRow == 1 && wumpusCol == 0) ||
+				(wumpusRow == 0 && wumpusCol == 1) ) {
 			wumpusRow = (int)(Math.random()*rows);
 			wumpusCol = (int)(Math.random()*cols);
 		}
 
-		int goldRow = (int)(Math.random()*rows);
-		int goldCol = (int)(Math.random()*cols);
+		//make the problem a bit challenging
+		//by putting the gold away from the starting
+		//square
+		int goldRow = (int)(Math.random()*rows/2) + rows/2;
+		int goldCol = (int)(Math.random()*cols/2) + rows/2;
 		
 		for ( int r=0 ; r<rows ; ++r ) {
 			for ( int c=0 ; c<cols ; ++c ) {
@@ -36,8 +44,11 @@ class Environment {
 				//given that the square does not have gold or the wumpus
 				boolean hasPit = (!hasWumpus && !hasGold && Math.random() <= PIT_PROBABILITY );
 				
-				//cannot have starting square be a pit
-				if ( r == 0 && c == 0 ) {
+				//cannot have starting square or squares
+				//adjacent to starting square be a pit
+				if ( (r == 0 && c == 0) ||
+						(r == 1 && c == 0 ) ||
+						(r == 0 && c == 1 ) ) {
 					hasPit = false;
 				}
 				rtn.tiles[ r ][ c ] = new Tile( hasWumpus , hasPit , hasGold );

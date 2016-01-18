@@ -53,6 +53,10 @@ public class SymbolTrackerTest {
 	public void redefinition() throws IOException {
 		IntegerWorld def = new IntegerWorld();
 		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld_error_redefinition.txt" , def );
+	}
+	
+	@Test
+	public void fromGeometryWorldFile() {
 		
 	}
 }

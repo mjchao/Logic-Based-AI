@@ -101,6 +101,13 @@ public class Processor {
 				continue;
 			}
 			
+			//check if its a predefined constant object
+			obj = tracker.getPredefinedConstant( token );
+			if ( obj != null ) {
+				tokens.add( obj );
+				continue;
+			}
+			
 			//otherwise, we treat it as a variable
 			Variable var = tracker.getNewVariable( token );
 			tokens.add( var );

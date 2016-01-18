@@ -30,4 +30,8 @@ public class FunctionDefinitions {
 		boolean result = (cmp1 > cmp2);
 		return BooleanFOL.fromBoolean( result );
 	}
+	
+	public ObjectFOL NotARelation( ObjectFOL arg1 ) {
+		return ObjectFOL.fromInt( 5 );
+	}
 }

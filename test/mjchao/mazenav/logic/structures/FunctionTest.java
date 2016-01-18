@@ -26,7 +26,14 @@ public class FunctionTest {
 		Assert.assertTrue( addIntEnvir.operate( ObjectFOL.fromInt( 100 ) ).toString().equals( "100" ) );
 		
 		definitionClassInstance.changingInt = ObjectFOL.fromInt( -20 );
-		Assert.assertTrue( addIntEnvir.operate( ObjectFOL.fromInt( 100 ) ).toString().equals( "80" ) );
-		
+		Assert.assertTrue( addIntEnvir.operate( ObjectFOL.fromInt( 100 ) ).toString().equals( "80" ) );	
+	}
+	
+	@Test
+	public void testRelations() throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		FunctionDefinitions definitionClassInstance = new FunctionDefinitions();
+		Function ge = new Function( "GreaterThan" , definitionClassInstance , "Integer" , "Integer" );
+		Assert.assertTrue( ge.operate( ObjectFOL.fromInt( 50 ) , ObjectFOL.fromInt( 100 ) ).toString().equals( "False" ) );
+		Assert.assertTrue( ge.operate( ObjectFOL.fromInt( 100 ) , ObjectFOL.fromInt( 50 ) ).toString().equals( "True" ) );
 	}
 }

@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /**
- * Represents a Function in first order logic (FOL). The functions in 
+ * Represents a Function in first-order logic (FOL). The functions in 
  * this FOL package must be defined externally in another class called
  * a "Definition Class." For every desired FOL function, there must
  * be a definition class that defines a method with the same name as
@@ -90,6 +90,11 @@ public class Function extends Symbol {
 			throw new IllegalArgumentException( "Too few arguments.\n" +
 								"Found: " + args.length + "\n" +
 								"Expected: " + argTypes.size() );
+		}
+		else if ( args.length > argTypes.size() ) {
+			throw new IllegalArgumentException( "Too many arguments.\n" + "Found: " + 
+								args.length + "arguments\n" + 
+								"Expected: " + argTypes.size() + " arguments." );
 		}
 		
 		//check that arguments types are what we expect

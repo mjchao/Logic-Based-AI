@@ -1,8 +1,27 @@
 package mjchao.mazenav.logic.structures;
 
-public class Relation extends Symbol {
+import java.lang.reflect.InvocationTargetException;
 
-	public Relation( String name , String className , String... argTypes ) {
-		super( name );
+/**
+ * Represents a relation in first-order logic (FOL).
+ * @author mjchao
+ *
+ */
+public class Relation extends Function {
+
+	public Relation( String name , Object definitionClassInstance , String... argTypes ) {
+		super( name , definitionClassInstance , argTypes );
 	}
+	
+	@Override
+	public BooleanFOL operate( ObjectFOL... args ) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		ObjectFOL functionResult = super.operate( args );
+		if ( functionResult instanceof BooleanFOL ) {
+			return (BooleanFOL) functionResult;
+		}
+		else {
+			throw new IllegalStateException( "Relation " + name + " returned non-boolean result:\n" + functionResult.toString() );
+		}
+	}
+	
 }

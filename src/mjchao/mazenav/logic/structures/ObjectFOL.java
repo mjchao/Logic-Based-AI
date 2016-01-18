@@ -3,7 +3,7 @@ package mjchao.mazenav.logic.structures;
 import java.util.ArrayList;
 
 /**
- * Represents in object in first order logic (FOL)
+ * Represents in object in first-order logic (FOL)
  * 
  * @author mjchao
  *
@@ -20,7 +20,7 @@ public class ObjectFOL extends Symbol {
 	
 	public static ObjectFOL fromFloat( float val ) {
 		//we only use integer types and double precision
-		//there is no need for optimization yet
+		//there is no need for optimization yet for floats
 		return fromDouble( val );
 	}
 	

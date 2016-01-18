@@ -34,7 +34,7 @@ public class SymbolTrackerTest {
 	
 	@Test 
 	public void fromFile() throws IOException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		FunctionDefinitions def = new FunctionDefinitions();
+		IntegerWorld def = new IntegerWorld();
 		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , def );
 		
 		ObjectFOL five = ObjectFOL.fromInt( 5 );
@@ -47,5 +47,12 @@ public class SymbolTrackerTest {
 		Relation GreaterThan = test.getRelation( "GreaterThan" );
 		BooleanFOL True = GreaterThan.operate( six , five );
 		Assert.assertTrue( True.getValue().booleanValue() == true );
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void redefinition() throws IOException {
+		IntegerWorld def = new IntegerWorld();
+		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld_error_redefinition.txt" , def );
+		
 	}
 }

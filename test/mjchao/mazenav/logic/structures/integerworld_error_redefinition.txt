@@ -10,3 +10,6 @@ FUNCTION: DiffInt( Integer , Integer )
 #Returns if the first integer is greater
 #than the second integer
 RELATION: GreaterThan( Integer , Integer )
+
+#Error: Redefinition of SumInt
+FUNCTION: SumInt( Integer , Integer , Integer )

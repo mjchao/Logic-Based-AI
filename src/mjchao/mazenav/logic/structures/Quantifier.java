@@ -12,7 +12,10 @@ package mjchao.mazenav.logic.structures;
  */
 public class Quantifier extends Symbol {
 
+	public static final String FORALL_SHORTHAND = "\u2200";
 	public static final Quantifier FORALL = new Quantifier( "FORALL" );
+	
+	public static final String EXISTS_SHORTHAND = "\u2203";
 	public static final Quantifier EXISTS = new Quantifier( "EXISTS" );
 	public static final Quantifier[] QUANTIFIER_LIST = new Quantifier[]{ FORALL , EXISTS };
 	
@@ -36,25 +39,30 @@ public class Quantifier extends Symbol {
 			return true;
 		}
 		if ( name.equals( "FORALL" ) ) {
-			return str.equals( "\u2200" );
+			return str.equals( FORALL_SHORTHAND );
 		}
 		else if ( name.equals( "EXISTS" ) ) {
-			return str.equals( "\u2203" );
+			return str.equals( EXISTS_SHORTHAND );
 		}
 		return false;
 	}
 	
 	@Override
-	public String toString() {
+	public String getShorthand() {
 		if ( name.equals( "FORALL" ) ) {
-			return "\u2200";
+			return FORALL_SHORTHAND;
 		}
 		else if ( name.equals( "EXISTS" ) ) {
-			return "\u2203";
+			return EXISTS_SHORTHAND;
 		}
 		else {
 			return "?";
 		}
+	}
+	
+	@Override
+	public String toString() {
+		return getShorthand();
 	}
 
 }

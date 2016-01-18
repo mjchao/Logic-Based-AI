@@ -46,7 +46,7 @@ public class Function extends Symbol {
 	 * 
 	 * @param name						the name of this function as it is to
 	 * 									appear in FOL expressions
-	 * @param definitionClassInstance	an instance of the class definition how
+	 * @param definitionClassInstance	an instance of the class defining how
 	 * 									this function operates
 	 * @param argTypes					the types of the arguments to this function
 	 */

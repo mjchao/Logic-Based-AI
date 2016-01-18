@@ -3,7 +3,9 @@ package mjchao.mazenav.logic.structures;
 import java.lang.reflect.InvocationTargetException;
 
 /**
- * Represents a relation in first-order logic (FOL).
+ * Represents a relation in first-order logic (FOL). A relation is a function
+ * that returns True or False.
+ * 
  * @author mjchao
  *
  */

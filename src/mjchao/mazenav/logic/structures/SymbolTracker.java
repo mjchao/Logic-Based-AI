@@ -7,7 +7,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.StringTokenizer;
 
 /**
  * Tracks any variables that have been generated
@@ -41,7 +40,22 @@ public class SymbolTracker {
 		return definingClassInstance;
 	}
 	
-	private static final Function parseFunction( String[] tokens , Object... definitionClasses ) {
+	/**
+	 * Determines if any types in the given list are blank ("")
+	 * 
+	 * @param types
+	 * @return
+	 */
+	private static final boolean containsBlankTypes( String[] types ) {
+		for ( String type : types ) {
+			if ( type.trim().isEmpty() ) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	private static final Function parseFunction( String[] tokens , int lineNum , Object... definitionClasses ) {
 		
 		//read the name of the function
 		String name = tokens[ 0 ];
@@ -52,18 +66,18 @@ public class SymbolTracker {
 			throw new IllegalArgumentException( "Function \"" + name + "\" is never defined." );
 		}
 		
-		//parse the argument types
-		int numArgs = Integer.parseInt( tokens[ 1 ] );
-		String[] argTypes = new String[ numArgs ];
-		for ( int i=0 ; i<numArgs ; ++i ) {
-			argTypes[ i ] = tokens[ 2+i ];
+		//parse the argument types and make sure
+		//they're all defined
+		String[] argTypes = Arrays.copyOfRange( tokens , 1 , tokens.length );
+		if ( containsBlankTypes( argTypes ) ) {
+			throw new IllegalArgumentException( "(Line " + lineNum + ") Function \"" + name + "\" defined with blank types." );
 		}
 		
 		//create the function
 		return new Function( name , definingClassInstance , argTypes );
 	}
 	
-	private static Relation parseRelation( String[] tokens , Object... definingClasses ) {
+	private static Relation parseRelation( String[] tokens , int lineNum , Object... definingClasses ) {
 		String name = tokens[ 0 ];
 		
 		Object definingClassInstance = getDefiningClassInstance( name , definingClasses );
@@ -71,32 +85,30 @@ public class SymbolTracker {
 			throw new IllegalArgumentException( "Function \"" + name + "\" is never defined." );
 		}
 		
-		int numArgs = Integer.parseInt( tokens[ 1 ] );
-		String[] argTypes = new String[ numArgs ];
-		for ( int i=0 ; i<numArgs ; ++i ) {
-			argTypes[ i ] = tokens[ 2+i ];
+		String[] argTypes = Arrays.copyOfRange( tokens , 1 , tokens.length );
+		if ( containsBlankTypes( argTypes ) ) {
+			throw new IllegalArgumentException( "(Line " + lineNum + ") Function \"" + name + "\" defined with blank types." );
 		}
 		
 		return new Relation( name , definingClassInstance , argTypes );
 	}
 	
-	private static ObjectFOL parseObject( String[] tokens ) {
+	private static ObjectFOL parseObject( String[] tokens , int lineNum ) {
 		String name = tokens[ 0 ];
 		
-		int numTypes = Integer.parseInt( tokens[ 1 ] );
-		String[] types = new String[ numTypes ];
-		for ( int i=0 ; i<numTypes ; ++i ) {
-			types[ i ] = tokens[ 2+i ];
+		String[] types = Arrays.copyOfRange( tokens , 1 , tokens.length );
+		if ( containsBlankTypes( types ) ) {
+			throw new IllegalArgumentException( "(Line " + lineNum + ") Object \"" + name + "\" defined with blank types." );
 		}
 		
 		return new ObjectFOL( name , name , types );
 	}
 	
-	private static final String DATA_FILE_DELIMITERS = " ,:;()";
-	
 	private static final String[] tokenize( String input ) {
+		
 		//first, remove all leading extraneous whitespace
-		//because otherwise, regex gives us a blank first token
+		//because otherwise, spltting on the second regex 
+		//can give us a blank first token
 		String trimmedInput = input.replaceAll( "^(\\s|\\(|\\)|,|:)*" , "" );
 		return trimmedInput.split( "\\s*(\\s|,|:|\\(|\\))\\s*" );
 	}
@@ -119,20 +131,20 @@ public class SymbolTracker {
 				continue;
 			}
 			
-			String[] tokens = nextLine.split( " " );
+			String[] tokens = tokenize( nextLine );
 			String dataType = tokens[ 0 ];
 			
 			String[] data = Arrays.copyOfRange( tokens , 1 , tokens.length );
 			if ( dataType.equals( "FUNCTION" ) ) {
-				Function func = parseFunction( Arrays.copyOfRange( data , 1 , tokens.length ) , definitionClassInstances );
+				Function func = parseFunction( data , lineNumber , definitionClassInstances );
 				rtn.addFunction( func.getSymbolName() , func );
 			}
 			else if ( dataType.equals( "RELATION" ) ) {
-				Relation rel = parseRelation( data , definitionClassInstances );
+				Relation rel = parseRelation( data , lineNumber , definitionClassInstances );
 				rtn.addRelation( rel.getSymbolName() , rel );
 			}
 			else if ( dataType.equals( "OBJECT" ) ) {
-				ObjectFOL obj = parseObject( data );
+				ObjectFOL obj = parseObject( data , lineNumber );
 				rtn.addObject( obj.getSymbolName() , obj );
 			}
 			else {

@@ -25,7 +25,9 @@ public class SymbolTrackerTest {
 		expected = new String[]{ "FUNCTION" , "SumInt" , "Integer" , "Integer" };
 		Assert.assertArrayEquals( (String[])tokenize.invoke( null , input ) , expected );
 		
-		//test 
-		
+		//test extra commas
+		input = ":::FUNCTION:		SumInt( Integer ,, Integer )    ";
+		expected = new String[]{ "FUNCTION" , "SumInt" , "Integer" , "" , "Integer" };
+		Assert.assertArrayEquals( (String[])tokenize.invoke( null , input ) , expected );
 	}
 }

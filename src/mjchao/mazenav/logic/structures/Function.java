@@ -55,6 +55,9 @@ public class Function extends Symbol {
 		this.definitionClassInstance = definitionClassInstance;
 		
 		for ( String type : argTypes ) {
+			if ( type.trim().isEmpty() ) {
+				throw new IllegalArgumentException( "Function \"" + name + "\" has blank types." );
+			}
 			this.argTypes.add( type );
 		}
 		
@@ -98,8 +101,10 @@ public class Function extends Symbol {
 		}
 		
 		//check that arguments types are what we expect
+		//* denotes any type is valid and the function
+		//will need to work with general objects
 		for ( int i=0 ; i<args.length ; ++i ) {
-			if ( !args[ i ].isOfType( argTypes.get( i ) ) ) {
+			if ( !args[ i ].isOfType( argTypes.get( i ) ) && !args[ i ].equals( "*" ) ) {
 				throw new IllegalArgumentException( "Argument type mistmatch: \n" + 
 							args[ i ].toString() + "\n" +
 							"is not of type " + argTypes.get( i ) );

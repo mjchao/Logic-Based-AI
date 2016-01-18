@@ -22,5 +22,10 @@ public class BooleanFOL extends ObjectFOL {
 	private BooleanFOL( String name , Object value ) {
 		super( name , value , new String[]{ "Boolean" } );
 	}
+	
+	@Override
+	public Boolean getValue() {
+		return (Boolean) super.getValue();
+	}
 
 }

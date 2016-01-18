@@ -12,6 +12,12 @@ import java.util.HashMap;
  */
 public class SymbolTracker {
 
+	
+	//TODO implement loading a symbol tracker from a data file
+	public static final SymbolTracker fromDataFile( String filename ) {
+		return null;
+	}
+	
 	private HashMap< String , Function > functions = new HashMap< String , Function >();
 	private HashMap< String , Relation > relations = new HashMap< String , Relation >();
 	private HashMap< String , ObjectFOL > objects = new HashMap< String , ObjectFOL >();
@@ -24,8 +30,8 @@ public class SymbolTracker {
 		
 	}
 	
-	public void readDataFromFile( String filename ) {
-		
+	public void addFunction( String name , Function f ) {
+		this.functions.put( name , f );
 	}
 	
 	public Function getFunction( String functionName ) {
@@ -42,11 +48,19 @@ public class SymbolTracker {
 		return null;
 	}
 	
+	public void addRelation( String name , Relation r ) {
+		this.relations.put( name , r );
+	}
+	
 	public ObjectFOL getConstant( String constantName ) {
 		if ( objects.containsKey( constantName ) ) {
 			return objects.get( constantName );
 		}
 		return null;
+	}
+	
+	public void addObject( String name , ObjectFOL obj ) {
+		this.objects.put( name , obj );
 	}
 	
 	/**

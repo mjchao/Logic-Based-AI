@@ -32,6 +32,7 @@ public class Processor {
 
 	}
 
+	//TODO test
 	public void tokenize() {
 		tokens = new ArrayList< Symbol >();
 		

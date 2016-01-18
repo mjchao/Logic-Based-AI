@@ -1,5 +1,5 @@
 # Logic-Based-Maze-Navigation
-In this project, we consider the Wumpus World presented in *Artificial Intelligence A Modern Approach* (Russel and Norvig). Our goal is to implement an intelligent agent who is able to safely explore the world and find a bag of gold without dying. The main purpose of this project is to produce an extendible First-Order Logic (FOL) library. The secondary purpose is the apply this library to the Wumpus World.
+In this project, we consider the Wumpus World presented in *Artificial Intelligence A Modern Approach* (Russel and Norvig). Our goal is to implement an intelligent agent who is able to safely explore the world and find a bag of gold without dying. The main purpose of this project is to produce an extendible First-Order Logic (FOL) library. The secondary purpose is to apply this library to the Wumpus World and potentially other "worlds" (e.g. logic could be used to prove theorems in a mathematical world).
 
 # The Players
 The Wumpus World is a very simple n-by-m grid. There are multiple pits, one wumpus, and one bag of gold distributed over the squares. 

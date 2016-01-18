@@ -1,4 +1,4 @@
-package mjchao.mazenav.logic.ground;
+package mjchao.mazenav.logic.wumpus;
 
 /**
  * Defines how functions, relations, and

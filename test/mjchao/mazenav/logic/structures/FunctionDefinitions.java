@@ -34,4 +34,6 @@ public class FunctionDefinitions {
 	public ObjectFOL NotARelation( ObjectFOL arg1 ) {
 		return ObjectFOL.fromInt( 5 );
 	}
+	
+	
 }

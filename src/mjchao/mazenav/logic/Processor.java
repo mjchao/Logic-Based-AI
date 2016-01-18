@@ -50,7 +50,7 @@ public class Processor {
 		//also make sure all reserved symbols such as "(", ")", and "," have
 		//a space before and after them
 		for ( Symbol s : Symbol.SYMBOL_LIST ) {
-			toTokenize.replaceAll( s.getName() , " " + s.getName() + " " );
+			toTokenize.replaceAll( s.getSymbolName() , " " + s.getSymbolName() + " " );
 		}
 		
 		//now every token should be separated by a space

@@ -1,0 +1,7 @@
+#Definition file for "Integer World" a world with some functions
+#and relations on integers
+
+#Returns if the 
+FUNCTION: SumInt( Integer , Integer )
+FUNCTION: DiffInt( Integer , Integer )
+RELATION: GreaterThan( Integer , Integer )

@@ -33,7 +33,7 @@ public class Symbol {
 		this.name = name;
 	}
 	
-	public String getName() {
+	public String getSymbolName() {
 		return name;
 	}
 	

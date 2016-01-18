@@ -48,7 +48,7 @@ public class Operator extends Symbol {
 	 */
 	public static Operator parseOperator( String str ) {
 		for ( Operator op : OPERATOR_LIST ) {
-			if ( op.getName().equals( str ) || op.toString().equals( str ) ) {
+			if ( op.getSymbolName().equals( str ) || op.toString().equals( str ) ) {
 				return op;
 			}
 		}

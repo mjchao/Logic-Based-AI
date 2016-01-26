@@ -1,17 +1,10 @@
 package mjchao.mazenav.logic.structures;
 
-/**
- * An "Integer World" that has been erroneous constructed.
- * Used for checking error-detection abilities 
- * 
- * @author mjchao
- *
- */
-public class IntegerWorldErroneous {
+public class IntegerWorldErrorConstantMissingType {
 	
 	public ObjectFOL changingInt = NumbersFOL.fromInt( 5 );
 	
-	public IntegerWorldErroneous() {
+	public IntegerWorldErrorConstantMissingType() {
 		
 	}
 
@@ -20,16 +13,7 @@ public class IntegerWorldErroneous {
 		int addend = ((Integer) arg2.getValue()).intValue();
 		return NumbersFOL.fromInt( augend + addend );
 	}
-	
-	/**
-	 * Overloaded function used for testing purposes (this function is
-	 * never used in test cases intended to pass without throwing
-	 * an exception)
-	 */
-	public ObjectFOL SumInt( ObjectFOL arg1 , ObjectFOL arg2 , ObjectFOL arg3 ) {
-		throw new RuntimeException( "This function should not have executed." );
-	}
-	
+
 	public ObjectFOL DiffInt( ObjectFOL arg1 , ObjectFOL arg2 ) {
 		int augend = ((Integer) arg1.getValue()).intValue();
 		int addend = ((Integer) arg2.getValue()).intValue();
@@ -51,5 +35,8 @@ public class IntegerWorldErroneous {
 		return NumbersFOL.fromInt( 5 );
 	}
 	
+	public ObjectFOL Zero() {
+		return new ObjectFOL( "0" , Integer.valueOf(0) , "Integer" );
+	}
 	
 }

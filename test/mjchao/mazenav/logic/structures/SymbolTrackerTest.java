@@ -74,4 +74,22 @@ public class SymbolTrackerTest {
 		Assert.assertTrue( AngleEquals.operate( rightAngle , rightAngleConstant ).equals( BooleanFOL.True() ) );
 		
 	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void undefinedConstant() throws IOException {
+		IntegerWorldErrorUndefinedConstant def = new IntegerWorldErrorUndefinedConstant();
+		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld_error_undefined_constant.txt" , def );
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void constantMissingType() throws IOException {
+		IntegerWorldErrorConstantMissingType def = new IntegerWorldErrorConstantMissingType();
+		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld_error_constant_missing_type.txt" , def );		
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void constantDefineWithArguments() throws IOException {
+		IntegerWorldErrorConstantDefinedWithArguments def = new IntegerWorldErrorConstantDefinedWithArguments();
+		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld_error_constant_defined_with_arguments.txt" , def );		
+	}
 }

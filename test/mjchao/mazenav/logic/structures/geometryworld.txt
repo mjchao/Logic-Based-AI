@@ -30,4 +30,4 @@ RELATION: AngleEquals( Angle , Angle )
 #All right angles are equal to
 #one another, so we will use a constant
 #object to represent this
-OBJECT: RightAngle 	, Angle
+CONSTANT: RightAngle , Angle

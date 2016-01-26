@@ -3,6 +3,7 @@ package mjchao.mazenav.logic.structures;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -93,7 +94,7 @@ public class SymbolTracker {
 		return new Relation( name , definingClassInstance , argTypes );
 	}
 	
-	private static ObjectFOL parseObject( String[] tokens , int lineNum ) {
+	private static Function parseConstant( String[] tokens , int lineNum , Object... definingClasses ) {
 		String name = tokens[ 0 ];
 		
 		String[] types = Arrays.copyOfRange( tokens , 1 , tokens.length );
@@ -101,7 +102,30 @@ public class SymbolTracker {
 			throw new IllegalArgumentException( "(Line " + lineNum + ") Object \"" + name + "\" defined with blank types." );
 		}
 		
-		return new ObjectFOL( name , name , types );
+		Object definingClassInstance = getDefiningClassInstance( name , definingClasses );
+		if ( definingClassInstance == null ) {
+			throw new IllegalArgumentException( "Constant \"" + name + "\" is never defined." );
+		}
+		
+		//we treat constants a functions that take no parameters
+		Function rtn = new Function( name , definingClassInstance , new String[0] );
+		
+		//check that the function returns an object with the correct types
+		try {
+			ObjectFOL constant = rtn.operate();
+			
+			for ( String type : types ) {
+				if ( !constant.isOfType( type ) ) {
+					throw new IllegalArgumentException( "Constant\"" + name + "\" is not defined properly. " + 
+														"The function that represents \"" + name + "\" should return " + 
+														"an ObjectFOL of type \"" + type + "\"." );
+				}
+			}
+		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			throw new IllegalArgumentException( "Constant \"" + name + "\" is not defined properly. " + 
+												"It should be a function that takes 0 arguments." );	
+		}
+		return rtn;
 	}
 	
 	private static final String[] tokenize( String input ) {
@@ -143,15 +167,15 @@ public class SymbolTracker {
 				Relation rel = parseRelation( data , lineNumber , definitionClassInstances );
 				rtn.addRelation( rel.getSymbolName() , rel );
 			}
-			else if ( dataType.equals( "OBJECT" ) ) {
-				ObjectFOL obj = parseObject( data , lineNumber );
-				rtn.addObject( obj.getSymbolName() , obj );
+			else if ( dataType.equals( "CONSTANT" ) ) {
+				Function obj = parseConstant( data , lineNumber , definitionClassInstances );
+				rtn.addConstant( obj.getSymbolName() , obj );
 			}
 			else {
 				throw new IllegalArgumentException( "Undefined type: " + dataType + 
 													" at line " + lineNumber + 
 													" in file \"" + filename + "\".\n" +
-													"Valid types are \"FUNCTION\", \"RELATION\", and \"OBJECT\"" );
+													"Valid types are \"FUNCTION\", \"RELATION\", and \"CONSTANT\"" );
 			}
 			nextLine = f.readLine();
 			++lineNumber;
@@ -163,7 +187,7 @@ public class SymbolTracker {
 	
 	private HashMap< String , Function > functions = new HashMap< String , Function >();
 	private HashMap< String , Relation > relations = new HashMap< String , Relation >();
-	private HashMap< String , ObjectFOL > objects = new HashMap< String , ObjectFOL >();
+	private HashMap< String , Function > constants = new HashMap< String , Function >();
 	
 	private ArrayList< Variable > variables = new ArrayList< Variable >();
 	
@@ -196,14 +220,18 @@ public class SymbolTracker {
 	}
 	
 	public ObjectFOL getConstant( String constantName ) {
-		if ( objects.containsKey( constantName ) ) {
-			return objects.get( constantName );
+		if ( constants.containsKey( constantName ) ) {
+			try {
+				return constants.get( constantName ).operate();
+			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+				return null;
+			}
 		}
 		return null;
 	}
 	
-	public void addObject( String name , ObjectFOL obj ) {
-		this.objects.put( name , obj );
+	public void addConstant( String name , Function obj ) {
+		this.constants.put( name , obj );
 	}
 	
 	/**

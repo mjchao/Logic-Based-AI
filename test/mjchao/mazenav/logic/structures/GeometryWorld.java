@@ -90,6 +90,9 @@ public class GeometryWorld {
 		}
 	}
 	
+	private static RightAngle RIGHT_ANGLE_INSTANCE = new RightAngle();
+	public static ObjectFOL RIGHT_ANGLE = new ObjectFOL( RIGHT_ANGLE_INSTANCE.toString() , RIGHT_ANGLE_INSTANCE , "RightAngle" , "Angle" );
+	
 	public static class RightAngle extends Angle {
 		
 		public RightAngle() {
@@ -145,14 +148,13 @@ public class GeometryWorld {
 			throw new IllegalArgumentException( "Expecting one parameter of type Real." );
 		}
 		Double deg = NumbersFOL.parseDouble( degrees );
-		Angle newAngle;
 		if ( deg.doubleValue() == 90 ) {
-			newAngle = new RightAngle();
+			return RightAngle();
 		}
 		else {
-			newAngle = new Angle( deg );
+			Angle newAngle = new Angle( deg );
+			return new ObjectFOL( newAngle.toString() , newAngle , "Angle" );
 		}
-		return new ObjectFOL( newAngle.toString() , newAngle , "Angle" );
 	}
 	
 	public static BooleanFOL AngleEquals( ObjectFOL angle1 , ObjectFOL angle2 ) {
@@ -162,5 +164,9 @@ public class GeometryWorld {
 		Angle a1 = (Angle) angle1.getValue();
 		Angle a2 = (Angle) angle2.getValue();
 		return BooleanFOL.fromBoolean( a1.equals( a2 ) );
+	}
+	
+	public static ObjectFOL RightAngle() {
+		return RIGHT_ANGLE;
 	}
 }

@@ -138,50 +138,56 @@ public class SymbolTracker {
 	}
 	
 	public static final SymbolTracker fromDataFile( String filename , Object... definitionClassInstances ) throws IOException {
-		BufferedReader f = new BufferedReader( new FileReader( filename ) );
+		return fromDataFiles( new String[]{ filename } , definitionClassInstances );
+	}
+	
+	public static final SymbolTracker fromDataFiles( String[] filenames , Object... definitionClassInstances ) throws IOException {
 		SymbolTracker rtn = new SymbolTracker();
-		
-		int lineNumber = 1;
-		String nextLine = f.readLine();
-		while( nextLine != null ) {
+		for ( String filename : filenames ) {
+			BufferedReader f = new BufferedReader( new FileReader( filename ) );
 			
-			//allow tokens to be separated by any combination of
-			//spaces " " and/or commas ","
-			
-			//ignore comments and blank lines
-			if ( nextLine.trim().startsWith( "#" ) || nextLine.trim().isEmpty() ) {
+			int lineNumber = 1;
+			String nextLine = f.readLine();
+			while( nextLine != null ) {
+				
+				//allow tokens to be separated by any combination of
+				//spaces " " and/or commas ","
+				
+				//ignore comments and blank lines
+				if ( nextLine.trim().startsWith( "#" ) || nextLine.trim().isEmpty() ) {
+					nextLine = f.readLine();
+					++lineNumber;
+					continue;
+				}
+				
+				String[] tokens = tokenize( nextLine );
+				String dataType = tokens[ 0 ];
+				
+				String[] data = Arrays.copyOfRange( tokens , 1 , tokens.length );
+				if ( dataType.equals( "FUNCTION" ) ) {
+					Function func = parseFunction( data , lineNumber , definitionClassInstances );
+					rtn.addFunction( func.getSymbolName() , func );
+				}
+				else if ( dataType.equals( "RELATION" ) ) {
+					Relation rel = parseRelation( data , lineNumber , definitionClassInstances );
+					rtn.addRelation( rel.getSymbolName() , rel );
+				}
+				else if ( dataType.equals( "CONSTANT" ) ) {
+					Function obj = parseConstant( data , lineNumber , definitionClassInstances );
+					rtn.addConstant( obj.getSymbolName() , obj );
+				}
+				else {
+					throw new IllegalArgumentException( "Undefined type: " + dataType + 
+														" at line " + lineNumber + 
+														" in file \"" + filename + "\".\n" +
+														"Valid types are \"FUNCTION\", \"RELATION\", and \"CONSTANT\"" );
+				}
 				nextLine = f.readLine();
 				++lineNumber;
-				continue;
 			}
 			
-			String[] tokens = tokenize( nextLine );
-			String dataType = tokens[ 0 ];
-			
-			String[] data = Arrays.copyOfRange( tokens , 1 , tokens.length );
-			if ( dataType.equals( "FUNCTION" ) ) {
-				Function func = parseFunction( data , lineNumber , definitionClassInstances );
-				rtn.addFunction( func.getSymbolName() , func );
-			}
-			else if ( dataType.equals( "RELATION" ) ) {
-				Relation rel = parseRelation( data , lineNumber , definitionClassInstances );
-				rtn.addRelation( rel.getSymbolName() , rel );
-			}
-			else if ( dataType.equals( "CONSTANT" ) ) {
-				Function obj = parseConstant( data , lineNumber , definitionClassInstances );
-				rtn.addConstant( obj.getSymbolName() , obj );
-			}
-			else {
-				throw new IllegalArgumentException( "Undefined type: " + dataType + 
-													" at line " + lineNumber + 
-													" in file \"" + filename + "\".\n" +
-													"Valid types are \"FUNCTION\", \"RELATION\", and \"CONSTANT\"" );
-			}
-			nextLine = f.readLine();
-			++lineNumber;
+			f.close();
 		}
-		
-		f.close();
 		return rtn;
 	}
 	
@@ -257,7 +263,7 @@ public class SymbolTracker {
 			//ignore
 		}
 		try {
-			double doubleValue = Double.valueOf( token );
+			double doubleValue = Double.valueOf( token ).doubleValue();
 			return NumbersFOL.fromDouble( doubleValue );
 		}
 		catch ( NumberFormatException e ) {

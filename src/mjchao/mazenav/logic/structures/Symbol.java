@@ -1,7 +1,5 @@
 package mjchao.mazenav.logic.structures;
 
-import mjchao.mazenav.util.Utils;
-
 /**
  * A symbol to be used in a logic expression.
  * 
@@ -14,11 +12,10 @@ public class Symbol {
 	public static final Symbol RIGHT_PAREN = new Symbol( ")" );
 	public static final Symbol COMMA = new Symbol( "," );
 	public static final Symbol[] SYMBOL_LIST = new Symbol[] { LEFT_PAREN , RIGHT_PAREN , COMMA };
-	public static Symbol[] RESERVED = Utils.join( Symbol.class , Symbol.SYMBOL_LIST , Operator.OPERATOR_LIST , Quantifier.QUANTIFIER_LIST );
 
 	public static Symbol parseSymbol( String str ) {
 		for ( Symbol s : SYMBOL_LIST ) {
-			if ( s.equals( str ) ) {
+			if ( s.getSymbolName().equals( str ) ) {
 				return s;
 			}
 		}
@@ -43,6 +40,14 @@ public class Symbol {
 		//some symbols may have a shorthand representation
 		//e.g. for AND it is &&
 		return name;
+	}
+	
+	@Override
+	public boolean equals( Object o ) {
+		if ( o instanceof Symbol ) {
+			return this.name.equals( ((Symbol) o).name );
+		}
+		return false;
 	}
 	
 	@Override

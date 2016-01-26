@@ -41,20 +41,20 @@ public class Processor {
 		//go through and make sure all shorthand operators
 		//and quantifiers have a space before and after them
 		for ( Operator o : Operator.OPERATOR_LIST ) {
-			toTokenize.replaceAll( o.getShorthand() , " " + o.getShorthand() + " " );
+			toTokenize = toTokenize.replace( o.getShorthand() , " " + o.getShorthand() + " " );
 		}
 		for ( Quantifier q : Quantifier.QUANTIFIER_LIST ) {
-			toTokenize.replaceAll( q.getShorthand() , " " + q.getShorthand() + " " );
+			toTokenize = toTokenize.replace( q.getShorthand() , " " + q.getShorthand() + " " );
 		}
 		
 		//also make sure all reserved symbols such as "(", ")", and "," have
 		//a space before and after them
 		for ( Symbol s : Symbol.SYMBOL_LIST ) {
-			toTokenize.replaceAll( s.getSymbolName() , " " + s.getSymbolName() + " " );
+			toTokenize = toTokenize.replace( s.getSymbolName() , " " + s.getSymbolName() + " " );
 		}
 		
 		//now every token should be separated by a space
-		String[] stringTokens = toTokenize.split( " " );
+		String[] stringTokens = toTokenize.split( "\\s+" );
 		
 		//now we can go through and consider every token individually
 		for ( int i=0 ; i<stringTokens.length ; ++i ) {
@@ -110,9 +110,20 @@ public class Processor {
 			}
 			
 			//otherwise, we treat it as a variable
-			Variable var = tracker.getNewVariable( token );
+			//first check if the variable already exists
+			Variable var = tracker.getVariableByName( token );
+			if ( var != null ) {
+				tokens.add( var );
+				continue;
+			}
+			
+			//finally, if the variable does not already exist
+			//then create a new one
+			var = tracker.getNewVariable( token );
+			
 			tokens.add( var );
 			continue;
 		}
 	}
+	
 }

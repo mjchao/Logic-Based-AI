@@ -42,4 +42,12 @@ public class Variable extends Symbol {
 	public int getId() {
 		return this.id;
 	}
+	
+	@Override
+	public boolean equals( Object o ) {
+		if ( o instanceof Variable ) {
+			return this.name.equals( ((Variable) o).name );
+		}
+		return false;
+	}
 }

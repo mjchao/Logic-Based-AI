@@ -137,10 +137,35 @@ public class SymbolTracker {
 		return trimmedInput.split( "\\s*(\\s|,|:|\\(|\\))\\s*" );
 	}
 	
+	/**
+	 * Creates a SymbolTracker from one definition file
+	 * and multiple definition class instances.
+	 * 
+	 * 
+	 * @param filename
+	 * @param definitionClassInstances
+	 * @return
+	 * @throws IOException
+	 * @see {@link SymbolTracker#fromDataFiles(String[], Object...)}
+	 */
 	public static final SymbolTracker fromDataFile( String filename , Object... definitionClassInstances ) throws IOException {
 		return fromDataFiles( new String[]{ filename } , definitionClassInstances );
 	}
 	
+	/**
+	 * Creates a SymbolTracker from multiple definition files and
+	 * definition class instances. Note: This has only been tested with
+	 * one file, but it should generalize to multiple files. TODO: test
+	 * with multiple files.
+	 * 
+	 * @param filenames						the filenames that specify the
+	 * 										functions, relations and objects in FOL
+	 * @param definitionClassInstances		the objects that have implemented
+	 * 										the functions, relations and objects in Java
+	 * @return								a SymbolTracker loaded with all the functions
+	 * 										relations and objects
+	 * @throws IOException
+	 */
 	public static final SymbolTracker fromDataFiles( String[] filenames , Object... definitionClassInstances ) throws IOException {
 		SymbolTracker rtn = new SymbolTracker();
 		for ( String filename : filenames ) {
@@ -196,6 +221,7 @@ public class SymbolTracker {
 	private HashMap< String , Function > constants = new HashMap< String , Function >();
 	
 	private ArrayList< Variable > variables = new ArrayList< Variable >();
+	private HashMap< String , Variable > variablesByName = new HashMap< String , Variable >();
 	
 	private int nextVariableId = 0;
 	
@@ -275,6 +301,7 @@ public class SymbolTracker {
 	public Variable getNewVariable() {
 		Variable rtn = new Variable( nextVariableId );
 		variables.add( rtn );
+		variablesByName.put( rtn.getSymbolName() , rtn );
 		++nextVariableId;
 		return rtn;
 	}
@@ -282,8 +309,17 @@ public class SymbolTracker {
 	public Variable getNewVariable( String name ) {
 		Variable rtn = new Variable( name , nextVariableId );
 		variables.add( rtn );
+		variablesByName.put( name , rtn );
 		++nextVariableId;
 		return rtn;
+	}
+	
+	public Variable getVariableByName( String name ) {
+		return variablesByName.get( name );
+	}
+	
+	public Variable getVariableById( int id ) {
+		return variables.get( id );
 	}
 	
 }

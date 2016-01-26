@@ -11,14 +11,14 @@ import java.util.ArrayList;
 public class ObjectFOL extends Symbol {
 	
 	public static String INTEGER_TYPE = "Integer";
-	public static String DECIMAL_TYPE = "Decimal";
+	public static String REAL_TYPE = "Real";
 	
 	public static ObjectFOL fromInt( int val ) {
-		return new ObjectFOL( String.valueOf( val ) , Integer.valueOf( val ) , INTEGER_TYPE , DECIMAL_TYPE );
+		return new ObjectFOL( String.valueOf( val ) , Integer.valueOf( val ) , INTEGER_TYPE , REAL_TYPE );
 	}
 	
 	public static ObjectFOL fromDouble( double val ) {
-		return new ObjectFOL( String.valueOf( val ) , Double.valueOf( val ) , DECIMAL_TYPE );
+		return new ObjectFOL( String.valueOf( val ) , Double.valueOf( val ) , REAL_TYPE );
 	}
 	
 	public static ObjectFOL fromFloat( float val ) {

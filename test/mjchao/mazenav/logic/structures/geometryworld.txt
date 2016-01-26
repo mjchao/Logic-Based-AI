@@ -1,9 +1,9 @@
 #Definition file for "Geometry World," a world that 
 #we will try to build up with the axioms of Geometry
 
-#Creates a point at the given decimal
+#Creates a point at the given real
 #coordinates
-FUNCTION: Point( Decimal , Decimal )
+FUNCTION: Point( Real , Real )
 
 #Creates a line segment that is a straight
 #line drawn from the first point to the 
@@ -18,7 +18,11 @@ FUNCTION: Line( LineSegment )
 #Creates a circle centered
 #at a given point and with
 #the given decimal radius
-FUNCTION: Circle( Point , Decimal )
+FUNCTION: Circle( Point , Real )
+
+#Creates an angle with the
+#given number of degrees
+FUNCTION: Angle( Real )
 
 #Determines if two angles are equal
 RELATION: AngleEquals( Angle , Angle )

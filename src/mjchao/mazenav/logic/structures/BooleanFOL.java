@@ -24,6 +24,14 @@ public class BooleanFOL extends ObjectFOL {
 	}
 	
 	@Override
+	public boolean equals( Object other ) {
+		if ( other instanceof BooleanFOL ) {
+			return this.getValue().equals( ((BooleanFOL)other).getValue() );
+		}
+		return false;
+	}
+	
+	@Override
 	public Boolean getValue() {
 		return (Boolean) super.getValue();
 	}

@@ -56,7 +56,17 @@ public class SymbolTrackerTest {
 	}
 	
 	@Test
-	public void fromGeometryWorldFile() {
+	public void fromGeometryWorldFile() throws IOException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		GeometryWorld def = new GeometryWorld();
+		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/geometryworld.txt", def );
 		
+		Function Angle = test.getFunction( "Angle" );
+		ObjectFOL angle1 = Angle.operate( ObjectFOL.fromDouble( 25.7) );
+		ObjectFOL angle2 = Angle.operate( ObjectFOL.fromDouble( 25.7 ) );
+		ObjectFOL angle3 = Angle.operate( ObjectFOL.fromDouble( 50.5 ) );
+		
+		Function AngleEquals = test.getRelation( "AngleEquals" );
+		Assert.assertTrue( AngleEquals.operate( angle1 , angle2 ).equals( BooleanFOL.True() ) );
+		Assert.assertTrue( AngleEquals.operate( angle1 , angle3 ).equals( BooleanFOL.False() ) );
 	}
 }

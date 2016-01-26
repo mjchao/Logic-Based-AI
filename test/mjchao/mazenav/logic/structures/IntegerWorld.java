@@ -2,7 +2,7 @@ package mjchao.mazenav.logic.structures;
 
 public class IntegerWorld {
 	
-	public ObjectFOL changingInt = ObjectFOL.fromInt( 5 );
+	public ObjectFOL changingInt = NumbersFOL.fromInt( 5 );
 	
 	public IntegerWorld() {
 		
@@ -11,13 +11,13 @@ public class IntegerWorld {
 	public ObjectFOL SumInt( ObjectFOL arg1 , ObjectFOL arg2 ) {
 		int augend = ((Integer) arg1.getValue()).intValue();
 		int addend = ((Integer) arg2.getValue()).intValue();
-		return ObjectFOL.fromInt( augend + addend );
+		return NumbersFOL.fromInt( augend + addend );
 	}
 
 	public ObjectFOL DiffInt( ObjectFOL arg1 , ObjectFOL arg2 ) {
 		int augend = ((Integer) arg1.getValue()).intValue();
 		int addend = ((Integer) arg2.getValue()).intValue();
-		return ObjectFOL.fromInt( augend - addend );
+		return NumbersFOL.fromInt( augend - addend );
 	}
 	
 	public ObjectFOL SumIntEnvir( ObjectFOL arg2 ) {
@@ -32,7 +32,7 @@ public class IntegerWorld {
 	}
 	
 	public ObjectFOL NotARelation( ObjectFOL arg1 ) {
-		return ObjectFOL.fromInt( 5 );
+		return NumbersFOL.fromInt( 5 );
 	}
 	
 	

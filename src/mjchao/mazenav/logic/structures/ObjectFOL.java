@@ -10,23 +10,6 @@ import java.util.ArrayList;
  */
 public class ObjectFOL extends Symbol {
 	
-	public static String INTEGER_TYPE = "Integer";
-	public static String REAL_TYPE = "Real";
-	
-	public static ObjectFOL fromInt( int val ) {
-		return new ObjectFOL( String.valueOf( val ) , Integer.valueOf( val ) , INTEGER_TYPE , REAL_TYPE );
-	}
-	
-	public static ObjectFOL fromDouble( double val ) {
-		return new ObjectFOL( String.valueOf( val ) , Double.valueOf( val ) , REAL_TYPE );
-	}
-	
-	public static ObjectFOL fromFloat( float val ) {
-		//we only use integer types and double precision
-		//there is no need for optimization yet for floats
-		return fromDouble( val );
-	}
-	
 	private ArrayList< String > types = new ArrayList< String >();
 	private Object value;
 	

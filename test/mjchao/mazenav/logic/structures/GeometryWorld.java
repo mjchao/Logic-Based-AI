@@ -105,8 +105,8 @@ public class GeometryWorld {
 		if ( !x.isOfType( "Real" ) || y.isOfType( "Real" ) ) {
 			throw new IllegalArgumentException( "Expecting two parameters of type Real." );
 		}
-		Double xCoord = (Double) x.getValue();
-		Double yCoord = (Double) y.getValue();
+		Double xCoord = NumbersFOL.parseDouble( x );
+		Double yCoord = NumbersFOL.parseDouble( y );
 		Point newPoint = new Point( xCoord , yCoord );
 		return new ObjectFOL( newPoint.toString() , newPoint , "Point" );
 	}
@@ -135,7 +135,7 @@ public class GeometryWorld {
 			throw new IllegalArgumentException( "Expecting one parameter of type Point and one parameter of type Real." );
 		}
 		Point ctr = (Point) center.getValue();
-		Double r = (Double) radius.getValue();
+		Double r = NumbersFOL.parseDouble( radius );
 		Circle newCircle = new Circle( ctr , r );
 		return new ObjectFOL( newCircle.toString() , newCircle , "Circle" );
 	}
@@ -144,7 +144,7 @@ public class GeometryWorld {
 		if ( !degrees.isOfType( "Real" ) ) {
 			throw new IllegalArgumentException( "Expecting one parameter of type Real." );
 		}
-		Double deg = (Double) degrees.getValue();
+		Double deg = NumbersFOL.parseDouble( degrees );
 		Angle newAngle;
 		if ( deg.doubleValue() == 90 ) {
 			newAngle = new RightAngle();

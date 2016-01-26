@@ -223,14 +223,14 @@ public class SymbolTracker {
 	public ObjectFOL getPredefinedConstant( String token ) {
 		try {
 			int intValue = Integer.parseInt( token );
-			return ObjectFOL.fromInt( intValue );
+			return NumbersFOL.fromInt( intValue );
 		}
 		catch ( NumberFormatException e ) {
 			//ignore
 		}
 		try {
 			double doubleValue = Double.valueOf( token );
-			return ObjectFOL.fromDouble( doubleValue );
+			return NumbersFOL.fromDouble( doubleValue );
 		}
 		catch ( NumberFormatException e ) {
 			//ignore

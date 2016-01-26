@@ -37,8 +37,8 @@ public class SymbolTrackerTest {
 		IntegerWorld def = new IntegerWorld();
 		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , def );
 		
-		ObjectFOL five = ObjectFOL.fromInt( 5 );
-		ObjectFOL six = ObjectFOL.fromInt( 6 );
+		ObjectFOL five = NumbersFOL.fromInt( 5 );
+		ObjectFOL six = NumbersFOL.fromInt( 6 );
 		
 		Function SumInt = test.getFunction( "SumInt" );
 		ObjectFOL eleven = SumInt.operate( five , six );
@@ -61,12 +61,17 @@ public class SymbolTrackerTest {
 		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/geometryworld.txt", def );
 		
 		Function Angle = test.getFunction( "Angle" );
-		ObjectFOL angle1 = Angle.operate( ObjectFOL.fromDouble( 25.7) );
-		ObjectFOL angle2 = Angle.operate( ObjectFOL.fromDouble( 25.7 ) );
-		ObjectFOL angle3 = Angle.operate( ObjectFOL.fromDouble( 50.5 ) );
+		ObjectFOL angle1 = Angle.operate( NumbersFOL.fromDouble( 25.7) );
+		ObjectFOL angle2 = Angle.operate( NumbersFOL.fromDouble( 25.7 ) );
+		ObjectFOL angle3 = Angle.operate( NumbersFOL.fromDouble( 50.5 ) );
+		ObjectFOL rightAngle = Angle.operate( NumbersFOL.fromInt( 90 ) );
 		
 		Function AngleEquals = test.getRelation( "AngleEquals" );
 		Assert.assertTrue( AngleEquals.operate( angle1 , angle2 ).equals( BooleanFOL.True() ) );
 		Assert.assertTrue( AngleEquals.operate( angle1 , angle3 ).equals( BooleanFOL.False() ) );
+		
+		ObjectFOL rightAngleConstant = test.getConstant( "RightAngle" );
+		Assert.assertTrue( AngleEquals.operate( rightAngle , rightAngleConstant ).equals( BooleanFOL.True() ) );
+		
 	}
 }

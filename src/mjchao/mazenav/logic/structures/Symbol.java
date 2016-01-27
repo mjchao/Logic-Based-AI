@@ -11,7 +11,8 @@ public class Symbol {
 	public static final Symbol LEFT_PAREN = new Symbol( "(" );
 	public static final Symbol RIGHT_PAREN = new Symbol( ")" );
 	public static final Symbol COMMA = new Symbol( "," );
-	public static final Symbol[] SYMBOL_LIST = new Symbol[] { LEFT_PAREN , RIGHT_PAREN , COMMA };
+	public static final Symbol SUCH_THAT = new Symbol( "S.T." );
+	public static final Symbol[] SYMBOL_LIST = new Symbol[] { LEFT_PAREN , RIGHT_PAREN , COMMA , SUCH_THAT };
 
 	public static Symbol parseSymbol( String str ) {
 		for ( Symbol s : SYMBOL_LIST ) {

@@ -13,7 +13,6 @@ import mjchao.mazenav.logic.structures.Operator;
 import mjchao.mazenav.logic.structures.Quantifier;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
-import mjchao.mazenav.logic.structures.Variable;
 
 public class ProcessorTest {
 
@@ -57,6 +56,19 @@ public class ProcessorTest {
 		expected = Arrays.asList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , 
 				Symbol.COMMA , tracker.getVariableByName( "x" ) , 
 				Operator.EQUALS , NumbersFOL.fromInt( 1 ) );
+		Assert.assertTrue( tokens.equals( expected ) );
+		
+		logicStatement = "FORALL(x, y), EXISTS z S.T. z == x AND EXISTS u S.T. u == y";
+		test = new Processor( logicStatement , tracker );
+		test.tokenize();
+		tokens = getTokens( test );
+		expected = Arrays.asList( Quantifier.FORALL , Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) , 
+				Symbol.COMMA , tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN , 
+				Symbol.COMMA , Quantifier.EXISTS , tracker.getVariableByName( "z" ) ,
+				Symbol.SUCH_THAT , tracker.getVariableByName( "z" ) , Operator.EQUALS ,
+				tracker.getVariableByName( "x" ) , Operator.AND , Quantifier.EXISTS , 
+				tracker.getVariableByName( "u" ) , Symbol.SUCH_THAT , tracker.getVariableByName( "u" ) ,
+				Operator.EQUALS , tracker.getVariableByName( "y" ) );
 		Assert.assertTrue( tokens.equals( expected ) );
 	}
 }

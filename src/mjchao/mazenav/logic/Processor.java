@@ -1,6 +1,7 @@
 package mjchao.mazenav.logic;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.ObjectFOL;
@@ -53,8 +54,15 @@ public class Processor {
 			toTokenize = toTokenize.replace( s.getSymbolName() , " " + s.getSymbolName() + " " );
 		}
 		
+		//remove leading whitespace, or else we will get an
+		//extraneous blank token at the beginning
+		toTokenize = toTokenize.replaceAll( "^(\\s)*" , "" );
+		
+		System.out.println( toTokenize );
+		
 		//now every token should be separated by a space
 		String[] stringTokens = toTokenize.split( "\\s+" );
+		System.out.println( Arrays.asList( stringTokens ));
 		
 		//now we can go through and consider every token individually
 		for ( int i=0 ; i<stringTokens.length ; ++i ) {

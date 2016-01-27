@@ -6,6 +6,7 @@ package mjchao.mazenav.logic.structures;
  * <ul>
  * 	<li> ! (NOT)
  *	<li> == (EQUALS)
+ *  <li> != (NOT_EQUALS)
  *	<li> && (AND)
  *	<li> || (OR)
  *	<li> --> (IMPLICATION)
@@ -22,6 +23,9 @@ public class Operator extends Symbol {
 	public static final String EQUALS_SHORTHAND = "==";
 	public static final Operator EQUALS = new Operator( "EQUALS" );
 	
+	public static final String NOT_EQUALS_SHORTHAND = "!=";
+	public static final Operator NOT_EQUALS = new Operator( "NEQUALS" );
+	
 	public static final String AND_SHORTHAND = "&&";
 	public static final Operator AND = new Operator( "AND" );
 	
@@ -34,8 +38,11 @@ public class Operator extends Symbol {
 	public static final String BICONDITIONAL_SHORTHAND = "<->";
 	public static final Operator BICONDITIONAL = new Operator( "BICONDITIONAL" );
 	
+	//Note: The ordering in which the operators appear in this list matters!
+	//If one operator contains another operator, the longer operator
+	//must appear first in this list! For example, "!=" must appear before "!"
 	public static final Operator[] OPERATOR_LIST = new Operator[] { 
-			NOT , EQUALS , AND , OR , IMPLICATION , BICONDITIONAL 
+			BICONDITIONAL , IMPLICATION , OR , AND , EQUALS , NOT 
 			};
 	
 	/**
@@ -48,7 +55,7 @@ public class Operator extends Symbol {
 	 */
 	public static Operator parseOperator( String str ) {
 		for ( Operator op : OPERATOR_LIST ) {
-			if ( op.getSymbolName().equals( str ) || op.toString().equals( str ) ) {
+			if ( op.getSymbolName().equals( str ) || op.getShorthand().equals( str ) ) {
 				return op;
 			}
 		}
@@ -72,6 +79,9 @@ public class Operator extends Symbol {
 		else if ( name.equals( "EQUALS" ) ) {
 			return str.equals( EQUALS_SHORTHAND );
 		}
+		else if ( name.equals( "NEQUALS" ) ) {
+			return str.equals( NOT_EQUALS_SHORTHAND );
+		}
 		else if ( name.equals( "AND" ) ) {
 			return str.equals( AND_SHORTHAND );
 		}
@@ -94,6 +104,9 @@ public class Operator extends Symbol {
 		}
 		else if ( name.equals( "EQUALS" ) ) {
 			return EQUALS_SHORTHAND;
+		}
+		else if ( name.equals( "NEQUALS" ) ) {
+			return NOT_EQUALS_SHORTHAND;
 		}
 		else if ( name.equals( "AND" ) ) {
 			return AND_SHORTHAND;

@@ -49,7 +49,9 @@ public class ProcessorTest {
 		List<Symbol> tokens;
 		List<Symbol> expected;
 		
+		//basic acceptance test:
 		logicStatement = "FORALL x, x==1";
+		tracker = new SymbolTracker();
 		test = new Processor( logicStatement , tracker );
 		test.tokenize();
 		tokens = getTokens( test );
@@ -58,7 +60,9 @@ public class ProcessorTest {
 				Operator.EQUALS , NumbersFOL.fromInt( 1 ) );
 		Assert.assertTrue( tokens.equals( expected ) );
 		
+		//longer basic acceptance test:
 		logicStatement = "FORALL(x, y), EXISTS z S.T. z == x AND EXISTS u S.T. u == y";
+		tracker = new SymbolTracker();
 		test = new Processor( logicStatement , tracker );
 		test.tokenize();
 		tokens = getTokens( test );
@@ -70,5 +74,20 @@ public class ProcessorTest {
 				tracker.getVariableByName( "u" ) , Symbol.SUCH_THAT , tracker.getVariableByName( "u" ) ,
 				Operator.EQUALS , tracker.getVariableByName( "y" ) );
 		Assert.assertTrue( tokens.equals( expected ) );
+		
+		//test that != does not get mixed up with !
+		logicStatement = "(!x OR y) && (x != y)";
+		tracker = new SymbolTracker();
+		test = new Processor( logicStatement , tracker );
+		test.tokenize();
+		tokens = getTokens( test );
+		expected = Arrays.asList( Symbol.LEFT_PAREN , Operator.NOT , tracker.getVariableByName( "x" ) , 
+							Operator.OR , tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN ,
+							Operator.AND , Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) , 
+							Operator.NOT_EQUALS , tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN );
+		System.out.println( tokens.toString() );
+		System.out.println( tokens.get( 0 ).getClass() );
+		//Assert.assertTrue( tokens.equals( expected ) );
+		
 	}
 }

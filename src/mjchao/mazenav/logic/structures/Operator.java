@@ -38,11 +38,8 @@ public class Operator extends Symbol {
 	public static final String BICONDITIONAL_SHORTHAND = "<->";
 	public static final Operator BICONDITIONAL = new Operator( "BICONDITIONAL" );
 	
-	//Note: The ordering in which the operators appear in this list matters!
-	//If one operator contains another operator, the longer operator
-	//must appear first in this list! For example, "!=" must appear before "!"
 	public static final Operator[] OPERATOR_LIST = new Operator[] { 
-			BICONDITIONAL , IMPLICATION , OR , AND , EQUALS , NOT 
+			BICONDITIONAL , IMPLICATION , OR , AND , NOT_EQUALS , EQUALS , NOT 
 			};
 	
 	/**

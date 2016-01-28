@@ -2,6 +2,7 @@ package mjchao.mazenav.logic;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.ObjectFOL;
@@ -32,37 +33,98 @@ public class Processor {
 		this.tracker = tracker;
 
 	}
+	
+	/**
+	 * Tokenizes a statement treating all reserved symbols as
+	 * delimiters, but also including them in the tokenized
+	 * list.
+	 * 
+	 * @param statement
+	 * @return 				the given statement with spacing around
+	 * 						individual tokens
+	 */
+	private static String[] tokenizeByReservedSymbols( String statement ) {
+		
+		//as we pass through tokens in the statement, we will
+		//add them to space-separated into this string
+		StringBuilder rtn = new StringBuilder( "" );
+		
+		//get the list of reserved keywords that we're looking for
+		//these are valid delimiters for tokens, in addition to
+		//whitespace
+		List<String> reservedSymbols = Symbol.GET_RESERVED_SYMBOLS();
+		
+		int startOfLastToken = 0;
+		for ( int currIdx = 0 ; currIdx < statement.length() ; /*incrementing happens inside loop*/ ) {
+			//our goal is to scan forward and see if we can make any keywords 
+			//beginning at the current index
+			
+			//no reserved keywords may begin with whitespace
+			if ( Character.isWhitespace( statement.charAt( currIdx ) ) ) {
+				++currIdx;
+				continue;
+			}
+			
+			boolean matchedReservedSymbol = false;
+			
+			//try to scan forward and match any reserved symbols
+			for ( String reserved : reservedSymbols ) {
+				
+				//we can't match a reserved keyword if there
+				//aren't enough letters left
+				if ( currIdx + reserved.length() > statement.length() ) {
+					continue;
+				}
+				
+				//add any keywords we find to the preprocessed list
+				if ( reserved.equals( statement.substring( currIdx , currIdx+reserved.length() ) ) ) {
+					matchedReservedSymbol = true;
+					
+					//add the token just prior to this one, if
+					//one was found
+					String previousToken = statement.substring( startOfLastToken , currIdx );
+					if ( previousToken.trim().length() > 0 ) {
+						rtn.append( " " );
+						rtn.append( previousToken.trim() );
+					}
+					
+					rtn.append( " " );
+					rtn.append( reserved );
+					
+					//we stop here to make sure we don't match
+					//multiple keywords to the same characters
+					//and skip forward to the end of the
+					//reserved keyword we just found
+					currIdx = currIdx + reserved.length();
+					startOfLastToken = currIdx;
+					break;
+				}
+			}
+			
+			if ( !matchedReservedSymbol ) {
+				++currIdx;
+				continue;
+			}
+		}
+		
+		//check for a token at the very end as well
+		if ( startOfLastToken < statement.length() ) {
+			String previousToken = statement.substring( startOfLastToken , statement.length() );
+			if ( previousToken.trim().length() > 0 ) {
+				rtn.append( " " );
+				rtn.append( previousToken.trim() );
+			}
+		}
+		return rtn.toString().trim().split( " " );
+	}
 
 	//TODO test
 	public void tokenize() {
 		tokens = new ArrayList< Symbol >();
 		
 		String toTokenize = statement;
-		
-		//go through and make sure all shorthand operators
-		//and quantifiers have a space before and after them
-		for ( Operator o : Operator.OPERATOR_LIST ) {
-			toTokenize = toTokenize.replace( o.getShorthand() , " " + o.getShorthand() + " " );
-		}
-		for ( Quantifier q : Quantifier.QUANTIFIER_LIST ) {
-			toTokenize = toTokenize.replace( q.getShorthand() , " " + q.getShorthand() + " " );
-		}
-		
-		//also make sure all reserved symbols such as "(", ")", and "," have
-		//a space before and after them
-		for ( Symbol s : Symbol.SYMBOL_LIST ) {
-			toTokenize = toTokenize.replace( s.getSymbolName() , " " + s.getSymbolName() + " " );
-		}
-		
-		//remove leading whitespace, or else we will get an
-		//extraneous blank token at the beginning
-		toTokenize = toTokenize.replaceAll( "^(\\s)*" , "" );
-		
-		System.out.println( toTokenize );
-		
-		//now every token should be separated by a space
-		String[] stringTokens = toTokenize.split( "\\s+" );
-		System.out.println( Arrays.asList( stringTokens ));
+
+		String[] stringTokens = tokenizeByReservedSymbols( toTokenize );
 		
 		//now we can go through and consider every token individually
 		for ( int i=0 ; i<stringTokens.length ; ++i ) {

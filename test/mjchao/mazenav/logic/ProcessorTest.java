@@ -1,11 +1,14 @@
 package mjchao.mazenav.logic;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import mjchao.mazenav.logic.structures.NumbersFOL;
@@ -30,12 +33,20 @@ public class ProcessorTest {
 			f.setAccessible( true );
 			return (ArrayList<Symbol>) f.get( p );
 		} catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
-			for ( Field f : c.getDeclaredFields() ) {
-				System.out.println( f.getName() );
-			}
 			e.printStackTrace();
 			throw new RuntimeException( "Could not apply getTokens() method to Processor object." );
 		}
+	}
+	
+	@Test
+	public void testPreprocessReservedSymbols() throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
+		Method preprocess = Processor.class.getDeclaredMethod( "tokenizeByReservedSymbols" , String.class );
+		preprocess.setAccessible( true );
+		String input = "(!x OR y) && (x != y)";
+		String[] expected = new String[] { "(" , "!" , "x" , "OR" , "y" , ")" , "&&" , "(" , "x" , "!=" , "y" , ")" };
+		String[] found = ((String[])preprocess.invoke( null , input ));
+		Assert.assertArrayEquals( expected , found );
+		
 	}
 	
 	@Test
@@ -85,9 +96,7 @@ public class ProcessorTest {
 							Operator.OR , tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN ,
 							Operator.AND , Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) , 
 							Operator.NOT_EQUALS , tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN );
-		System.out.println( tokens.toString() );
-		System.out.println( tokens.get( 0 ).getClass() );
-		//Assert.assertTrue( tokens.equals( expected ) );
+		Assert.assertTrue( tokens.equals( expected ) );
 		
 	}
 }

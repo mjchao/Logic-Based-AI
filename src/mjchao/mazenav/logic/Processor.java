@@ -86,6 +86,19 @@ public class Processor {
 				
 				//add any keywords we find to the preprocessed list
 				if ( reserved.equals( statement.substring( currIdx , currIdx+reserved.length() ) ) ) {
+					
+					//we can't match a reserved keyword that is alphnumeric
+					//if the characters after it are also alphanumeric
+					//e.g. we don't want to match OR if there's a variable named
+					//ORy
+					if ( Utils.isAlphanumeric( reserved ) ) {
+						if ( currIdx+reserved.length() < statement.length() ) {
+							if ( Character.isLetterOrDigit( statement.charAt( currIdx+reserved.length() ) ) ) {
+								continue;
+							}
+						}
+					}
+					
 					matchedReservedSymbol = true;
 					
 					//add the token just prior to this one, if
@@ -123,7 +136,18 @@ public class Processor {
 				rtn.append( previousToken.trim() );
 			}
 		}
-		return rtn.toString().trim().split( " " );
+		
+		String trimmed = rtn.toString().trim();
+		
+		//String.split returns an array of length 1 for the 
+		//empty string. We need this to be 0 for our purposes
+		//because there are 0 tokens in the input
+		if ( trimmed.length() == 0 ) {
+			return new String[] {};
+		}
+		else {
+			return trimmed.split( " " );
+		}
 	}
 
 	//TODO test

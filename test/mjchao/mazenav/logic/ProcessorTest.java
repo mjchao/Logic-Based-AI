@@ -39,7 +39,7 @@ public class ProcessorTest {
 	}
 	
 	@Test
-	public void testPreprocessReservedSymbols() throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
+	public void tokenizeBySymbols() throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		Method preprocess = Processor.class.getDeclaredMethod( "tokenizeByReservedSymbols" , String.class );
 		preprocess.setAccessible( true );
 		
@@ -49,15 +49,81 @@ public class ProcessorTest {
 		String[] found = (String[])preprocess.invoke( null , input );
 		Assert.assertArrayEquals( expected , found );
 		
-		//distinguishing between => and <=>
+		//distinguishing between EQUALS and NEQUALS
+		input = "FORALL(x, y), !(x EQUALS y) <=> x NEQUALS y";
+		expected = new String[] { "FORALL" , "(" , "x" , "," , "y" , ")" , "," , 
+				"!" , "(" , "x" , "EQUALS" , "y" , ")" , "<=>" , "x" , 
+				"NEQUALS" , "y" };
+		found = (String[])preprocess.invoke( null , input );
+		Assert.assertArrayEquals( expected , found );
+		
+		//distinguishing between => and <=> and lack of spaces
 		input = "x==y||x=>y||x<=>y";
 		expected = new String[] { "x" , "==" , "y" , "||" , "x" , "=>" , "y" , "||" , "x" , "<=>" , "y" };
 		found = (String[]) preprocess.invoke( null , input );
 		Assert.assertArrayEquals( expected , found );
 		
+		//dealing with too many spaces
+		input = "FORALL     x        !       x     <=>      EXISTS y";
+		expected = new String[] { "FORALL" , "x" , "!" , "x" , "<=>" , "EXISTS" , "y" };
+		found = (String[]) preprocess.invoke( null , input );
+		Assert.assertArrayEquals( expected , found );	
+	}
+		
+	@Test
+	public void tokenizeBySymbolsReservedKeywordsInVariableNames() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		Method preprocess = Processor.class.getDeclaredMethod( "tokenizeByReservedSymbols" , String.class );
+		preprocess.setAccessible( true );
+		
+		String input;
+		String[] expected;
+		String[] found;
+		
 		//realizing that OR might be part of a variable name
-		input = "!xORy";
-		expected = new String[] { "!" , "xORy" };
+		input = "!xORy ORy yOR";
+		expected = new String[] { "!" , "xORy" , "ORy" , "yOR" };
+		found = (String[]) preprocess.invoke( null , input );
+		Assert.assertArrayEquals( expected , found );
+		
+		//edge cases with reserved keywords in variable names
+		input = "OR";
+		expected = new String[] {"OR"};
+		found = (String[]) preprocess.invoke( null , input );
+		Assert.assertArrayEquals( expected , found );
+		
+		input = "ORx";
+		expected = new String[] {"ORx"};
+		found = (String[]) preprocess.invoke( null , input );
+		Assert.assertArrayEquals( expected , found );
+	}
+	
+	@Test
+	public void tokenizeBySymbolsEdgeCases() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		Method preprocess = Processor.class.getDeclaredMethod( "tokenizeByReservedSymbols" , String.class );
+		preprocess.setAccessible( true );
+		
+		String input;
+		String[] expected;
+		String[] found;
+		
+		//other edge cases
+		input = "or";
+		expected = new String[] {"or"};
+		found = (String[]) preprocess.invoke( null , input );
+		Assert.assertArrayEquals( expected , found );
+		
+		input = "";
+		expected = new String[] {};
+		found = (String[]) preprocess.invoke( null , input );
+		Assert.assertArrayEquals( expected , found );
+		
+		input = "          ";
+		expected = new String[] {};
+		found = (String[]) preprocess.invoke( null , input );
+		Assert.assertArrayEquals( expected , found );
+		
+		input = ">";
+		expected = new String[] { ">" };
 		found = (String[]) preprocess.invoke( null , input );
 		Assert.assertArrayEquals( expected , found );
 	}

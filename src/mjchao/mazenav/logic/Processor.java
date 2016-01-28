@@ -1,7 +1,6 @@
 package mjchao.mazenav.logic;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import mjchao.mazenav.logic.structures.Function;
@@ -12,6 +11,7 @@ import mjchao.mazenav.logic.structures.Relation;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
 import mjchao.mazenav.logic.structures.Variable;
+import mjchao.mazenav.util.Utils;
 
 /**
  * Processes a logic statement (e.g. tokenizing, converting to
@@ -74,6 +74,14 @@ public class Processor {
 				//aren't enough letters left
 				if ( currIdx + reserved.length() > statement.length() ) {
 					continue;
+				}
+				
+				//we can't match a reserved keyword that is alphanumeric
+				//if the previous character wasn't a space
+				if ( Utils.isAlphanumeric( reserved ) ) {
+					if ( currIdx > 0 && Character.isLetterOrDigit( statement.charAt( currIdx-1 ) ) ) {
+						continue;
+					}
 				}
 				
 				//add any keywords we find to the preprocessed list

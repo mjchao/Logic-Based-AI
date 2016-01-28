@@ -32,10 +32,10 @@ public class Operator extends Symbol {
 	public static final String OR_SHORTHAND = "||";
 	public static final Operator OR = new Operator( "OR" );
 	
-	public static final String IMPLICATION_SHORTHAND = "-->";
+	public static final String IMPLICATION_SHORTHAND = "=>";
 	public static final Operator IMPLICATION = new Operator( "IMPLICATION" );
 	
-	public static final String BICONDITIONAL_SHORTHAND = "<->";
+	public static final String BICONDITIONAL_SHORTHAND = "<=>";
 	public static final Operator BICONDITIONAL = new Operator( "BICONDITIONAL" );
 	
 	public static final Operator[] OPERATOR_LIST = new Operator[] { 

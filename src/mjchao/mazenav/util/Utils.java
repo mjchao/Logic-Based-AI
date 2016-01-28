@@ -16,4 +16,13 @@ public class Utils {
 		joined.toArray( rtnArray );
 		return rtnArray;
 	}
+	
+	public static boolean isAlphanumeric( String s ) {
+		for ( char c : s.toCharArray() ) {
+			if ( !Character.isLetterOrDigit( c ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
 }

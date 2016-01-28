@@ -42,11 +42,24 @@ public class ProcessorTest {
 	public void testPreprocessReservedSymbols() throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
 		Method preprocess = Processor.class.getDeclaredMethod( "tokenizeByReservedSymbols" , String.class );
 		preprocess.setAccessible( true );
+		
+		//distinguishing between ! and !=
 		String input = "(!x OR y) && (x != y)";
 		String[] expected = new String[] { "(" , "!" , "x" , "OR" , "y" , ")" , "&&" , "(" , "x" , "!=" , "y" , ")" };
-		String[] found = ((String[])preprocess.invoke( null , input ));
+		String[] found = (String[])preprocess.invoke( null , input );
 		Assert.assertArrayEquals( expected , found );
 		
+		//distinguishing between => and <=>
+		input = "x==y||x=>y||x<=>y";
+		expected = new String[] { "x" , "==" , "y" , "||" , "x" , "=>" , "y" , "||" , "x" , "<=>" , "y" };
+		found = (String[]) preprocess.invoke( null , input );
+		Assert.assertArrayEquals( expected , found );
+		
+		//realizing that OR might be part of a variable name
+		input = "!xORy";
+		expected = new String[] { "!" , "xORy" };
+		found = (String[]) preprocess.invoke( null , input );
+		Assert.assertArrayEquals( expected , found );
 	}
 	
 	@Test

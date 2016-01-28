@@ -215,6 +215,19 @@ public class ProcessorTest {
 				tracker.getVariableByName( "a1b2_c3d4" ) ,
 				tracker.getVariableByName( "_" ) );
 		Assert.assertTrue( tokens.equals( expected ) );
+		
+		//test with numbers
+		logicStatement = "FORALL x, x == 12345 OR x == 000.001";
+		tracker = new SymbolTracker();
+		test = new Processor( logicStatement , tracker );
+		test.tokenize();
+		tokens = getTokens( test );
+		expected = Arrays.asList( Quantifier.FORALL , tracker.getNewVariable( "x" ) , 
+				Symbol.COMMA , tracker.getVariableByName( "x" ) ,
+				Operator.EQUALS , NumbersFOL.fromInt( 12345 ) , 
+				Operator.OR , tracker.getVariableByName( "x" ) ,
+				Operator.EQUALS , NumbersFOL.fromDouble( 0.001 ));
+		Assert.assertTrue( tokens.equals( expected ) );
 	}
 	
 	@Test(expected = IllegalArgumentException.class)

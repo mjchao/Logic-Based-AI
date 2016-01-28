@@ -8,7 +8,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import mjchao.mazenav.logic.structures.NumbersFOL;
@@ -129,7 +128,7 @@ public class ProcessorTest {
 	}
 	
 	@Test
-	public void testWithoutStructures() {
+	public void testTokenizeWithoutStructures() {
 		//test without having to preload a SymbolTracker from
 		//some file
 		
@@ -177,5 +176,33 @@ public class ProcessorTest {
 							Operator.NOT_EQUALS , tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN );
 		Assert.assertTrue( tokens.equals( expected ) );
 		
+		//test various operators
+		logicStatement = "   && || ! != IMPLICATION BICONDITIONAL , AND OR NEQUALS EQUALS";
+		tracker = new SymbolTracker();
+		test = new Processor( logicStatement , tracker );
+		test.tokenize();
+		tokens = getTokens( test );
+		expected = Arrays.asList( Operator.AND , Operator.OR , Operator.NOT , 
+				Operator.NOT_EQUALS , Operator.IMPLICATION , Operator.BICONDITIONAL , 
+				Symbol.COMMA , Operator.AND , Operator.OR , Operator.NOT_EQUALS , Operator.EQUALS );
+		Assert.assertTrue( tokens.equals( expected ) );
+		
+		//test various symbols
+		logicStatement = "   )   (   , S.T. ";
+		tracker = new SymbolTracker();
+		test = new Processor( logicStatement , tracker );
+		test.tokenize();
+		tokens = getTokens( test );
+		expected = Arrays.asList( Symbol.RIGHT_PAREN , Symbol.LEFT_PAREN , Symbol.COMMA , Symbol.SUCH_THAT );
+		Assert.assertTrue( tokens.equals( expected ) );
+		
+		//test various quantifiers
+		logicStatement = "FORALL FORALL EXISTS    ";
+		tracker = new SymbolTracker();
+		test = new Processor( logicStatement , tracker );
+		test.tokenize();
+		tokens = getTokens( test );
+		expected = Arrays.asList( Quantifier.FORALL , Quantifier.FORALL , Quantifier.EXISTS );
+		Assert.assertTrue( tokens.equals( expected ) );
 	}
 }

@@ -204,5 +204,58 @@ public class ProcessorTest {
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , Quantifier.FORALL , Quantifier.EXISTS );
 		Assert.assertTrue( tokens.equals( expected ) );
+		
+		//test various variable names
+		logicStatement = "Xxx___28473 a1b2_c3d4 _";
+		tracker = new SymbolTracker();
+		test = new Processor( logicStatement , tracker );
+		test.tokenize();
+		tokens = getTokens( test );
+		expected = Arrays.asList( tracker.getVariableByName( "Xxx___28473" ) , 
+				tracker.getVariableByName( "a1b2_c3d4" ) ,
+				tracker.getVariableByName( "_" ) );
+		Assert.assertTrue( tokens.equals( expected ) );
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void tokenizeInvalidVariableName() {
+		Processor test;
+		String logicStatement;
+		SymbolTracker tracker = new SymbolTracker();
+		List<Symbol> tokens;
+		List<Symbol> expected;	
+		
+		logicStatement = "---bad_variable_name---";
+		tracker = new SymbolTracker();
+		test = new Processor( logicStatement , tracker );
+		test.tokenize();
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void tokenizeInvalidVariableName2() {
+		Processor test;
+		String logicStatement;
+		SymbolTracker tracker = new SymbolTracker();
+		List<Symbol> tokens;
+		List<Symbol> expected;	
+		
+		logicStatement = "12345a";
+		tracker = new SymbolTracker();
+		test = new Processor( logicStatement , tracker );
+		test.tokenize();
+	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void tokenizeInvalidVariableName3() {
+		Processor test;
+		String logicStatement;
+		SymbolTracker tracker = new SymbolTracker();
+		List<Symbol> tokens;
+		List<Symbol> expected;	
+		
+		logicStatement = "_12345a^";
+		tracker = new SymbolTracker();
+		test = new Processor( logicStatement , tracker );
+		test.tokenize();
 	}
 }

@@ -10,6 +10,33 @@ package mjchao.mazenav.logic.structures;
  */
 public class Variable extends Symbol {
 
+	public static boolean isValidVariableName( String name ) {
+		if ( name.length() == 0 ) {
+			return false;
+		}
+		
+		//name must start with a letter or underscore but not a number
+		//(numbers are reserved for system-defined variables to be used
+		//in unification)
+		if ( Character.isLetter( name.charAt( 0 ) ) || (name.charAt( 0 ) == '_') ) {
+			//okay
+		}
+		else {
+			return false;
+		}
+		
+		for ( char c : name.toCharArray() ) {
+			//allow alphanumeric, and underscores
+			if ( Character.isLetterOrDigit( c ) || c == '_' ) {
+				//okay
+			}
+			else {
+				return false;
+			}
+		}
+		return true;
+	}
+	
 	private ObjectFOL unification = null;
 	
 	private int id;

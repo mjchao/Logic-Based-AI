@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import mjchao.mazenav.util.Utils;
+
 /**
  * Tracks any variables that have been generated
  * and any predefined functions, objects, relations, etc.
@@ -307,6 +309,10 @@ public class SymbolTracker {
 	}
 	
 	public Variable getNewVariable( String name ) {
+		if ( !Variable.isValidVariableName( name ) ) {
+			throw new IllegalArgumentException( "User-specified variable names must consist of {A-Z}, {a-z}, [0-9] " +
+												"or '_' and start with a letter." );
+		}
 		Variable rtn = new Variable( name , nextVariableId );
 		variables.add( rtn );
 		variablesByName.put( name , rtn );

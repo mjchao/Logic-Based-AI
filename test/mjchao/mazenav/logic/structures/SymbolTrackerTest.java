@@ -49,10 +49,18 @@ public class SymbolTrackerTest {
 		Assert.assertTrue( True.getValue().booleanValue() == true );
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
+	@Test(expected=IllegalStateException.class)
 	public void redefinition() throws IOException {
-		IntegerWorld def = new IntegerWorld();
+		//this test case defines two functions to have the same name
+		IntegerWorldErrorRedefinition def = new IntegerWorldErrorRedefinition();
 		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld_error_redefinition.txt" , def );
+	}
+	
+	@Test(expected=IllegalStateException.class)
+	public void redefinition2() throws IOException {
+		//this test case defines a function and a constant to have the same name
+		IntegerWorldErrorRedefinition2 def = new IntegerWorldErrorRedefinition2();
+		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld_error_redefinition2.txt" , def );
 	}
 	
 	@Test

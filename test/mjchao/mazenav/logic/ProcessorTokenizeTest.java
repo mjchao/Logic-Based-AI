@@ -19,7 +19,7 @@ import mjchao.mazenav.logic.structures.Quantifier;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
 
-public class ProcessorTest {
+public class ProcessorTokenizeTest {
 
 	/**
 	 * Accessor to the private tokens field of the Processor

@@ -150,7 +150,6 @@ public class Processor {
 		}
 	}
 
-	//TODO test
 	public void tokenize() {
 		tokens = new ArrayList< Symbol >();
 		
@@ -226,6 +225,125 @@ public class Processor {
 			tokens.add( var );
 			continue;
 		}
+	}
+	
+	/**
+	 * Negates a given expression. If the expression is not
+	 * already in negation-normal form (NNF), this method will first
+	 * convert to NNF and then perform the negation.
+	 * 
+	 * @param input an expression.
+	 * @return		the given input negated and presented in
+	 * 				NNF
+	 */
+	private List< Symbol > negate( List< Symbol > input ) {
+		List< Symbol > nnfExpression;
+		
+		//first, make sure the entire expression is already in
+		//NNF
+		if ( input.contains( Operator.IMPLICATION ) || 
+				input.contains( Operator.BICONDITIONAL ) ) {
+			nnfExpression = convertToNNF( input );
+		}
+		else {
+			nnfExpression = input;
+		}
+		
+		//now we'll build the negated expression
+		List< Symbol > negatedExpression = new ArrayList< Symbol >();
+		
+		//first, we'll look for AND operators
+		//outside parentheses and apply DeMorgan's laws
+		//(note that AND precedence is before OR)
+		int parenthesisDepth = 0;
+		for ( int i=0 ; i<nnfExpression.size() ; ++i ) {
+			Symbol currToken = nnfExpression.get( i );
+			if ( currToken.equals( Operator.LEFT_PAREN ) ) {
+				++parenthesisDepth;
+			}
+			else if ( currToken.equals( Operator.RIGHT_PAREN ) ) {
+				--parenthesisDepth;
+			}
+			else if ( currToken.equals( Operator.AND ) ) {
+				if ( parenthesisDepth == 0 ) {
+					List< Symbol > leftOperand = nnfExpression.subList( 0 , i );
+					leftOperand = negate( leftOperand );
+					List< Symbol > rightOperand = nnfExpression.subList( i+1 , nnfExpression.size() );
+					rightOperand = negate( rightOperand );
+					
+					//apply DeMorgan's laws:
+					//!(A AND B) = !A OR !B
+					negatedExpression.addAll( leftOperand );
+					negatedExpression.add( Operator.OR );
+					negatedExpression.addAll( rightOperand );
+					return negatedExpression;
+				}
+			}
+		}
+		
+		//make sure the parentheses all match up
+		if ( parenthesisDepth < 0 ) {
+			throw new IllegalArgumentException( "Missing left parenthesis." );
+		}
+		if ( parenthesisDepth > 0 ) {
+			throw new IllegalArgumentException( "Missing right parenthesis." );
+		}
+		
+		//then, we'll look for OR operators
+		//outside parentheses and apply DeMorgan's laws
+		parenthesisDepth = 0;
+		for ( int i=0 ; i<nnfExpression.size() ; ++i ) {
+			Symbol currToken = nnfExpression.get( i );
+			if ( currToken.equals( Operator.LEFT_PAREN ) ) {
+				++parenthesisDepth;
+			}
+			else if ( currToken.equals( Operator.RIGHT_PAREN ) ) {
+				--parenthesisDepth;
+			}
+			else if ( currToken.equals( Operator.OR ) ) {
+				if ( parenthesisDepth == 0 ) {
+					List< Symbol > leftOperand = nnfExpression.subList( 0 , i );
+					leftOperand = negate( leftOperand );
+					List< Symbol > rightOperand = nnfExpression.subList( i+1 , nnfExpression.size() );
+					rightOperand = negate( rightOperand );
+					
+					//apply DeMorgan's laws:
+					//!(A OR B) = !A AND !B
+					negatedExpression.addAll( leftOperand );
+					negatedExpression.add( Operator.AND );
+					negatedExpression.addAll( rightOperand );
+					return negatedExpression;
+				}
+			}
+		}
+		
+		//if no ANDs or ORs were found, then this expression must
+		//just consist of one token, so we'll negate it
+		if ( input.size() == 1 ) {
+			negatedExpression.add( Operator.NOT );
+			negatedExpression.add( input.get( 0 ) );
+			return negatedExpression;
+		}
+		else {
+			throw new IllegalArgumentException( "Syntax error. " + 
+						"Operator-free expression with two operands." ); 
+		}
+	}
+	
+	/**
+	 * Converts a given expression into negation-normal form (NNF).
+	 * NNF requires that all implications and biconditional operators
+	 * be removed.
+	 *  
+	 * @param expression		an expression to be converted to NNF
+	 * @return					the given expression in NNF
+	 */
+	private ArrayList< Symbol > convertToNNF( List< Symbol > expression ) {
+		return null;
+	}
+	
+	public void convertToCNF() {
+		
 	}
 	
 }

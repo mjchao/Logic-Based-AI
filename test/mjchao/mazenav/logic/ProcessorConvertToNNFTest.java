@@ -30,11 +30,38 @@ public class ProcessorConvertToNNFTest {
 	
 	@Test
 	public void testNegateAlreadyInNNF() {
-		SymbolTracker tracker = new SymbolTracker();
-		Processor p = new Processor( "" , tracker );
-		List< Symbol > input = new ArrayList< Symbol >( Arrays.asList( tracker.getNewVariable( "x" ) ) );
-		List< Symbol > expected = Arrays.asList( Operator.NOT , tracker.getVariableByName( "x" ) );
-		List< Symbol > found = negate( p , input );
+		SymbolTracker tracker;
+		Processor p;
+		List< Symbol > input;
+		List< Symbol > expected;
+		List< Symbol > found;
+		
+		//basic acceptance tests
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( tracker.getNewVariable( "x" ) ) );
+		expected = Arrays.asList( Operator.NOT , tracker.getVariableByName( "x" ) );
+		found = negate( p , input );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Operator.LEFT_PAREN , tracker.getNewVariable( "x" ) , Operator.RIGHT_PAREN ) );
+		expected = Arrays.asList( 
+				Operator.LEFT_PAREN , Operator.NOT , 
+				tracker.getVariableByName( "x" ) , Operator.RIGHT_PAREN );
+		found = negate( p , input );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				tracker.getNewVariable( "x" ) , Operator.AND , tracker.getNewVariable( "y" ) ) );
+		expected = Arrays.asList( 
+				Operator.NOT , tracker.getVariableByName( "x" ) , Operator.OR , 
+				Operator.NOT , tracker.getVariableByName( "y" ) );
+		found = negate( p , input );
 		Assert.assertTrue( expected.equals( found ) );
 	}
 }

@@ -319,9 +319,18 @@ public class Processor {
 		
 		//if no ANDs or ORs were found, then this expression must
 		//just consist of one token, so we'll negate it
-		if ( input.size() == 1 ) {
-			negatedExpression.add( Operator.NOT );
-			negatedExpression.add( input.get( 0 ) );
+		int numVariablesFound = 0;
+		for ( Symbol s : nnfExpression ) {
+			if ( s instanceof Variable ) {
+				++numVariablesFound;
+				negatedExpression.add( Operator.NOT );
+				negatedExpression.add( s );
+			}
+			else {
+				negatedExpression.add( s );
+			}
+		}
+		if ( numVariablesFound == 1 ) {
 			return negatedExpression;
 		}
 		else {

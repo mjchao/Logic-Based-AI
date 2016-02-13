@@ -42,7 +42,7 @@ public class ProcessorConvertToNNFTest {
 	}
 	
 	@Test
-	public void testDistributeNotAlreadyInNNF() {
+	public void testDistributeNotsAlreadyInNNF() {
 		SymbolTracker tracker;
 		Processor p;
 		List< Symbol > input;
@@ -61,7 +61,7 @@ public class ProcessorConvertToNNFTest {
 		found = distributeNots( p , input );
 		Assert.assertTrue( expected.equals( found ) );
 		
-		//test distributing not NOTs with input "(x)"
+		//test distributing no NOTs with input "(x)"
 		tracker = new SymbolTracker();
 		p = new Processor( "" , tracker );
 		input = new ArrayList< Symbol >( Arrays.asList( 
@@ -69,6 +69,61 @@ public class ProcessorConvertToNNFTest {
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "x" ) );
 		found = distributeNots( p , input );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test distributing a single NOT over input "!(x)"
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Operator.NOT , Symbol.LEFT_PAREN , tracker.getNewVariable( "x" ) , Symbol.RIGHT_PAREN ) );
+		expected = Arrays.asList( 
+				Operator.NOT , tracker.getVariableByName( "x" ) );
+		found = distributeNots( p , input );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test distributing NOT over OR
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Operator.NOT , Symbol.LEFT_PAREN , tracker.getNewVariable( "x" ) , 
+				Operator.OR , tracker.getNewVariable( "y" ) , Symbol.RIGHT_PAREN ) );
+		expected = Arrays.asList( 
+				Operator.NOT , tracker.getVariableByName( "x" ) , Operator.AND , 
+				Operator.NOT , tracker.getVariableByName( "y" ) );
+		found = distributeNots( p , input );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test distributing NOT over AND
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Operator.NOT , Symbol.LEFT_PAREN , tracker.getNewVariable( "x" ) , 
+				Operator.AND , tracker.getNewVariable( "y" ) , Symbol.RIGHT_PAREN ) );
+		expected = Arrays.asList( 
+				Operator.NOT , tracker.getVariableByName( "x" ) , Operator.OR , 
+				Operator.NOT , tracker.getVariableByName( "y" ) );
+		found = distributeNots( p , input );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//------more complicated tests-----//
+		//test distributing over multiple parenthetical expressions
+		//!(!(x AND y) OR !(x OR y))	<=>		(x AND y) AND (x OR y) 
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Operator.NOT , Symbol.LEFT_PAREN , Operator.NOT , Symbol.LEFT_PAREN ,
+				tracker.getNewVariable( "x" ) , Operator.AND , tracker.getNewVariable( "y" ) ,
+				Symbol.RIGHT_PAREN , Operator.OR , Operator.NOT , Symbol.LEFT_PAREN ,
+				tracker.getVariableByName( "x" ) , Operator.OR , tracker.getVariableByName( "y" ) ,
+				Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN ) );
+		expected = Arrays.asList( 
+					Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) , Operator.AND , 
+					tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN , Operator.AND ,
+					Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) , Operator.OR , 
+					tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN
+				);
+		found = distributeNots( p , input );
+		System.out.println( found );
 		Assert.assertTrue( expected.equals( found ) );
 	}
 	

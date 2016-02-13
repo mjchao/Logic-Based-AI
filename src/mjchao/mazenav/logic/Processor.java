@@ -264,8 +264,27 @@ public class Processor {
 		}
 		while( expression.get( 0 ).equals( Symbol.LEFT_PAREN ) && 
 				expression.get( expression.size()-1 ).equals( Symbol.RIGHT_PAREN ) ) {
-			expression.remove( expression.size()-1 );
-			expression.remove( 0 );
+			
+			int minOperatorDepth = Integer.MAX_VALUE;
+			int parenDepth = 1;
+			for ( int i=1 ; i<expression.size() ; ++i ) {
+				if ( expression.get( i ).equals( Symbol.LEFT_PAREN ) ) {
+					++parenDepth;
+				}
+				else if ( expression.get( i ).equals( Symbol.RIGHT_PAREN ) ) {
+					--parenDepth;
+				}
+				else if ( expression.get( i ) instanceof Operator ) {
+					minOperatorDepth = Math.min( minOperatorDepth , parenDepth );
+				}
+			}
+			if ( minOperatorDepth > 0 ) {
+				expression.remove( expression.size()-1 );
+				expression.remove( 0 );
+			}
+			else {
+				break;
+			}
 		}
 	}
 	
@@ -300,16 +319,30 @@ public class Processor {
 				if ( parenthesisDepth == 0 ) {
 					List< Symbol > leftOperand = input.subList( 0 , i );
 					leftOperand = negate( leftOperand );
-					removeExtraParentheses( leftOperand );
 					List< Symbol > rightOperand = input.subList( i+1 , input.size() );
 					rightOperand = negate( rightOperand );
-					removeExtraParentheses( rightOperand );
 					
 					//apply DeMorgan's laws:
 					//!(A AND B) = !A OR !B
-					negatedExpression.addAll( leftOperand );
+					if ( leftOperand.contains( Operator.AND ) || leftOperand.contains( Operator.OR ) ) {
+						negatedExpression.add( Symbol.LEFT_PAREN );
+						negatedExpression.addAll( leftOperand );
+						negatedExpression.add( Symbol.RIGHT_PAREN );
+					}
+					else {
+						negatedExpression.addAll( leftOperand );
+					}
+					
 					negatedExpression.add( Operator.OR );
-					negatedExpression.addAll( rightOperand );
+					
+					if ( leftOperand.contains( Operator.AND ) || leftOperand.contains( Operator.OR ) ) {
+						negatedExpression.add( Symbol.LEFT_PAREN );
+						negatedExpression.addAll( rightOperand );
+						negatedExpression.add( Symbol.RIGHT_PAREN );
+					}
+					else {
+						negatedExpression.addAll( rightOperand );
+					}
 					return negatedExpression;
 				}
 			}
@@ -336,18 +369,34 @@ public class Processor {
 			}
 			else if ( currToken.equals( Operator.OR ) ) {
 				if ( parenthesisDepth == 0 ) {
-					List< Symbol > leftOperand = input.subList( 0 , i );
-					removeExtraParentheses( leftOperand );
-					leftOperand = negate( leftOperand );
-					List< Symbol > rightOperand = input.subList( i+1 , input.size() );
-					removeExtraParentheses( rightOperand );
-					rightOperand = negate( rightOperand );
 					
 					//apply DeMorgan's laws:
 					//!(A OR B) = !A AND !B
-					negatedExpression.addAll( leftOperand );
+					
+					List< Symbol > leftOperand = input.subList( 0 , i );
+					leftOperand = negate( leftOperand );
+					List< Symbol > rightOperand = input.subList( i+1 , input.size() );
+					rightOperand = negate( rightOperand );
+					
+					if ( leftOperand.contains( Operator.AND ) || leftOperand.contains( Operator.OR ) ) {
+						negatedExpression.add( Symbol.LEFT_PAREN );
+						negatedExpression.addAll( leftOperand );
+						negatedExpression.add( Symbol.RIGHT_PAREN );
+					}
+					else {
+						negatedExpression.addAll( leftOperand );
+					}
+					
 					negatedExpression.add( Operator.AND );
-					negatedExpression.addAll( rightOperand );
+					
+					if ( leftOperand.contains( Operator.AND ) || leftOperand.contains( Operator.OR ) ) {
+						negatedExpression.add( Symbol.LEFT_PAREN );
+						negatedExpression.addAll( rightOperand );
+						negatedExpression.add( Symbol.RIGHT_PAREN );
+					}
+					else {
+						negatedExpression.addAll( rightOperand );
+					}
 					return negatedExpression;
 				}
 			}
@@ -417,7 +466,7 @@ public class Processor {
 			arrowFreeExpression = eliminateArrows( input );
 		}
 		else {
-			arrowFreeExpression = input;
+			arrowFreeExpression = new ArrayList< Symbol >( input );
 		}
 		
 		//now we'll build the negated expression
@@ -488,7 +537,7 @@ public class Processor {
 					distributedExpression.add( Symbol.LEFT_PAREN );
 					distributedExpression.addAll( negated );
 					distributedExpression.add( Symbol.RIGHT_PAREN );
-					
+				
 					//skip to the end of the parenthetical
 					//expression, because we have already
 					//processed it

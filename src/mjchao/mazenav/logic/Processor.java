@@ -289,7 +289,8 @@ public class Processor {
 	}
 	
 	/**
-	 * Negates an expression with no arrows.
+	 * Negates an expression with no implications or biconditional
+	 * operators.
 	 * 
 	 * @param input		an expression to be negated
 	 * @return			the negated expression
@@ -491,12 +492,14 @@ public class Processor {
 					
 					//negating a quantifier is treated 
 					//as negating an atomic element
+					distributedExpression.add( currToken );
 					continue;
 				}
 				else if ( nextToken instanceof Variable ) {
 					
 					//negating a variable is treated
 					//as negating an atomic element
+					distributedExpression.add( currToken );
 					continue;
 				}
 				else if ( nextToken.equals( Operator.NOT ) ) {

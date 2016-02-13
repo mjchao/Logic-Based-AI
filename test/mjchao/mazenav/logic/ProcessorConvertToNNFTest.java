@@ -11,6 +11,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import mjchao.mazenav.logic.structures.Operator;
+import mjchao.mazenav.logic.structures.Quantifier;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
 
@@ -67,6 +68,28 @@ public class ProcessorConvertToNNFTest {
 				Symbol.LEFT_PAREN , tracker.getNewVariable( "x" ) , Symbol.RIGHT_PAREN ) );
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "x" ) );
+		found = distributeNots( p , input );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test distributing no NOTs over a single variable
+		//with input "!x"
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Operator.NOT , tracker.getNewVariable( "x" ) ) );
+		expected = Arrays.asList( 
+				Operator.NOT , tracker.getVariableByName( "x" ) );
+		found = distributeNots( p , input );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test distributing no NOTs over a quantifier with
+		//input "! EXISTS x"
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Operator.NOT , Quantifier.EXISTS , tracker.getNewVariable( "x" ) ) );
+		expected = Arrays.asList( 
+				Operator.NOT , Quantifier.EXISTS , tracker.getVariableByName( "x" ) );
 		found = distributeNots( p , input );
 		Assert.assertTrue( expected.equals( found ) );
 		

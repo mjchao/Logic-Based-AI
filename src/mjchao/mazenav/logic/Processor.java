@@ -324,7 +324,7 @@ public class Processor {
 					
 					//apply DeMorgan's laws:
 					//!(A AND B) = !A OR !B
-					if ( leftOperand.contains( Operator.AND ) || leftOperand.contains( Operator.OR ) ) {
+					if ( leftOperand.contains( Operator.AND ) ) {
 						negatedExpression.add( Symbol.LEFT_PAREN );
 						negatedExpression.addAll( leftOperand );
 						negatedExpression.add( Symbol.RIGHT_PAREN );
@@ -335,7 +335,7 @@ public class Processor {
 					
 					negatedExpression.add( Operator.OR );
 					
-					if ( leftOperand.contains( Operator.AND ) || leftOperand.contains( Operator.OR ) ) {
+					if ( rightOperand.contains( Operator.AND ) ) {
 						negatedExpression.add( Symbol.LEFT_PAREN );
 						negatedExpression.addAll( rightOperand );
 						negatedExpression.add( Symbol.RIGHT_PAREN );
@@ -378,7 +378,7 @@ public class Processor {
 					List< Symbol > rightOperand = input.subList( i+1 , input.size() );
 					rightOperand = negate( rightOperand );
 					
-					if ( leftOperand.contains( Operator.AND ) || leftOperand.contains( Operator.OR ) ) {
+					if ( leftOperand.contains( Operator.OR ) ) {
 						negatedExpression.add( Symbol.LEFT_PAREN );
 						negatedExpression.addAll( leftOperand );
 						negatedExpression.add( Symbol.RIGHT_PAREN );
@@ -389,7 +389,7 @@ public class Processor {
 					
 					negatedExpression.add( Operator.AND );
 					
-					if ( leftOperand.contains( Operator.AND ) || leftOperand.contains( Operator.OR ) ) {
+					if ( rightOperand.contains( Operator.OR ) ) {
 						negatedExpression.add( Symbol.LEFT_PAREN );
 						negatedExpression.addAll( rightOperand );
 						negatedExpression.add( Symbol.RIGHT_PAREN );

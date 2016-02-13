@@ -13,7 +13,6 @@ import org.junit.Test;
 import mjchao.mazenav.logic.structures.Operator;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
-import mjchao.mazenav.logic.structures.Variable;
 
 public class ProcessorConvertToNNFTest {
 	
@@ -106,8 +105,8 @@ public class ProcessorConvertToNNFTest {
 		Assert.assertTrue( expected.equals( found ) );
 		
 		//------more complicated tests-----//
-		//test distributing over multiple parenthetical expressions
-		//!(!(x AND y) OR !(x OR y))	<=>		(x AND y) AND (x OR y) 
+		//test distributing over two parenthetical expressions
+		//!(!(x AND y) OR !(x OR y))	<=>		x AND y AND (x OR y) 
 		tracker = new SymbolTracker();
 		p = new Processor( "" , tracker );
 		input = new ArrayList< Symbol >( Arrays.asList( 
@@ -117,14 +116,65 @@ public class ProcessorConvertToNNFTest {
 				tracker.getVariableByName( "x" ) , Operator.OR , tracker.getVariableByName( "y" ) ,
 				Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN ) );
 		expected = Arrays.asList( 
-					Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) , Operator.AND , 
-					tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN , Operator.AND ,
+					tracker.getVariableByName( "x" ) , Operator.AND , 
+					tracker.getVariableByName( "y" ) , Operator.AND ,
 					Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) , Operator.OR , 
 					tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN
 				);
 		found = distributeNots( p , input );
-		System.out.println( found );
 		Assert.assertTrue( expected.equals( found ) );
+		
+		//test distributing over two parenthetical expressions
+		//with redundant parentheses
+		//!(!((x AND y)) OR !(((x OR y))))    <=> x AND y AND (x OR y)
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Operator.NOT , Symbol.LEFT_PAREN , Operator.NOT , Symbol.LEFT_PAREN , Symbol.LEFT_PAREN ,
+				tracker.getNewVariable( "x" ) , Operator.AND , tracker.getNewVariable( "y" ) ,
+				Symbol.RIGHT_PAREN ,  Symbol.RIGHT_PAREN , Operator.OR , Operator.NOT , 
+				Symbol.LEFT_PAREN , Symbol.LEFT_PAREN , Symbol.LEFT_PAREN ,
+				tracker.getVariableByName( "x" ) , Operator.OR , tracker.getVariableByName( "y" ) ,
+				Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN ) );
+		expected = Arrays.asList( 
+					tracker.getVariableByName( "x" ) , Operator.AND , 
+					tracker.getVariableByName( "y" ) , Operator.AND ,
+					Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) , Operator.OR , 
+					tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN
+				);
+		found = distributeNots( p , input );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test distributing over multiple parenthetical expression with redundant
+		//parentheses
+		//!(!((x AND y)) OR !((x AND z)) OR !((y AND z)))   <=>
+		//x AND y AND x AND z AND y AND z
+		//(note, no simplification occurs in this process yet)
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Operator.NOT , Symbol.LEFT_PAREN , 
+				
+				Operator.NOT , Symbol.LEFT_PAREN ,
+				Symbol.LEFT_PAREN , tracker.getNewVariable( "x" ) , Operator.AND ,
+				tracker.getNewVariable( "y" ) , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN ,
+							Operator.OR ,		
+				Operator.NOT , Symbol.LEFT_PAREN , Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) ,
+				Operator.AND , tracker.getNewVariable( "z" ) , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN ,
+							Operator.OR ,
+				Operator.NOT , Symbol.LEFT_PAREN , Symbol.LEFT_PAREN , tracker.getVariableByName( "y" ) ,
+				Operator.AND , tracker.getVariableByName( "z" ) , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN ,
+				
+				Symbol.RIGHT_PAREN 
+			) );
+		expected = Arrays.asList( 
+					tracker.getVariableByName( "x" ) , Operator.AND , tracker.getVariableByName( "y" ) ,
+					Operator.AND , tracker.getVariableByName( "x" ) , Operator.AND , tracker.getVariableByName( "z" ) ,
+					Operator.AND , tracker.getVariableByName( "y" ) , Operator.AND , tracker.getVariableByName( "z" )
+				);
+		found = distributeNots( p , input );
+		Assert.assertTrue( expected.equals( found ) );
+		
 	}
 	
 	@Test
@@ -207,6 +257,18 @@ public class ProcessorConvertToNNFTest {
 		found = negate( p , input );
 		Assert.assertTrue( expected.equals( found ) );
 		
+		//test negating the statement !!!x AND !!!y"
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Operator.NOT , Operator.NOT , Operator.NOT , tracker.getNewVariable( "x" ) , Operator.AND , 
+				Operator.NOT , Operator.NOT , Operator.NOT , tracker.getNewVariable( "y" ) ) );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , Operator.OR , 
+				tracker.getVariableByName( "y" ) );
+		found = negate( p , input );
+		Assert.assertTrue( expected.equals( found ) );
+		
 		//-----Complex Test Cases------//
 		
 		//test negating with parenthetical expressions
@@ -235,19 +297,6 @@ public class ProcessorConvertToNNFTest {
 		List< Symbol > input;
 		List< Symbol > expected;
 		List< Symbol > found;
-		
-		//test negating the statement !!!x AND !!!y"
-		tracker = new SymbolTracker();
-		p = new Processor( "" , tracker );
-		input = new ArrayList< Symbol >( Arrays.asList( 
-				Operator.NOT , Operator.NOT , Operator.NOT , tracker.getNewVariable( "x" ) , Operator.AND , 
-				Operator.NOT , Operator.NOT , Operator.NOT , tracker.getNewVariable( "y" ) ) );
-		expected = Arrays.asList( 
-				tracker.getVariableByName( "x" ) , Operator.OR , 
-				tracker.getVariableByName( "y" ) );
-		found = distributeNots( p , input );
-		System.out.println( found.toString() );
-		Assert.assertTrue( expected.equals( found ) );
 		
 		//test negating the statement !(x)
 		tracker = new SymbolTracker();

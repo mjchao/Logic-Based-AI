@@ -228,6 +228,45 @@ public class Processor {
 	}
 	
 	/**
+	 * Removes all double negations from a tokenized expression
+	 * 
+	 * @param expression		A list, passed by reference,
+	 * 							that will be modified to contain
+	 * 							no double negations
+	 */
+	private void removeDoubleNegations( List< Symbol > expression ) {
+		for ( int i=0 ; i<expression.size()-1 ; ++i ) {
+			Symbol currSymbol = expression.get( i );
+			Symbol nextSymbol = expression.get( i+1 );
+			if ( currSymbol.equals( Operator.NOT ) && nextSymbol.equals( Operator.NOT ) ) {
+				
+				//remove the two double negations
+				expression.remove( i );
+				expression.remove( i );
+				
+				//we have to decrement the counter because everything
+				//shifted back by 1 and we have to offset the post-increment
+				i--;
+				continue;
+			}
+		}
+	}
+	
+	/**
+	 * Removes extra parentheses around an expression. For example,
+	 * (((x))) becomes x
+	 * 
+	 * @param expression
+	 */
+	private void removeExtraParentheses( List< Symbol > expression ) {
+		while( expression.get( 0 ).equals( Symbol.LEFT_PAREN ) && 
+				expression.get( expression.size()-1 ).equals( Symbol.RIGHT_PAREN ) ) {
+			expression.remove( expression.size()-1 );
+			expression.remove( 0 );
+		}
+	}
+	
+	/**
 	 * Negates a given expression. If the expression is not
 	 * already in negation-normal form (NNF), this method will first
 	 * convert to NNF and then perform the negation.
@@ -237,6 +276,7 @@ public class Processor {
 	 * 				NNF
 	 */
 	private List< Symbol > negate( List< Symbol > input ) {
+		System.out.println( "Negate: " + input.toString() );
 		List< Symbol > nnfExpression;
 		
 		//first, make sure the entire expression is already in
@@ -248,6 +288,9 @@ public class Processor {
 		else {
 			nnfExpression = input;
 		}
+		
+		//remove any double negations
+		removeDoubleNegations( nnfExpression );
 		
 		//now we'll build the negated expression
 		List< Symbol > negatedExpression = new ArrayList< Symbol >();
@@ -350,6 +393,10 @@ public class Processor {
 							else if ( nnfExpression.get( j ).equals( Symbol.RIGHT_PAREN ) ) {
 								--parenthesesDepth;
 							}
+							if ( nnfExpression.get( j ) instanceof Variable ) {
+								++numVariablesFound;
+							}
+							++j;
 						}
 						
 						//we don't set i=j+1 because 
@@ -364,7 +411,6 @@ public class Processor {
 						//otherwise, just add the next token without
 						//negating it
 						Symbol nextSymbol = nnfExpression.get( i+1 );
-						System.out.println( "Negated " + nextSymbol.toString() );
 						if ( nextSymbol instanceof Variable ) {
 							++numVariablesFound;
 							negatedExpression.add( nextSymbol );
@@ -388,6 +434,9 @@ public class Processor {
 				negatedExpression.add( currSymbol );
 			}
 		}
+		
+		//remove any extraneous parenthese after we've finished negating stuff
+		removeExtraParentheses( negatedExpression );
 
 		if ( numVariablesFound == 1 ) {
 			return negatedExpression;

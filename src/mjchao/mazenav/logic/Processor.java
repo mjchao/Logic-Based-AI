@@ -259,6 +259,9 @@ public class Processor {
 	 * @param expression
 	 */
 	private void removeExtraParentheses( List< Symbol > expression ) {
+		if ( expression.size() == 0 ) {
+			return;
+		}
 		while( expression.get( 0 ).equals( Symbol.LEFT_PAREN ) && 
 				expression.get( expression.size()-1 ).equals( Symbol.RIGHT_PAREN ) ) {
 			expression.remove( expression.size()-1 );
@@ -267,40 +270,26 @@ public class Processor {
 	}
 	
 	/**
-	 * Negates a given expression. If the expression is not
-	 * already in negation-normal form (NNF), this method will first
-	 * convert to NNF and then perform the negation.
+	 * Negates an expression with no arrows.
 	 * 
-	 * @param input an expression.
-	 * @return		the given input negated and presented in
-	 * 				NNF
+	 * @param input		an expression to be negated
+	 * @return			the negated expression
 	 */
-	private List< Symbol > negate( List< Symbol > input ) {
-		System.out.println( "Negate: " + input.toString() );
-		List< Symbol > nnfExpression;
+	private List< Symbol > negate( List< Symbol > dirtyInput ) {
 		
-		//first, make sure the entire expression is already in
-		//NNF
-		if ( input.contains( Operator.IMPLICATION ) || 
-				input.contains( Operator.BICONDITIONAL ) ) {
-			nnfExpression = convertToNNF( input );
-		}
-		else {
-			nnfExpression = input;
-		}
-		
-		//remove any double negations
-		removeDoubleNegations( nnfExpression );
-		
-		//now we'll build the negated expression
+		//clean up the input a bit
+		List< Symbol > input = new ArrayList< Symbol >( dirtyInput );
+		removeExtraParentheses( input );
+		removeDoubleNegations( input );
+
 		List< Symbol > negatedExpression = new ArrayList< Symbol >();
 		
 		//first, we'll look for AND operators
 		//outside parentheses and apply DeMorgan's laws
 		//(note that AND precedence is before OR)
 		int parenthesisDepth = 0;
-		for ( int i=0 ; i<nnfExpression.size() ; ++i ) {
-			Symbol currToken = nnfExpression.get( i );
+		for ( int i=0 ; i<input.size() ; ++i ) {
+			Symbol currToken = input.get( i );
 			if ( currToken.equals( Symbol.LEFT_PAREN ) ) {
 				++parenthesisDepth;
 			}
@@ -309,10 +298,12 @@ public class Processor {
 			}
 			else if ( currToken.equals( Operator.AND ) ) {
 				if ( parenthesisDepth == 0 ) {
-					List< Symbol > leftOperand = nnfExpression.subList( 0 , i );
+					List< Symbol > leftOperand = input.subList( 0 , i );
 					leftOperand = negate( leftOperand );
-					List< Symbol > rightOperand = nnfExpression.subList( i+1 , nnfExpression.size() );
+					removeExtraParentheses( leftOperand );
+					List< Symbol > rightOperand = input.subList( i+1 , input.size() );
 					rightOperand = negate( rightOperand );
+					removeExtraParentheses( rightOperand );
 					
 					//apply DeMorgan's laws:
 					//!(A AND B) = !A OR !B
@@ -335,8 +326,8 @@ public class Processor {
 		//then, we'll look for OR operators
 		//outside parentheses and apply DeMorgan's laws
 		parenthesisDepth = 0;
-		for ( int i=0 ; i<nnfExpression.size() ; ++i ) {
-			Symbol currToken = nnfExpression.get( i );
+		for ( int i=0 ; i<input.size() ; ++i ) {
+			Symbol currToken = input.get( i );
 			if ( currToken.equals( Symbol.LEFT_PAREN ) ) {
 				++parenthesisDepth;
 			}
@@ -345,9 +336,11 @@ public class Processor {
 			}
 			else if ( currToken.equals( Operator.OR ) ) {
 				if ( parenthesisDepth == 0 ) {
-					List< Symbol > leftOperand = nnfExpression.subList( 0 , i );
+					List< Symbol > leftOperand = input.subList( 0 , i );
+					removeExtraParentheses( leftOperand );
 					leftOperand = negate( leftOperand );
-					List< Symbol > rightOperand = nnfExpression.subList( i+1 , nnfExpression.size() );
+					List< Symbol > rightOperand = input.subList( i+1 , input.size() );
+					removeExtraParentheses( rightOperand );
 					rightOperand = negate( rightOperand );
 					
 					//apply DeMorgan's laws:
@@ -360,83 +353,38 @@ public class Processor {
 			}
 		}
 		
-		//if no ANDs or ORs were found, then this expression must
-		//just consist of one token, so we'll negate it
 		int numVariablesFound = 0;
-		for ( int i=0 ; i<nnfExpression.size() ; ++i ) {
-			Symbol currSymbol = nnfExpression.get( i );
-			if ( currSymbol instanceof Variable ) {
+		
+		//otherwise, we just have atomic elements to 
+		//negate
+		for ( int i=0 ; i<input.size() ; ++i ) {
+			Symbol currToken = input.get( i );
+			if ( currToken instanceof Variable ) {
 				++numVariablesFound;
 				negatedExpression.add( Operator.NOT );
-				negatedExpression.add( currSymbol );
+				negatedExpression.add( currToken );
 			}
-			else if ( currSymbol.equals( Operator.NOT ) ) {
+			else if ( currToken.equals( Operator.NOT ) ) {
 				
-				//double negations cancel out, so don't add them
-				//however, we do need to skip past the token or
-				//parenthetical expression to which the negation
-				//was applied
-				if ( i<nnfExpression.size()-1 ) {
-					if ( nnfExpression.get( i+1 ).equals( Symbol.LEFT_PAREN ) ) {
-						negatedExpression.add( Symbol.LEFT_PAREN );
-						
-						//for parentheses
-						//skip forward to the end of the parenthetical
-						//expression and don't negate anything
-						int parenthesesDepth = 1;
-						int j = i+2;
-						while( j <nnfExpression.size() && parenthesesDepth > 0 ) {
-							negatedExpression.add( nnfExpression.get( j ) ) ;
-							if ( nnfExpression.get( j ).equals( Symbol.LEFT_PAREN ) ) {
-								++parenthesesDepth;
-							}
-							else if ( nnfExpression.get( j ).equals( Symbol.RIGHT_PAREN ) ) {
-								--parenthesesDepth;
-							}
-							if ( nnfExpression.get( j ) instanceof Variable ) {
-								++numVariablesFound;
-							}
-							++j;
-						}
-						
-						//we don't set i=j+1 because 
-						//the postincrement of the loop will do that
-						//we can also don't have to check
-						//that all parentheses match up because we
-						//already did that previously
-						i = j;
+				//if we have two NOT operators, then
+				//they cancel and we don't add either
+
+				//we also have to add the token to which
+				//the not operator was applied, but without
+				//negating the operand
+				if ( i < input.size()-1 ) {
+					Symbol nextToken = input.get( i+1 );
+					if ( nextToken instanceof Variable ) {
+						++numVariablesFound;
 					}
-					else {
-						
-						//otherwise, just add the next token without
-						//negating it
-						Symbol nextSymbol = nnfExpression.get( i+1 );
-						if ( nextSymbol instanceof Variable ) {
-							++numVariablesFound;
-							negatedExpression.add( nextSymbol );
-							++i;
-						}
-						else if ( nextSymbol instanceof Quantifier ) {
-							negatedExpression.add( nextSymbol );
-							++i;
-						}
-						else if ( nextSymbol.equals( Operator.NOT ) ) {
-							//skip over double negations
-							++i;
-						}
-						else {
-							throw new IllegalArgumentException( "Can only negate variables and quantifiers." );
-						}
-					}
+					negatedExpression.add( input.get( i+1 ) );
 				}
+				++i;
 			}
 			else {
-				negatedExpression.add( currSymbol );
+				negatedExpression.add( currToken );
 			}
 		}
-		
-		//remove any extraneous parenthese after we've finished negating stuff
-		removeExtraParentheses( negatedExpression );
 
 		if ( numVariablesFound == 1 ) {
 			return negatedExpression;
@@ -451,6 +399,129 @@ public class Processor {
 	}
 	
 	/**
+	 * Negates a given expression. If the expression is not
+	 * already in negation-normal form (NNF), this method will first
+	 * convert to NNF and then perform the negation.
+	 * 
+	 * @param input an expression.
+	 * @return		the given input negated and presented in
+	 * 				NNF
+	 */
+	private List< Symbol > distributeNots( List< Symbol > input ) {
+		List< Symbol > arrowFreeExpression;
+		
+		//first, make sure the entire expression
+		//has no more arrows
+		if ( input.contains( Operator.IMPLICATION ) || 
+				input.contains( Operator.BICONDITIONAL ) ) {
+			arrowFreeExpression = eliminateArrows( input );
+		}
+		else {
+			arrowFreeExpression = input;
+		}
+		
+		//now we'll build the negated expression
+		List< Symbol > distributedExpression = new ArrayList< Symbol >();
+		
+		//now, we'll look for NOT operators that
+		//aren't being applied to atomic elements
+		//and distribute them inwards
+		for ( int i=0 ; i<arrowFreeExpression.size() ; ++i ) {
+			Symbol currToken = arrowFreeExpression.get( i );
+			
+			if ( currToken.equals( Operator.NOT ) ) {
+				
+				//make sure there is an operand to which
+				//the not is applied
+				if ( i >= arrowFreeExpression.size()-1 ) {
+					throw new IllegalArgumentException( "NOT operator without an operand." );
+				}
+				Symbol nextToken = arrowFreeExpression.get( i+1 );
+				
+				if ( nextToken instanceof Quantifier ) {
+					
+					//negating a quantifier is treated 
+					//as negating an atomic element
+					continue;
+				}
+				else if ( nextToken instanceof Variable ) {
+					
+					//negating a variable is treated
+					//as negating an atomic element
+					continue;
+				}
+				else if ( nextToken.equals( Operator.NOT ) ) {
+					
+					//remove any double negations
+					//by not adding this NOT
+					//and not skipping the next NOT
+					++i;
+					continue;
+				}
+				else if ( nextToken.equals( Symbol.LEFT_PAREN ) ) {
+					
+					//if we are negating a parenthetical expression,
+					//figure out where it starts and where it ends
+					int exprStart = i+1;
+					int exprEnd = -1;
+					int parenDepth = 1;
+					for ( int j=i+2 ; j<arrowFreeExpression.size() ; ++j ) {
+						if ( arrowFreeExpression.get( j ).equals( Symbol.LEFT_PAREN ) ) {
+							++parenDepth;
+						}
+						else if ( arrowFreeExpression.get( j ) .equals( Symbol.RIGHT_PAREN ) ) {
+							--parenDepth;
+							if ( parenDepth == 0 ) {
+								exprEnd = j;
+								break;
+							}
+						}
+					}
+					
+					if ( exprEnd == -1 ) {
+						throw new IllegalArgumentException( "Missing right parenthesis." );
+					}
+					
+					//then we remove the parentheses
+					//and negate what's left in it
+					List< Symbol > negated = negate( distributeNots(arrowFreeExpression.subList( exprStart+1 , exprEnd )) );
+					distributedExpression.add( Symbol.LEFT_PAREN );
+					distributedExpression.addAll( negated );
+					distributedExpression.add( Symbol.RIGHT_PAREN );
+					
+					//skip to the end of the parenthetical
+					//expression, because we have already
+					//processed it
+					i = exprEnd;
+				}
+			}
+			else {
+				
+				//if not a NOT operator,
+				//then there's no negation to be performed and
+				//we just add the token to the expression
+				distributedExpression.add( currToken );
+			}
+		}
+		
+		removeExtraParentheses( distributedExpression );
+		return distributedExpression;
+		
+	}
+	
+	/**
+	 * Eliminates all arrows (implications and biconditionals) from
+	 * a logic statement
+	 * 
+	 * @param expression		an expression from which to remove
+	 * 							all implications and biconditionals
+	 * @return			
+	 */
+	private List< Symbol > eliminateArrows( List< Symbol > expression ) {
+		return null;
+	}
+	
+	/**
 	 * Converts a given expression into negation-normal form (NNF).
 	 * NNF requires that all implications and biconditional operators
 	 * be removed.
@@ -458,8 +529,8 @@ public class Processor {
 	 * @param expression		an expression to be converted to NNF
 	 * @return					the given expression in NNF
 	 */
-	private ArrayList< Symbol > convertToNNF( List< Symbol > expression ) {
-		return null;
+	private List< Symbol > convertToNNF( List< Symbol > expression ) {
+		return convertToNNF( eliminateArrows( expression ) );
 	}
 	
 	public void convertToCNF() {

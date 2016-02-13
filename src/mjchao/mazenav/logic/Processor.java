@@ -258,10 +258,10 @@ public class Processor {
 		int parenthesisDepth = 0;
 		for ( int i=0 ; i<nnfExpression.size() ; ++i ) {
 			Symbol currToken = nnfExpression.get( i );
-			if ( currToken.equals( Operator.LEFT_PAREN ) ) {
+			if ( currToken.equals( Symbol.LEFT_PAREN ) ) {
 				++parenthesisDepth;
 			}
-			else if ( currToken.equals( Operator.RIGHT_PAREN ) ) {
+			else if ( currToken.equals( Symbol.RIGHT_PAREN ) ) {
 				--parenthesisDepth;
 			}
 			else if ( currToken.equals( Operator.AND ) ) {
@@ -294,10 +294,10 @@ public class Processor {
 		parenthesisDepth = 0;
 		for ( int i=0 ; i<nnfExpression.size() ; ++i ) {
 			Symbol currToken = nnfExpression.get( i );
-			if ( currToken.equals( Operator.LEFT_PAREN ) ) {
+			if ( currToken.equals( Symbol.LEFT_PAREN ) ) {
 				++parenthesisDepth;
 			}
-			else if ( currToken.equals( Operator.RIGHT_PAREN ) ) {
+			else if ( currToken.equals( Symbol.RIGHT_PAREN ) ) {
 				--parenthesisDepth;
 			}
 			else if ( currToken.equals( Operator.OR ) ) {
@@ -320,22 +320,84 @@ public class Processor {
 		//if no ANDs or ORs were found, then this expression must
 		//just consist of one token, so we'll negate it
 		int numVariablesFound = 0;
-		for ( Symbol s : nnfExpression ) {
-			if ( s instanceof Variable ) {
+		for ( int i=0 ; i<nnfExpression.size() ; ++i ) {
+			Symbol currSymbol = nnfExpression.get( i );
+			if ( currSymbol instanceof Variable ) {
 				++numVariablesFound;
 				negatedExpression.add( Operator.NOT );
-				negatedExpression.add( s );
+				negatedExpression.add( currSymbol );
+			}
+			else if ( currSymbol.equals( Operator.NOT ) ) {
+				
+				//double negations cancel out, so don't add them
+				//however, we do need to skip past the token or
+				//parenthetical expression to which the negation
+				//was applied
+				if ( i<nnfExpression.size()-1 ) {
+					if ( nnfExpression.get( i+1 ).equals( Symbol.LEFT_PAREN ) ) {
+						negatedExpression.add( Symbol.LEFT_PAREN );
+						
+						//for parentheses
+						//skip forward to the end of the parenthetical
+						//expression and don't negate anything
+						int parenthesesDepth = 1;
+						int j = i+2;
+						while( j <nnfExpression.size() && parenthesesDepth > 0 ) {
+							negatedExpression.add( nnfExpression.get( j ) ) ;
+							if ( nnfExpression.get( j ).equals( Symbol.LEFT_PAREN ) ) {
+								++parenthesesDepth;
+							}
+							else if ( nnfExpression.get( j ).equals( Symbol.RIGHT_PAREN ) ) {
+								--parenthesesDepth;
+							}
+						}
+						
+						//we don't set i=j+1 because 
+						//the postincrement of the loop will do that
+						//we can also don't have to check
+						//that all parentheses match up because we
+						//already did that previously
+						i = j;
+					}
+					else {
+						
+						//otherwise, just add the next token without
+						//negating it
+						Symbol nextSymbol = nnfExpression.get( i+1 );
+						System.out.println( "Negated " + nextSymbol.toString() );
+						if ( nextSymbol instanceof Variable ) {
+							++numVariablesFound;
+							negatedExpression.add( nextSymbol );
+							++i;
+						}
+						else if ( nextSymbol instanceof Quantifier ) {
+							negatedExpression.add( nextSymbol );
+							++i;
+						}
+						else if ( nextSymbol.equals( Operator.NOT ) ) {
+							//skip over double negations
+							++i;
+						}
+						else {
+							throw new IllegalArgumentException( "Can only negate variables and quantifiers." );
+						}
+					}
+				}
 			}
 			else {
-				negatedExpression.add( s );
+				negatedExpression.add( currSymbol );
 			}
 		}
+
 		if ( numVariablesFound == 1 ) {
 			return negatedExpression;
 		}
+		else if ( numVariablesFound == 0 ) {
+			throw new IllegalArgumentException( "Syntax error. Negation with no operand." );
+		}
 		else {
 			throw new IllegalArgumentException( "Syntax error. " + 
-						"Operator-free expression with two operands." ); 
+						"Operator-free expression with more than one operand." ); 
 		}
 	}
 	

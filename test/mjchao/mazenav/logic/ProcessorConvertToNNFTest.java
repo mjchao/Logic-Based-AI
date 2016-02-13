@@ -37,6 +37,8 @@ public class ProcessorConvertToNNFTest {
 		List< Symbol > found;
 		
 		//basic acceptance tests
+		
+		//test negating the statement "x"
 		tracker = new SymbolTracker();
 		p = new Processor( "" , tracker );
 		input = new ArrayList< Symbol >( Arrays.asList( tracker.getNewVariable( "x" ) ) );
@@ -44,6 +46,7 @@ public class ProcessorConvertToNNFTest {
 		found = negate( p , input );
 		Assert.assertTrue( expected.equals( found ) );
 		
+		//test negating the statmeent "(x)"
 		tracker = new SymbolTracker();
 		p = new Processor( "" , tracker );
 		input = new ArrayList< Symbol >( Arrays.asList( 
@@ -54,6 +57,7 @@ public class ProcessorConvertToNNFTest {
 		found = negate( p , input );
 		Assert.assertTrue( expected.equals( found ) );
 		
+		//test negating the statement "x AND y"
 		tracker = new SymbolTracker();
 		p = new Processor( "" , tracker );
 		input = new ArrayList< Symbol >( Arrays.asList( 
@@ -62,6 +66,32 @@ public class ProcessorConvertToNNFTest {
 				Operator.NOT , tracker.getVariableByName( "x" ) , Operator.OR , 
 				Operator.NOT , tracker.getVariableByName( "y" ) );
 		found = negate( p , input );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test negating the statement "!x AND !y"
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Operator.NOT , tracker.getNewVariable( "x" ) , Operator.AND , 
+				Operator.NOT , tracker.getNewVariable( "y" ) ) );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , Operator.OR , 
+				tracker.getVariableByName( "y" ) );
+		found = negate( p , input );
+		System.out.println( found.toString() );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test negating the statement "!!x AND !!y"
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Operator.NOT , Operator.NOT , tracker.getNewVariable( "x" ) , Operator.AND , 
+				Operator.NOT , Operator.NOT , tracker.getNewVariable( "y" ) ) );
+		expected = Arrays.asList( 
+				Operator.NOT , tracker.getVariableByName( "x" ) , Operator.OR , 
+				Operator.NOT , tracker.getVariableByName( "y" ) );
+		found = negate( p , input );
+		System.out.println( found.toString() );
 		Assert.assertTrue( expected.equals( found ) );
 	}
 }

@@ -149,7 +149,7 @@ public class ProcessorConvertToNNFTest {
 		
 		//test distributing over two parenthetical expressions
 		//with redundant parentheses
-		//!(!((x AND y)) OR !(((x OR y))))    <=> x AND y AND (x OR y)
+		//!(!((x AND y)) OR !(((x OR y))))    <=> 	x AND y AND (x OR y)
 		tracker = new SymbolTracker();
 		p = new Processor( "" , tracker );
 		input = new ArrayList< Symbol >( Arrays.asList( 
@@ -197,7 +197,6 @@ public class ProcessorConvertToNNFTest {
 				);
 		found = distributeNots( p , input );
 		Assert.assertTrue( expected.equals( found ) );
-		
 	}
 	
 	@Test
@@ -333,7 +332,5 @@ public class ProcessorConvertToNNFTest {
 		found = distributeNots( p , input );
 		System.out.println( found.toString() );
 		Assert.assertTrue( expected.equals( found ) );
-		
-
 	}
 }

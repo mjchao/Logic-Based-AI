@@ -347,7 +347,21 @@ public class ProcessorConvertToNNFTest {
 				tracker.getVariableByName( "Q" )
 		);
 		found = eliminateArrows( p , input );
-		System.out.println( found.toString() );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test removing arrows from "!P => !Q"
+		//to get "!P OR Q"
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Operator.NOT , tracker.getNewVariable( "P" ) , Operator.IMPLICATION ,
+				Operator.NOT , tracker.getNewVariable( "Q" )
+		) );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "P" ) , Operator.OR , Operator.NOT ,
+				tracker.getVariableByName( "Q" )
+		);
+		found = eliminateArrows( p , input );
 		Assert.assertTrue( expected.equals( found ) );
 
 		//test removing arrows from "P <=> Q"
@@ -365,10 +379,63 @@ public class ProcessorConvertToNNFTest {
 				Operator.OR , tracker.getVariableByName( "Q" ) , Symbol.RIGHT_PAREN
 		);
 		found = eliminateArrows( p , input );
-		System.out.println( found.toString() );
 		Assert.assertTrue( expected.equals( found ) );
 		
+		//test removing arrows from "!P <=> !Q"
+		//to get "(!P OR Q) AND (P OR !Q)"
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Operator.NOT , tracker.getNewVariable( "P" ) , Operator.BICONDITIONAL ,
+				Operator.NOT , tracker.getNewVariable( "Q" )
+		) );
+		expected = Arrays.asList( 
+				Symbol.LEFT_PAREN , Operator.NOT , tracker.getVariableByName( "P" ) ,
+				Operator.OR , tracker.getVariableByName( "Q" ) , Symbol.RIGHT_PAREN ,
+				Operator.AND , Symbol.LEFT_PAREN , tracker.getVariableByName( "P" ) ,
+				Operator.OR , Operator.NOT , tracker.getVariableByName( "Q" ) , Symbol.RIGHT_PAREN
+		);
+		found = eliminateArrows( p , input );
+		Assert.assertTrue( expected.equals( found ) );
 		
+		//----Test implications with parentheses-----//
+		//test removing arrows from "R AND (P => Q)"
+		//to get "R AND !P OR Q"
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				tracker.getNewVariable( "R" ) , Operator.AND , Symbol.LEFT_PAREN ,
+				tracker.getNewVariable( "P" ) , Operator.IMPLICATION , tracker.getNewVariable( "Q" ) ,
+				Symbol.RIGHT_PAREN
+		) );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "R" ) , Operator.AND , 
+				Operator.NOT , tracker.getVariableByName( "P" ) ,
+				Operator.OR , tracker.getVariableByName( "Q" )
+		);
+		found = eliminateArrows( p , input );
+		Assert.assertTrue( expected.equals( found ) );		
+		
+		//-----Test removing multiple arrows------//
+		
+		//test removing arrows from "P => Q => R". Assuming right associativity,
+		//this is equivalent to "P => (Q => R)" and we get
+		//"!P OR (Q => R)" which is equivalent to
+		//"!P OR !Q OR R"
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				tracker.getNewVariable( "P" ) , Operator.IMPLICATION , tracker.getNewVariable( "Q" ) ,
+				Operator.IMPLICATION , tracker.getNewVariable( "R" )
+		) );
+		expected = Arrays.asList( 
+				Operator.NOT , tracker.getVariableByName( "P" ) , Operator.OR , 
+				Operator.NOT , tracker.getVariableByName( "Q" ) , Operator.OR ,
+				tracker.getVariableByName( "R" )
+		);
+		found = eliminateArrows( p , input );
+		System.out.println( found.toString() );
+		Assert.assertTrue( expected.equals( found ) );		
 	}
 	
 	@Ignore

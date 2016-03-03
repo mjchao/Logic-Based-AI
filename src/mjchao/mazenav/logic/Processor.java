@@ -573,12 +573,10 @@ public class Processor {
 	 */
 	private List< Symbol > eliminateArrows( List< Symbol > copyOfExpression ) {
 		List< Symbol > expression = new ArrayList< Symbol >( copyOfExpression );
+		removeExtraParentheses( expression );
 		if ( expression.contains( Operator.IMPLICATION ) ) {
 			int implicationIdx = expression.indexOf( Operator.IMPLICATION );
-			
-			//when we change P => Q, to !P OR Q, we can just immediately
-			//replace => with OR
-			expression.set( implicationIdx , Operator.OR );
+			expression.remove( implicationIdx );
 			
 			//scan backwards until we find an extra open parentheses
 			//or a <=> operator which has lower precedence.
@@ -612,6 +610,7 @@ public class Processor {
 			
 			//compute !P, the negation of the antecedent without any arrows
 			List< Symbol > negatedAntecedent = eliminateArrows( antecedent );
+			System.out.println( negatedAntecedent );
 			negatedAntecedent = negate( negatedAntecedent );
 			
 			//replace P with !P
@@ -623,6 +622,17 @@ public class Processor {
 			//so we just negated the antecedent and change the
 			//implication to an OR
 			
+			//if there are more arrows, we need to make sure they
+			//don't include the expression from which we just
+			//removed arrows
+			if ( expression.contains( Operator.IMPLICATION ) || expression.contains( Operator.BICONDITIONAL ) ) {
+				antecedent.add( Operator.OR );
+				antecedent.add( Symbol.LEFT_PAREN );
+				expression.add( Symbol.RIGHT_PAREN );
+			}
+			else {
+				antecedent.add( Operator.OR );
+			}
 			//now we just continue removing arrows
 			//from the expression
 			return eliminateArrows( expression );

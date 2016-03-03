@@ -290,10 +290,10 @@ public class Processor {
 	
 	/**
 	 * Negates an expression with no implications or biconditional
-	 * operators.
+	 * operators. The input is never changed.
 	 * 
-	 * @param input		an expression to be negated
-	 * @return			the negated expression
+	 * @param dirtyInput	an expression to be negated
+	 * @return				the negated expression
 	 */
 	private List< Symbol > negate( List< Symbol > dirtyInput ) {
 		
@@ -452,7 +452,8 @@ public class Processor {
 	/**
 	 * Negates a given expression. If the expression is not
 	 * already in negation-normal form (NNF), this method will first
-	 * convert to NNF and then perform the negation.
+	 * convert to NNF and then perform the negation. The input
+	 * is never changed.
 	 * 
 	 * @param input an expression.
 	 * @return		the given input negated and presented in
@@ -564,14 +565,152 @@ public class Processor {
 	
 	/**
 	 * Eliminates all arrows (implications and biconditionals) from
-	 * a logic statement
+	 * a logic statement. The input is not changed.
 	 * 
-	 * @param expression		an expression from which to remove
+	 * @param copyOfExpression	an expression from which to remove
 	 * 							all implications and biconditionals
 	 * @return			
 	 */
-	private List< Symbol > eliminateArrows( List< Symbol > expression ) {
-		return null;
+	private List< Symbol > eliminateArrows( List< Symbol > copyOfExpression ) {
+		List< Symbol > expression = new ArrayList< Symbol >( copyOfExpression );
+		if ( expression.contains( Operator.IMPLICATION ) ) {
+			int implicationIdx = expression.indexOf( Operator.IMPLICATION );
+			
+			//when we change P => Q, to !P OR Q, we can just immediately
+			//replace => with OR
+			expression.set( implicationIdx , Operator.OR );
+			
+			//scan backwards until we find an extra open parentheses
+			//or a <=> operator which has lower precedence.
+			//this will mark the start of the implication expression
+			int antecedentEnd = implicationIdx;
+			
+			//by default, assume that the antecedent starts at the very
+			//beginning of the expression. we'll change it if we find
+			//it starts somewhere else.
+			int antecedentStart = 0;
+			int parenthesesDepth = 0;
+			for ( int i=implicationIdx-1 ; i>=0 ; --i ) {
+				if ( expression.get( i ).equals( Symbol.LEFT_PAREN ) ) {
+					--parenthesesDepth;
+				}
+				else if ( expression.get( i ).equals( Symbol.RIGHT_PAREN ) ) {
+					++parenthesesDepth;
+				}
+				if ( parenthesesDepth < 0 ) {
+					antecedentStart = i;
+					break;
+				}
+				if ( expression.get( i ).equals( Operator.BICONDITIONAL ) ) {
+					antecedentStart = i+1;
+					break;
+				}
+			}
+			
+			//find the expression for the antecedent, P
+			List< Symbol > antecedent = expression.subList( antecedentStart , antecedentEnd );
+			
+			//compute !P, the negation of the antecedent without any arrows
+			List< Symbol > negatedAntecedent = eliminateArrows( antecedent );
+			negatedAntecedent = negate( negatedAntecedent );
+			
+			//replace P with !P
+			antecedent.clear();
+			antecedent.addAll( negatedAntecedent );
+			
+			//we can leave the consequent alone because we have
+			// P => Q 		is equivalent to !P OR Q
+			//so we just negated the antecedent and change the
+			//implication to an OR
+			
+			//now we just continue removing arrows
+			//from the expression
+			return eliminateArrows( expression );
+		}
+		else if ( expression.contains( Operator.BICONDITIONAL ) ) {
+			int biconditionalIdx = expression.indexOf( Operator.BICONDITIONAL );
+			
+			//scan backwards until we find an extra open parentheses.
+			//that will indicate the start of this bicondiational expression.
+			int antecedentEnd = biconditionalIdx;
+			
+			//by default, assume that the antecedent starts at the very beginning
+			//and we'll correct this if we find out otherwise.
+			int antecedentStart = 0;
+			int parenthesesDepth = 0;
+			for ( int i=biconditionalIdx-1 ; i>=0 ; --i ) {
+				if ( expression.get( i ).equals( Symbol.LEFT_PAREN ) ) {
+					--parenthesesDepth;
+				}
+				else if ( expression.get( i ).equals( Symbol.RIGHT_PAREN ) ) {
+					++parenthesesDepth;
+				}
+				if ( parenthesesDepth < 0 ) {
+					antecedentStart = i;
+					break;
+				}
+			}
+			List< Symbol > antecedent = new ArrayList< Symbol >( expression.subList( antecedentStart , antecedentEnd ) );
+			antecedent = eliminateArrows( antecedent );
+			
+			//scan forward until we find an extra close parentheses
+			//or another biconditional operator which has lower precedence.
+			//this will mark the end of the biconditional expression
+			int consequentStart = biconditionalIdx + 1;
+			
+			//by default, assume the biconditional extends to the end of the
+			//expression. We'll fix this if we find out this is not the case
+			int consequentEnd = expression.size();
+			parenthesesDepth = 0;
+			for ( int i=biconditionalIdx+1 ; i<expression.size() ; ++i ) {
+				if ( expression.get( i ).equals( Symbol.LEFT_PAREN ) ) {
+					--parenthesesDepth;
+				}
+				else if ( expression.get( i ).equals( Symbol.RIGHT_PAREN ) ) {
+					++parenthesesDepth;
+				}
+				if ( parenthesesDepth > 0 ) {
+					consequentEnd = i+1;
+					break;
+				}
+				if ( expression.get( i ).equals( Operator.BICONDITIONAL ) ) {
+					consequentEnd = i;
+					break;
+				}				
+			}
+			List< Symbol > consequent = new ArrayList< Symbol >( expression.subList( consequentStart , consequentEnd ) );
+			consequent = eliminateArrows( consequent );
+			
+			//replace the P <=> Q with
+			//(P OR !Q) AND (!P OR Q)
+			List< Symbol > P = antecedent;
+			List< Symbol > notP = negate( antecedent );
+			List< Symbol > Q = consequent;
+			List< Symbol > notQ = negate( consequent );
+			
+			//here, we remove the biconditional expression P <=> Q from
+			//the original expression and replace it with
+			//(P OR !Q) AND (!P OR Q)
+			List< Symbol > biconditionalExpression = expression.subList( antecedentStart , consequentEnd );
+			biconditionalExpression.clear();
+			biconditionalExpression.add( Symbol.LEFT_PAREN );
+			biconditionalExpression.addAll( P );
+			biconditionalExpression.add( Operator.OR );
+			biconditionalExpression.addAll( notQ );
+			biconditionalExpression.add( Symbol.RIGHT_PAREN );
+			biconditionalExpression.add( Operator.AND );
+			biconditionalExpression.add( Symbol.LEFT_PAREN );
+			biconditionalExpression.addAll( notP );
+			biconditionalExpression.add( Operator.OR );
+			biconditionalExpression.addAll( Q );
+			biconditionalExpression.add( Symbol.RIGHT_PAREN );
+			
+			//then continue eliminating arrows
+			return eliminateArrows( expression );
+		}
+		
+		//if no arrows were found, then we're done
+		return expression;
 	}
 	
 	/**

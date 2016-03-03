@@ -41,6 +41,18 @@ public class ProcessorConvertToNNFTest {
 		}		
 	}
 	
+	public List< Symbol > eliminateArrows( Processor p , List< Symbol > input ) {
+		Class<?> c = Processor.class;
+		try {
+			Method f = c.getDeclaredMethod( "eliminateArrows" , List.class );
+			f.setAccessible( true );
+			return (List<Symbol>) f.invoke( p , input );
+		} catch (IllegalArgumentException | IllegalAccessException | SecurityException | NoSuchMethodException | InvocationTargetException e) {
+			e.printStackTrace();
+			throw new RuntimeException( "Could not apply eliminateArrows() method to Processor object." );
+		}			
+	}
+	
 	@Test
 	public void testDistributeNotsAlreadyInNNF() {
 		SymbolTracker tracker;
@@ -310,6 +322,53 @@ public class ProcessorConvertToNNFTest {
 		found = distributeNots( p , input );
 		found = negate( p , found );
 		Assert.assertTrue( expected.equals( found ) );
+	}
+	
+	@Test
+	public void testEliminateArrows() {
+		SymbolTracker tracker;
+		Processor p;
+		List< Symbol > input;
+		List< Symbol > expected;
+		List< Symbol > found;
+		
+		//-----basic acceptance tests-------//
+		
+		//test removing arrows from "P => Q"
+		//to get "!P OR Q"
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				tracker.getNewVariable( "P" ) , Operator.IMPLICATION ,
+				tracker.getNewVariable( "Q" )
+		) );
+		expected = Arrays.asList( 
+				Operator.NOT , tracker.getVariableByName( "P" ) , Operator.OR ,
+				tracker.getVariableByName( "Q" )
+		);
+		found = eliminateArrows( p , input );
+		System.out.println( found.toString() );
+		Assert.assertTrue( expected.equals( found ) );
+
+		//test removing arrows from "P <=> Q"
+		//to get "(P OR !Q) AND (!P OR Q)"
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				tracker.getNewVariable( "P" ) , Operator.BICONDITIONAL ,
+				tracker.getNewVariable( "Q" )
+		) );
+		expected = Arrays.asList( 
+				Symbol.LEFT_PAREN , tracker.getVariableByName( "P" ) , Operator.OR ,
+				Operator.NOT , tracker.getVariableByName( "Q" ) , Symbol.RIGHT_PAREN ,
+				Operator.AND , Symbol.LEFT_PAREN , Operator.NOT , tracker.getVariableByName( "P" ) ,
+				Operator.OR , tracker.getVariableByName( "Q" ) , Symbol.RIGHT_PAREN
+		);
+		found = eliminateArrows( p , input );
+		System.out.println( found.toString() );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		
 	}
 	
 	@Ignore

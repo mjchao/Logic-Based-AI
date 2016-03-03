@@ -351,7 +351,6 @@ public class ProcessorTokenizeTest {
 					tracker.getConstant( "RightAngle" ) , Symbol.COMMA ,
 					tracker.getFunction( "Angle" ) , Symbol.LEFT_PAREN , 
 					NumbersFOL.fromInt( 90 ) , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN );
-		System.out.println( tokens.toString() );
 		Assert.assertTrue( tokens.equals( expected ) );
 	}
 }

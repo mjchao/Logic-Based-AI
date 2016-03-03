@@ -357,6 +357,7 @@ public class Processor {
 			throw new IllegalArgumentException( "Missing right parenthesis." );
 		}
 		
+		//if we did not find any AND operators
 		//then, we'll look for OR operators
 		//outside parentheses and apply DeMorgan's laws
 		parenthesisDepth = 0;
@@ -405,8 +406,8 @@ public class Processor {
 		
 		int numVariablesFound = 0;
 		
-		//otherwise, we just have atomic elements to 
-		//negate
+		//if there were no AND or OR operators, then
+		//we just have atomic elements to negate
 		for ( int i=0 ; i<input.size() ; ++i ) {
 			Symbol currToken = input.get( i );
 			if ( currToken instanceof Variable ) {

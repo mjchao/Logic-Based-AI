@@ -259,7 +259,6 @@ public class Processor {
 	 * @param expression
 	 */
 	private void removeExtraParentheses( List< Symbol > expression ) {
-		System.out.println( expression );
 		if ( expression.size() == 0 ) {
 			return;
 		}
@@ -287,8 +286,8 @@ public class Processor {
 						throw new RuntimeException( "Missing close parenthesis." );
 					}
 					
-					//check for redundant parentheses y OR ((x)) means we can
-					//remove the outer pair around the x
+					//check for redundant parentheses y AND ((x OR z)) means we can
+					//remove the outer pair around the x OR z
 					if ( expression.get( matchingParenthesesIdx-1 ).equals( Symbol.RIGHT_PAREN ) &&
 							expression.get( i+1).equals( Symbol.LEFT_PAREN ) ) {
 						expression.remove( matchingParenthesesIdx );
@@ -305,6 +304,45 @@ public class Processor {
 						removedParentheses = true;
 						break;						
 					}
+					
+					//FIXME Fix negate first then uncomment this
+					/*
+					//if all operators inside the parentheses have at least the same
+					//precedence over neighboring operators outside the parentheses,
+					//then the parentheses are redundant. e.g.
+					// "y OR (x AND z)"  can be rewritten as y OR x AND z
+					int minPrecedenceInParentheses = Integer.MAX_VALUE;
+					for ( int j=i+1 ; j<matchingParenthesesIdx ; ++j ) {
+						if ( expression.get( j ) instanceof Operator ) {
+							minPrecedenceInParentheses = Math.min( minPrecedenceInParentheses , 
+												((Operator) expression.get( j )).getPrecedence() );
+						}
+					}
+					int maxNeighboringPrecedence = Integer.MIN_VALUE;
+					for ( int j=i-1 ; j>=0 ; --j ) {
+						if ( expression.get( j ) instanceof Operator ) {
+							maxNeighboringPrecedence = Math.max( maxNeighboringPrecedence , 
+									((Operator) expression.get( j )).getPrecedence() );
+							break;
+						}
+					}
+					for ( int j=matchingParenthesesIdx+1 ; j<expression.size() ; ++j ) {
+						if ( expression.get( j ) instanceof Operator ) {
+							maxNeighboringPrecedence = Math.max( maxNeighboringPrecedence , 
+									((Operator) expression.get( j )).getPrecedence() );
+							break;
+						}
+					}
+					System.out.println( expression );
+					System.out.println( minPrecedenceInParentheses + " " + maxNeighboringPrecedence );
+					
+					
+					if ( minPrecedenceInParentheses == maxNeighboringPrecedence ) {
+						expression.remove( matchingParenthesesIdx );
+						expression.remove( i );
+						removedParentheses = true;
+						break;								
+					}*/
 				}
 			}
 		}
@@ -339,6 +377,10 @@ public class Processor {
 				--parenthesisDepth;
 			}
 			else if ( currToken.equals( Operator.AND ) ) {
+				
+				//FIXME incorrect - the boundary of the AND operator
+				//is when we hit the first operator with lower precedence.
+				//the same goes with the OR operator
 				if ( parenthesisDepth == 0 ) {
 					List< Symbol > leftOperand = input.subList( 0 , i );
 					leftOperand = negate( leftOperand );

@@ -18,25 +18,32 @@ package mjchao.mazenav.logic.structures;
 public class Operator extends Symbol {
 
 	public static final String NOT_SHORTHAND = "!";
-	public static final Operator NOT = new Operator( "NOT" );
+	public static final int NOT_PRECEDENCE = 5;
+	public static final Operator NOT = new Operator( "NOT" , NOT_PRECEDENCE );
 	
 	public static final String EQUALS_SHORTHAND = "==";
-	public static final Operator EQUALS = new Operator( "EQUALS" );
+	public static final int EQUALS_PRECEDENCE = 4;
+	public static final Operator EQUALS = new Operator( "EQUALS" , EQUALS_PRECEDENCE );
 	
 	public static final String NOT_EQUALS_SHORTHAND = "!=";
-	public static final Operator NOT_EQUALS = new Operator( "NEQUALS" );
+	public static final int NOT_EQUALS_PRECEDENCE = 4;
+	public static final Operator NOT_EQUALS = new Operator( "NEQUALS" , NOT_EQUALS_PRECEDENCE );
 	
 	public static final String AND_SHORTHAND = "&&";
-	public static final Operator AND = new Operator( "AND" );
+	public static final int AND_PRECEDENCE = 3;
+	public static final Operator AND = new Operator( "AND" , AND_PRECEDENCE );
 	
 	public static final String OR_SHORTHAND = "||";
-	public static final Operator OR = new Operator( "OR" );
+	public static final int OR_PRECEDENCE = 2;
+	public static final Operator OR = new Operator( "OR" , OR_PRECEDENCE );
 	
 	public static final String IMPLICATION_SHORTHAND = "=>";
-	public static final Operator IMPLICATION = new Operator( "IMPLICATION" );
+	public static final int IMPLICATION_PRECEDENCE = 1;
+	public static final Operator IMPLICATION = new Operator( "IMPLICATION" , IMPLICATION_PRECEDENCE );
 	
 	public static final String BICONDITIONAL_SHORTHAND = "<=>";
-	public static final Operator BICONDITIONAL = new Operator( "BICONDITIONAL" );
+	public static final int BICONDITIONAL_PRECEDENCE = 0;
+	public static final Operator BICONDITIONAL = new Operator( "BICONDITIONAL" , BICONDITIONAL_PRECEDENCE );
 	
 	public static final Operator[] OPERATOR_LIST = new Operator[] { 
 			BICONDITIONAL , IMPLICATION , OR , AND , NOT_EQUALS , EQUALS , NOT 
@@ -61,8 +68,15 @@ public class Operator extends Symbol {
 		return null;
 	}
 	
-	private Operator( String name ) {
+	private final int precedence;
+	
+	private Operator( String name , int precedence ) {
 		super( name );
+		this.precedence = precedence;
+	}
+	
+	public int getPrecedence() {
+		return this.precedence;
 	}
 	
 	public boolean equals( String str ) {

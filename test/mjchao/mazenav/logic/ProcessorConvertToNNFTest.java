@@ -121,12 +121,10 @@ public class ProcessorConvertToNNFTest {
 				tracker.getNewVariable( "w" ) ) );
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "x" ) , Operator.AND , 
-				Symbol.LEFT_PAREN , 
 				tracker.getVariableByName( "y" ) , Operator.AND , 
-				tracker.getVariableByName( "z" ) , 	Symbol.RIGHT_PAREN , Operator.AND ,
+				tracker.getVariableByName( "z" ) , Operator.AND ,
 				tracker.getVariableByName( "w" ) );
 		found = distributeNots( p , input );
-		System.out.println( found.toString() );
 		Assert.assertTrue( expected.equals( found ) );
 
 	}
@@ -242,6 +240,7 @@ public class ProcessorConvertToNNFTest {
 					tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN
 				);
 		found = distributeNots( p , input );
+		System.out.println( found.toString() );
 		Assert.assertTrue( expected.equals( found ) );
 		
 		//test distributing over two parenthetical expressions

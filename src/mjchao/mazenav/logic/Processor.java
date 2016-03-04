@@ -305,17 +305,30 @@ public class Processor {
 						break;						
 					}
 					
-					//FIXME Fix negate first then uncomment this
-					/*
 					//if all operators inside the parentheses have at least the same
 					//precedence over neighboring operators outside the parentheses,
 					//then the parentheses are redundant. e.g.
 					// "y OR (x AND z)"  can be rewritten as y OR x AND z
+					//furthermore, we need to ignore operators inside
+					//nested parenthetical expressions. for example,
+					// "x AND (y AND (z OR w))" can be rewritten as
+					// "x AND y AND (z OR w)". The parentheses around
+					// "(y AND (z OR w))" are redundant, although there is
+					//a lower priority OR operator inside.
+					parenthesesDepth = 1;
 					int minPrecedenceInParentheses = Integer.MAX_VALUE;
 					for ( int j=i+1 ; j<matchingParenthesesIdx ; ++j ) {
-						if ( expression.get( j ) instanceof Operator ) {
-							minPrecedenceInParentheses = Math.min( minPrecedenceInParentheses , 
-												((Operator) expression.get( j )).getPrecedence() );
+						if ( expression.get( j ).equals( Symbol.LEFT_PAREN ) ) {
+							++parenthesesDepth;
+						}
+						else if ( expression.get( j ).equals( Symbol.RIGHT_PAREN ) ) {
+							--parenthesesDepth;
+						}
+						if ( parenthesesDepth == 1 ) {
+							if ( expression.get( j ) instanceof Operator ) {
+								minPrecedenceInParentheses = Math.min( minPrecedenceInParentheses , 
+													((Operator) expression.get( j )).getPrecedence() );
+							}
 						}
 					}
 					int maxNeighboringPrecedence = Integer.MIN_VALUE;
@@ -333,16 +346,13 @@ public class Processor {
 							break;
 						}
 					}
-					System.out.println( expression );
-					System.out.println( minPrecedenceInParentheses + " " + maxNeighboringPrecedence );
-					
-					
+
 					if ( minPrecedenceInParentheses == maxNeighboringPrecedence ) {
 						expression.remove( matchingParenthesesIdx );
 						expression.remove( i );
 						removedParentheses = true;
 						break;								
-					}*/
+					}
 				}
 			}
 		}
@@ -364,66 +374,14 @@ public class Processor {
 
 		List< Symbol > negatedExpression = new ArrayList< Symbol >();
 		
-		//first, we'll look for AND operators
-		//outside parentheses and apply DeMorgan's laws
-		//(note that AND precedence is before OR)
 		int parenthesisDepth = 0;
-		for ( int i=0 ; i<input.size() ; ++i ) {
-			Symbol currToken = input.get( i );
-			if ( currToken.equals( Symbol.LEFT_PAREN ) ) {
-				++parenthesisDepth;
-			}
-			else if ( currToken.equals( Symbol.RIGHT_PAREN ) ) {
-				--parenthesisDepth;
-			}
-			else if ( currToken.equals( Operator.AND ) ) {
-				
-				//FIXME incorrect - the boundary of the AND operator
-				//is when we hit the first operator with lower precedence.
-				//the same goes with the OR operator
-				if ( parenthesisDepth == 0 ) {
-					List< Symbol > leftOperand = input.subList( 0 , i );
-					leftOperand = negate( leftOperand );
-					List< Symbol > rightOperand = input.subList( i+1 , input.size() );
-					rightOperand = negate( rightOperand );
-					
-					//apply DeMorgan's laws:
-					//!(A AND B) = !A OR !B
-					if ( leftOperand.contains( Operator.AND ) ) {
-						negatedExpression.add( Symbol.LEFT_PAREN );
-						negatedExpression.addAll( leftOperand );
-						negatedExpression.add( Symbol.RIGHT_PAREN );
-					}
-					else {
-						negatedExpression.addAll( leftOperand );
-					}
-					
-					negatedExpression.add( Operator.OR );
-					
-					if ( rightOperand.contains( Operator.AND ) ) {
-						negatedExpression.add( Symbol.LEFT_PAREN );
-						negatedExpression.addAll( rightOperand );
-						negatedExpression.add( Symbol.RIGHT_PAREN );
-					}
-					else {
-						negatedExpression.addAll( rightOperand );
-					}
-					return negatedExpression;
-				}
-			}
-		}
 		
-		//make sure the parentheses all match up
-		if ( parenthesisDepth < 0 ) {
-			throw new IllegalArgumentException( "Missing left parenthesis." );
-		}
-		if ( parenthesisDepth > 0 ) {
-			throw new IllegalArgumentException( "Missing right parenthesis." );
-		}
-		
-		//if we did not find any AND operators
-		//then, we'll look for OR operators
-		//outside parentheses and apply DeMorgan's laws
+		//first, we look for OR operators outside parentheses.
+		//Since there are no implications or biconditionals,
+		//OR operators have the lowest precedence. We then
+		//split the expression at the OR operator, and
+		//evaluate the left and right operands before
+		//evaluating this OR expression
 		parenthesisDepth = 0;
 		for ( int i=0 ; i<input.size() ; ++i ) {
 			Symbol currToken = input.get( i );
@@ -456,6 +414,63 @@ public class Processor {
 					negatedExpression.add( Operator.AND );
 					
 					if ( rightOperand.contains( Operator.OR ) ) {
+						negatedExpression.add( Symbol.LEFT_PAREN );
+						negatedExpression.addAll( rightOperand );
+						negatedExpression.add( Symbol.RIGHT_PAREN );
+					}
+					else {
+						negatedExpression.addAll( rightOperand );
+					}
+					return negatedExpression;
+				}
+			}
+		}
+		
+		//make sure the parentheses all match up
+		if ( parenthesisDepth < 0 ) {
+			throw new IllegalArgumentException( "Missing left parenthesis." );
+		}
+		if ( parenthesisDepth > 0 ) {
+			throw new IllegalArgumentException( "Missing right parenthesis." );
+		}
+		
+		//if there were no OR operators, then 
+		//AND operators must have the lowest precedence
+		//in this expression, so we look for AND operators
+		//outside parentheses and split and evaluate the
+		//left and right operands first before evaluating
+		//this AND expression
+		parenthesisDepth = 0;
+		for ( int i=0 ; i<input.size() ; ++i ) {
+			Symbol currToken = input.get( i );
+			if ( currToken.equals( Symbol.LEFT_PAREN ) ) {
+				++parenthesisDepth;
+			}
+			else if ( currToken.equals( Symbol.RIGHT_PAREN ) ) {
+				--parenthesisDepth;
+			}
+			else if ( currToken.equals( Operator.AND ) ) {
+				
+				if ( parenthesisDepth == 0 ) {
+					List< Symbol > leftOperand = input.subList( 0 , i );
+					leftOperand = negate( leftOperand );
+					List< Symbol > rightOperand = input.subList( i+1 , input.size() );
+					rightOperand = negate( rightOperand );
+					
+					//apply DeMorgan's laws:
+					//!(A AND B) = !A OR !B
+					if ( leftOperand.contains( Operator.AND ) ) {
+						negatedExpression.add( Symbol.LEFT_PAREN );
+						negatedExpression.addAll( leftOperand );
+						negatedExpression.add( Symbol.RIGHT_PAREN );
+					}
+					else {
+						negatedExpression.addAll( leftOperand );
+					}
+					
+					negatedExpression.add( Operator.OR );
+					
+					if ( rightOperand.contains( Operator.AND ) ) {
 						negatedExpression.add( Symbol.LEFT_PAREN );
 						negatedExpression.addAll( rightOperand );
 						negatedExpression.add( Symbol.RIGHT_PAREN );

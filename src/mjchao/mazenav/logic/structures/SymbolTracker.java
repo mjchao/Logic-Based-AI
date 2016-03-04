@@ -9,8 +9,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 
-import mjchao.mazenav.util.Utils;
-
 /**
  * Tracks any variables that have been generated
  * and any predefined functions, objects, relations, etc.
@@ -171,6 +169,7 @@ public class SymbolTracker {
 	public static final SymbolTracker fromDataFiles( String[] filenames , Object... definitionClassInstances ) throws IOException {
 		SymbolTracker rtn = new SymbolTracker();
 		for ( String filename : filenames ) {
+			@SuppressWarnings("resource")
 			BufferedReader f = new BufferedReader( new FileReader( filename ) );
 			
 			int lineNumber = 1;
@@ -204,6 +203,7 @@ public class SymbolTracker {
 					rtn.addConstant( obj.getSymbolName() , obj );
 				}
 				else {
+					f.close();
 					throw new IllegalArgumentException( "Undefined type: " + dataType + 
 														" at line " + lineNumber + 
 														" in file \"" + filename + "\".\n" +
@@ -282,6 +282,7 @@ public class SymbolTracker {
 	 * @return				a predefined constant as an ObjectFOL
 	 * 						or null if conversion failed
 	 */
+	@SuppressWarnings("static-method")
 	public ObjectFOL getPredefinedConstant( String token ) {
 		try {
 			int intValue = Integer.parseInt( token );

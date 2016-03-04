@@ -126,7 +126,31 @@ public class ProcessorConvertToNNFTest {
 				tracker.getVariableByName( "w" ) );
 		found = distributeNots( p , input );
 		Assert.assertTrue( expected.equals( found ) );
-
+		
+		//test removing parentheses from the middle of an expression:
+		// "x AND (y AND (z OR ((a AND b) OR c))) AND w"     <=>
+		// "x AND y AND (z OR (a AND b OR c)) AND w"
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				tracker.getNewVariable( "x" ) , Operator.AND , Symbol.LEFT_PAREN ,
+				tracker.getNewVariable( "y" ) , Operator.AND , Symbol.LEFT_PAREN ,
+				tracker.getNewVariable( "z" ) , Operator.OR , Symbol.LEFT_PAREN , 
+				tracker.getNewVariable( "a" ) , Operator.AND , tracker.getNewVariable( "b" ) ,
+				Operator.OR , tracker.getNewVariable( "c" ) , Symbol.RIGHT_PAREN , 
+				Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , Operator.AND , 
+				tracker.getNewVariable( "w" )
+				) );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , Operator.AND , 
+				tracker.getVariableByName( "y" ) , Operator.AND , 
+				Symbol.LEFT_PAREN , tracker.getVariableByName( "z" ) , Operator.OR ,
+				Symbol.LEFT_PAREN , tracker.getVariableByName( "a" ) , Operator.AND ,
+				tracker.getVariableByName( "b" ) , Operator.OR , 
+				tracker.getVariableByName( "c" ) , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN ,
+				Operator.AND , tracker.getVariableByName( "w" ) );
+		found = distributeNots( p , input );
+		Assert.assertTrue( expected.equals( found ) );
 	}
 	
 	@Test
@@ -219,12 +243,6 @@ public class ProcessorConvertToNNFTest {
 		//test distributing over two parenthetical expressions
 		//!(!(x AND y) OR !(x OR y))	<=>  	!((!x OR !y) OR (!x AND !y))  	<=>		
 		//x AND y AND (x OR y) 
-		
-		
-		// !( (!x || !y) || (!x AND !y))
-		// !( !x || !y || (!x AND !y))
-		// !( !x || !y || !x AND !y )
-		//	
 		tracker = new SymbolTracker();
 		p = new Processor( "" , tracker );
 		input = new ArrayList< Symbol >( Arrays.asList( 

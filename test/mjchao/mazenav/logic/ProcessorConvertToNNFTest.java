@@ -410,11 +410,30 @@ public class ProcessorConvertToNNFTest {
 		) );
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "R" ) , Operator.AND , 
-				Operator.NOT , tracker.getVariableByName( "P" ) ,
-				Operator.OR , tracker.getVariableByName( "Q" )
+				Symbol.LEFT_PAREN , Operator.NOT , tracker.getVariableByName( "P" ) ,
+				Operator.OR , tracker.getVariableByName( "Q" ) , Symbol.RIGHT_PAREN
 		);
 		found = eliminateArrows( p , input );
 		Assert.assertTrue( expected.equals( found ) );		
+		
+		//test removing arrows from "(R AND ((P => Q)))"
+		//to get "R AND !P OR Q"
+		tracker = new SymbolTracker();
+		p = new Processor( "" , tracker );
+		input = new ArrayList< Symbol >( Arrays.asList( 
+				Symbol.LEFT_PAREN , tracker.getNewVariable( "R" ) , Operator.AND , 
+				Symbol.LEFT_PAREN , Symbol.LEFT_PAREN ,
+				tracker.getNewVariable( "P" ) , Operator.IMPLICATION , tracker.getNewVariable( "Q" ) ,
+				Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
+		) );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "R" ) , Operator.AND , 
+				Symbol.LEFT_PAREN , Operator.NOT , tracker.getVariableByName( "P" ) ,
+				Operator.OR , tracker.getVariableByName( "Q" ) , Symbol.RIGHT_PAREN
+		);
+		found = eliminateArrows( p , input );
+		System.out.println( found.toString() );
+		Assert.assertTrue( expected.equals( found ) );	
 		
 		//-----Test removing multiple arrows------//
 		
@@ -434,7 +453,6 @@ public class ProcessorConvertToNNFTest {
 				tracker.getVariableByName( "R" )
 		);
 		found = eliminateArrows( p , input );
-		System.out.println( found.toString() );
 		Assert.assertTrue( expected.equals( found ) );		
 	}
 	

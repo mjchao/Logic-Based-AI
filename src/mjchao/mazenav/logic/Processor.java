@@ -259,31 +259,53 @@ public class Processor {
 	 * @param expression
 	 */
 	private void removeExtraParentheses( List< Symbol > expression ) {
+		System.out.println( expression );
 		if ( expression.size() == 0 ) {
 			return;
 		}
-		while( expression.get( 0 ).equals( Symbol.LEFT_PAREN ) && 
-				expression.get( expression.size()-1 ).equals( Symbol.RIGHT_PAREN ) ) {
-			
-			int minOperatorDepth = Integer.MAX_VALUE;
-			int parenDepth = 1;
-			for ( int i=1 ; i<expression.size() ; ++i ) {
+		
+		boolean removedParentheses = true;
+		while( removedParentheses ) {
+			removedParentheses = false;
+			for ( int i=0 ; i<expression.size() ; ++i ) {
 				if ( expression.get( i ).equals( Symbol.LEFT_PAREN ) ) {
-					++parenDepth;
+					int parenthesesDepth = 1;
+					int matchingParenthesesIdx = -1;
+					for ( int j=i+1 ; j<expression.size() ; ++j ) {
+						if ( expression.get( j ).equals( Symbol.LEFT_PAREN ) ) {
+							++parenthesesDepth;
+						}
+						else if ( expression.get( j ).equals( Symbol.RIGHT_PAREN ) ) {
+							--parenthesesDepth;
+						}
+						if ( parenthesesDepth == 0 ) {
+							matchingParenthesesIdx = j;
+							break;
+						}
+					}
+					if ( matchingParenthesesIdx == -1 ) {
+						throw new RuntimeException( "Missing close parenthesis." );
+					}
+					
+					//check for redundant parentheses y OR ((x)) means we can
+					//remove the outer pair around the x
+					if ( expression.get( matchingParenthesesIdx-1 ).equals( Symbol.RIGHT_PAREN ) &&
+							expression.get( i+1).equals( Symbol.LEFT_PAREN ) ) {
+						expression.remove( matchingParenthesesIdx );
+						expression.remove( i );
+						removedParentheses = true;
+						break;
+					}
+					
+					//there's also no point in having parentheses on the outside
+					//i.e. (x) should be changed to x
+					if ( i == 0 && matchingParenthesesIdx == expression.size()-1 ) {
+						expression.remove( matchingParenthesesIdx );
+						expression.remove( i );
+						removedParentheses = true;
+						break;						
+					}
 				}
-				else if ( expression.get( i ).equals( Symbol.RIGHT_PAREN ) ) {
-					--parenDepth;
-				}
-				else if ( expression.get( i ) instanceof Operator ) {
-					minOperatorDepth = Math.min( minOperatorDepth , parenDepth );
-				}
-			}
-			if ( minOperatorDepth > 0 ) {
-				expression.remove( expression.size()-1 );
-				expression.remove( 0 );
-			}
-			else {
-				break;
 			}
 		}
 	}
@@ -576,7 +598,6 @@ public class Processor {
 		removeExtraParentheses( expression );
 		if ( expression.contains( Operator.IMPLICATION ) ) {
 			int implicationIdx = expression.indexOf( Operator.IMPLICATION );
-			expression.remove( implicationIdx );
 			
 			//scan backwards until we find an extra open parentheses
 			//or a <=> operator which has lower precedence.
@@ -605,34 +626,80 @@ public class Processor {
 				}
 			}
 			
-			//find the expression for the antecedent, P
-			List< Symbol > antecedent = expression.subList( antecedentStart , antecedentEnd );
+			//scan forward until we find an extra close parentheses 
+			//or a <=> operator which has lower precedence.
+			//this will mark the end of the implication expression
+			int consequentStart = implicationIdx+1;
+			
+			//by default, assume that the consequent
+			//ends at the end of the expression. we'll 
+			//adjust this if we find close parentheses or
+			//a <=> operator
+			int consequentEnd = expression.size();
+			parenthesesDepth = 0;
+			for ( int i=implicationIdx+1 ; i<expression.size() ; ++i ) {
+				if ( expression.get( i ).equals( Symbol.LEFT_PAREN ) ) {
+					--parenthesesDepth;
+				}
+				else if ( expression.get( i ).equals( Symbol.RIGHT_PAREN ) ) {
+					++parenthesesDepth;
+				}
+				if ( parenthesesDepth > 0 ) {
+					consequentEnd = i+1;
+					break;
+				}
+				if ( expression.get( i ).equals( Operator.BICONDITIONAL ) ) {
+					consequentEnd = i;
+					break;
+				}
+			}
+
+			//first remove any extra parentheses from the implication
+			List< Symbol > implication = expression.subList( antecedentStart , consequentEnd );
+			removeExtraParentheses( implication );
+			
+			//then rebuild the implication by changing it from P => Q to
+			//!P OR Q
+			implicationIdx = implication.indexOf( Operator.IMPLICATION );
+			List< Symbol > antecedent = new ArrayList< Symbol >( implication.subList( 0 , implicationIdx ) );
+			List< Symbol > consequent = new ArrayList< Symbol >( implication.subList( implicationIdx+1 , implication.size() ) );
 			
 			//compute !P, the negation of the antecedent without any arrows
 			List< Symbol > negatedAntecedent = eliminateArrows( antecedent );
-			System.out.println( negatedAntecedent );
 			negatedAntecedent = negate( negatedAntecedent );
 			
-			//replace P with !P
-			antecedent.clear();
-			antecedent.addAll( negatedAntecedent );
+			implication.clear();
 			
-			//we can leave the consequent alone because we have
-			// P => Q 		is equivalent to !P OR Q
-			//so we just negated the antecedent and change the
-			//implication to an OR
+			//in addition, since we're substituting in "!P OR Q",
+			//which has an OR operator, if the expression has an
+			//AND operator, we need to make sure to add parentheses
+			if ( expression.contains( Operator.AND ) ) {
+				implication.add( Symbol.LEFT_PAREN );
+			}
 			
-			//if there are more arrows, we need to make sure they
-			//don't include the expression from which we just
-			//removed arrows
-			if ( expression.contains( Operator.IMPLICATION ) || expression.contains( Operator.BICONDITIONAL ) ) {
-				antecedent.add( Operator.OR );
-				antecedent.add( Symbol.LEFT_PAREN );
-				expression.add( Symbol.RIGHT_PAREN );
+			implication.addAll( negatedAntecedent );
+			
+			//if the consequent contains more => or <=>, we need
+			//to maintain that the implication we just simplified
+			//does not get evaluated with the later => or <=>
+			//e.g. P => Q => R  would become
+			// !P OR (Q => R) and we need to make sure the
+			//parentheses go around the (Q => R)
+			if ( consequent.contains( Operator.IMPLICATION ) || consequent.contains( Operator.BICONDITIONAL ) ) {
+				implication.add( Operator.OR );
+				implication.add( Symbol.LEFT_PAREN );
+				implication.addAll( consequent );
+				implication.add( Symbol.RIGHT_PAREN );
 			}
 			else {
-				antecedent.add( Operator.OR );
+				implication.add( Operator.OR );
+				implication.addAll( consequent );
 			}
+			
+			if ( expression.contains( Operator.AND ) ) {
+				implication.add( Symbol.RIGHT_PAREN );
+			}
+
 			//now we just continue removing arrows
 			//from the expression
 			return eliminateArrows( expression );

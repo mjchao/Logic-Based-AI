@@ -39,7 +39,7 @@ public class Variable extends Symbol {
 	
 	private ObjectFOL unification = null;
 	
-	private int id;
+	private long id;
 	
 	/**
 	 * Creates a new variable. The unique id
@@ -48,7 +48,7 @@ public class Variable extends Symbol {
 	 * 
 	 * @param id
 	 */
-	public Variable( int id ) {
+	public Variable( long id ) {
 		super( "Variable" + id );
 		this.id = id;
 	}
@@ -66,7 +66,7 @@ public class Variable extends Symbol {
 		return this.unification;
 	}
 	
-	public int getId() {
+	public long getId() {
 		return this.id;
 	}
 	

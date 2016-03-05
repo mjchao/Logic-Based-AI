@@ -298,6 +298,12 @@ public class SymbolTracker {
 		catch ( NumberFormatException e ) {
 			//ignore
 		}
+		if ( token.equals( "True" ) || token.equals( "T" ) ) {
+			return BooleanFOL.True();
+		}
+		if ( token.equals( "False" ) || token.equals( "F" ) ) {
+			return BooleanFOL.False();
+		}
 		return null;
 	}
 	

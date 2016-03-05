@@ -129,6 +129,14 @@ public class ExpressionTreeTest {
 		found = convertToPostfix( input );
 		Assert.assertTrue( expected.equals( found ) );
 		
+	}
+	
+	@Test
+	public void testConverToPostfixWithQuantifiers() {
+		SymbolTracker tracker;
+		List< Symbol > input;
+		List< Symbol > expected;
+		List< Symbol > found;
 		
 		//test expression with quantifiers
 		// "FORALL x, y"	<=> "y FORALL(x)"
@@ -174,11 +182,27 @@ public class ExpressionTreeTest {
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
 			);
 		found = convertToPostfix( input );
-		System.out.println( found );
 		Assert.assertTrue( expected.equals( found ) );		
 		
-		// "FORALL(x, y) x AND y => y AND x"
-		// <=> "x y AND y x AND => FORALL(x,y)"
+		// "FORALL(x, y) x AND y <=> y AND x"
+		// <=> "x y AND y x AND <=> FORALL(x,y)"
+		tracker = new SymbolTracker();
+		input = Arrays.asList( 
+				Quantifier.FORALL , Symbol.LEFT_PAREN , 
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , 
+				Symbol.RIGHT_PAREN , Symbol.COMMA ,
+				tracker.getVariableByName( "x" ) , Operator.AND , tracker.getVariableByName( "y" ) ,
+				Operator.BICONDITIONAL , tracker.getVariableByName( "y" ) , Operator.AND ,
+				tracker.getVariableByName( "x" )
+			);
+		expected = Arrays.asList(
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
+				Operator.AND , tracker.getVariableByName( "y" ) , tracker.getVariableByName( "x" ) ,
+				Operator.AND , Operator.BICONDITIONAL , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
+			);
+		found = convertToPostfix( input );
+		Assert.assertTrue( expected.equals( found ) );
 		
+		//check that the algorithm knows 
 	}
 }

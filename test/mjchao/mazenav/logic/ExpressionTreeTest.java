@@ -110,6 +110,7 @@ public class ExpressionTreeTest {
 		
 		//test expression with functions
 		// "GreaterThan(SumInt( x , y ), DiffInt( x , y )) 
+		// <=>  "x y SumInt x y DiffInt GreaterThan"
 		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
 		input = Arrays.asList( 
 				tracker.getRelation( "GreaterThan" ) , Symbol.LEFT_PAREN ,
@@ -130,7 +131,7 @@ public class ExpressionTreeTest {
 		
 		
 		//test expression with quantifiers
-		// "FORALL x, y"
+		// "FORALL x, y"	<=> "y FORALL(x)"
 		tracker = new SymbolTracker();
 		input = Arrays.asList( 
 				Quantifier.FORALL , tracker.getNewVariable( "x" ) , Symbol.COMMA ,
@@ -140,7 +141,44 @@ public class ExpressionTreeTest {
 				tracker.getNewVariable( "y" ) , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) )
 			);
 		found = convertToPostfix( input );
+		Assert.assertTrue( expected.equals( found ) );	
+		
+		// "FORALL x, x AND y => y AND x"
+		// <=> "x y AND y x AND => FORALL(x)"
+		tracker = new SymbolTracker();
+		input = Arrays.asList( 
+				Quantifier.FORALL , tracker.getNewVariable( "x" ) , Symbol.COMMA ,
+				tracker.getVariableByName( "x" ) , Operator.AND , tracker.getNewVariable( "y" ) ,
+				Operator.IMPLICATION , tracker.getVariableByName( "y" ) , Operator.AND ,
+				tracker.getVariableByName( "x" )
+			);
+		expected = Arrays.asList(
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
+				Operator.AND , tracker.getVariableByName( "y" ) , tracker.getVariableByName( "x" ) ,
+				Operator.AND , Operator.IMPLICATION , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) )
+			);
+		found = convertToPostfix( input );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		// "FORALL (x,y) x AND y"
+		// <=> "x y AND FORALL(x,y)"
+		tracker = new SymbolTracker();
+		input = Arrays.asList( 
+				Quantifier.FORALL , Symbol.LEFT_PAREN , tracker.getNewVariable( "x" ) ,
+				Symbol.COMMA , tracker.getNewVariable( "y" ) , Symbol.RIGHT_PAREN ,
+				tracker.getVariableByName( "x" ) , Operator.AND , tracker.getVariableByName( "y" )
+			);
+		expected = Arrays.asList(
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
+				Operator.AND ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
+			);
+		found = convertToPostfix( input );
 		System.out.println( found );
 		Assert.assertTrue( expected.equals( found ) );		
+		
+		// "FORALL(x, y) x AND y => y AND x"
+		// <=> "x y AND y x AND => FORALL(x,y)"
+		
 	}
 }

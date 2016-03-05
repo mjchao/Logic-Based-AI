@@ -249,6 +249,13 @@ class ExpressionTree {
 				operatorStack.pop();
 				
 				//if the set of parentheses we just processed enclosed
+				//a quantifier list, we need to terminate reading variables
+				//into the quantifier list
+				if ( !operatorStack.empty() && operatorStack.peek() == currQuantifier ) {
+					currQuantifier = null;
+				}
+				
+				//if the set of parentheses we just processed enclosed
 				//some function arguments, we need to put the function onto
 				//the output as well
 				if ( !operatorStack.empty() && operatorStack.peek() instanceof Function ) {

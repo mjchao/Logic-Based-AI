@@ -1,6 +1,7 @@
 package mjchao.mazenav.logic;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -10,6 +11,8 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 
+import mjchao.mazenav.logic.ExpressionTree.ExpressionNode;
+import mjchao.mazenav.logic.structures.BooleanFOL;
 import mjchao.mazenav.logic.structures.IntegerWorld;
 import mjchao.mazenav.logic.structures.Operator;
 import mjchao.mazenav.logic.structures.Quantifier;
@@ -27,8 +30,57 @@ public class ExpressionTreeTest {
 			return (ArrayList< Symbol >) f.invoke( null , input );
 		} catch (IllegalArgumentException | IllegalAccessException | SecurityException | NoSuchMethodException | InvocationTargetException e) {
 			e.printStackTrace();
-			throw new RuntimeException( "Could not apply eliminateArrows() method to Processor object." );
+			throw new RuntimeException( "Could not apply convertToPostfix() method to ExpressionTree object." );
 		}
+	}
+	
+	public void setPostfix( ExpressionTree tree , List< Symbol > postfix ) {
+		Class<?> c = ExpressionTree.class;
+		try {
+			Field f = c.getDeclaredField( "postfixExpression" );
+			f.setAccessible( true );
+			f.set( tree , postfix );
+		} catch (IllegalArgumentException | IllegalAccessException | SecurityException | NoSuchFieldException e ) {
+			e.printStackTrace();
+			throw new RuntimeException( "Could not set field postfixExpression of ExpressionTree object." );
+		}			
+	}
+	
+	public void buildTree( ExpressionTree tree ) {
+		Class<?> c = ExpressionTree.class;
+		try {
+			Method f = c.getDeclaredMethod( "buildTree" );
+			f.setAccessible( true );
+			f.invoke( tree );
+		} catch (IllegalArgumentException | IllegalAccessException | SecurityException | NoSuchMethodException | InvocationTargetException e) {
+			e.printStackTrace();
+			throw new RuntimeException( "Could not apply convertToPostfix() method to ExpressionTree object." );
+		}		
+	}
+	
+	public ExpressionNode getRoot( ExpressionTree tree ) {
+		Class<?> c = ExpressionTree.class;
+		try {
+			Field f = c.getDeclaredField( "root" );
+			f.setAccessible( true );
+			return (ExpressionNode) f.get( tree );
+		} catch (IllegalArgumentException | IllegalAccessException | SecurityException | NoSuchFieldException e ) {
+			e.printStackTrace();
+			throw new RuntimeException( "Could not access field root of ExpressionTree object." );
+		}		
+	}
+	
+	public void buildPostfixFromExpressionTree( ExpressionNode node , List< Symbol > postfix ) {
+		ArrayList< ExpressionNode > children = node.getChildren();
+		if ( children.size() == 0 ) {
+			postfix.add( node.getValue() );
+			return;
+		}
+		
+		for ( ExpressionNode child : children ) {
+			buildPostfixFromExpressionTree( child , postfix );
+		}
+		postfix.add( node.getValue() );
 	}
 	
 	public static ExpressionTree.QuantifierList newQuantifierList( Quantifier quantifier , Variable... vars ) {
@@ -74,6 +126,19 @@ public class ExpressionTreeTest {
 			);
 		found = convertToPostfix( input );
 		Assert.assertTrue( expected.equals( found ) );
+		
+		//test expressions with constants (just to make sure it handles
+		//objects of type ObjectFOL)
+		// "True => True"
+		tracker = new SymbolTracker();
+		input = Arrays.asList( 
+				BooleanFOL.True() , Operator.IMPLICATION , BooleanFOL.True()
+			);
+		expected = Arrays.asList(
+				BooleanFOL.True() , BooleanFOL.True() , Operator.IMPLICATION
+			);
+		found = convertToPostfix( input );
+		Assert.assertTrue( expected.equals( found ) );	
 		
 		
 		//test expression with different operators
@@ -127,8 +192,7 @@ public class ExpressionTreeTest {
 				tracker.getFunction( "DiffInt" ) , tracker.getRelation( "GreaterThan" )
 			);
 		found = convertToPostfix( input );
-		Assert.assertTrue( expected.equals( found ) );
-		
+		Assert.assertTrue( expected.equals( found ) );	
 	}
 	
 	@Test
@@ -266,6 +330,63 @@ public class ExpressionTreeTest {
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "w" ) , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
 			);
 		found = convertToPostfix( input );
+		Assert.assertTrue( expected.equals( found ) );
+	}
+	
+	@Test
+	public void testBuildTree() {
+		SymbolTracker tracker;
+		List< Symbol > input;
+		ExpressionTree exprTree;
+		List< Symbol > expected;
+		List< Symbol > found;
+		
+		//-------basic acceptance tests-------//
+		
+		
+		//try postfix "x"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , Operator.OR
+			);
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		expected = input;
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );		
+		
+		
+		//try postfix "x y AND z OR"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , Operator.AND ,
+				tracker.getNewVariable( "z" ) , Operator.OR
+			);
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		expected = input;
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );	
+		
+		//w x y AND z => EXISTS(z) => FORALL(w,x,y)
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "w" ) , tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) ,
+				Operator.AND , tracker.getNewVariable( "z" ) , Operator.IMPLICATION ,
+				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "z" ) ) , Operator.IMPLICATION ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "w" ) , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
+			);
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		expected = input;
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		System.out.println( found );
 		Assert.assertTrue( expected.equals( found ) );
 	}
 }

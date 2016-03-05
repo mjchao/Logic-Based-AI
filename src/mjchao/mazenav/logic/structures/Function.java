@@ -125,4 +125,11 @@ public class Function extends Symbol {
 		}
 	}
 	
+	/**
+	 * @return		the number of arguments this function accepts
+	 */
+	public int getNumArgs() {
+		return this.argTypes.size();
+	}
+	
 }

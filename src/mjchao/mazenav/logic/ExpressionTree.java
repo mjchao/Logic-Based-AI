@@ -1,7 +1,9 @@
 package mjchao.mazenav.logic;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Stack;
 
 import mjchao.mazenav.logic.structures.Function;
@@ -27,8 +29,6 @@ import mjchao.mazenav.logic.structures.Variable;
  *
  */
 class ExpressionTree {
-	
-	private ArrayList< Symbol > postfixExpression;
 	
 	/**
 	 * Represents a list of variables that are quntified, such as
@@ -106,7 +106,6 @@ class ExpressionTree {
 	 * @return			the infix expression converted to postfix
 	 */
 	private static ArrayList< Symbol > convertToPostfix( List< Symbol > infix ) {
-		//TODO work in quantifiers
 		ArrayList< Symbol > outputQueue = new ArrayList< Symbol >();
 		Stack< Symbol > operatorStack = new Stack< Symbol >();
 		
@@ -287,34 +286,126 @@ class ExpressionTree {
 		return outputQueue;
 	}
 	
+	private List< Symbol > postfixExpression;
+	private ExpressionNode root = null;
+	
 	/**
 	 * 
 	 * @param infixExpression
 	 */
 	public ExpressionTree( List< Symbol > infixExpression ) {
 		this.postfixExpression = convertToPostfix( infixExpression );
+		buildTree();
+	}
+	
+	/**
+	 * For testing purposes
+	 */
+	ExpressionTree() {
+		
 	}
 	
 	
-	
-	private class ExpressionNode {
-
-		private Symbol operator;
-		private ArrayList< Symbol > children = new ArrayList< Symbol >();
+	/**
+	 * Builds this expression tree from the postfix expression
+	 * it contains.
+	 */
+	private void buildTree() {
+		Queue< Symbol > postfix = new LinkedList< Symbol >( postfixExpression );
+		Stack< ExpressionNode > evalStack = new Stack< ExpressionNode >();
+		while( !postfix.isEmpty() ) {
+			Symbol nextToken = postfix.poll();
+			ExpressionNode newNode = new ExpressionNode( nextToken );
+			if ( nextToken instanceof Variable || nextToken instanceof ObjectFOL ) {
+				evalStack.push( newNode );
+			}
+			else if ( nextToken instanceof QuantifierList ) {
+				if ( evalStack.empty() ) {
+					throw new IllegalArgumentException( "Quantifier does not quantify anything." );
+				}
+				
+				newNode.addChildren( evalStack.pop() );
+				evalStack.push( newNode );
+			}
+			else if ( nextToken instanceof Function ) {
+				Function f = (Function) nextToken;
+				int numArgs = f.getNumArgs();
+				ExpressionNode[] args = new ExpressionNode[ numArgs ];
+				
+				//because we're using a stack, our operands get read in reverse
+				//order. to get back to the correct order, we need to
+				//read from the stack in reverse order.
+				for ( int i=numArgs-1 ; i>=0 ; --i ) {
+					if ( evalStack.empty() ) {
+						throw new IllegalArgumentException( "Too few arguments to function " + f.toString() );
+					}
+					args[ i ] = evalStack.pop();
+				}
+				newNode.addChildren( args );
+				evalStack.push( newNode );
+			}
+			else if ( nextToken instanceof Operator ) {
+				Operator op = (Operator) nextToken;
+				int numArgs = op.getNumOperands();
+				ExpressionNode[] args = new ExpressionNode[ numArgs ];
+				
+				//because we're using a stack, our operands get read in reverse
+				//order. to get back to the correct order, we need to
+				//read from the stack in reverse order.
+				for ( int i=numArgs-1 ; i>=0 ; --i ) {
+					if ( evalStack.empty() ) {
+						throw new IllegalArgumentException( "Too few arguments to operator " + op.toString() );
+					}
+					args[ i ] = evalStack.pop();
+				}
+				
+				newNode.addChildren( args );
+				evalStack.push( newNode );
+			}
+			else {
+				System.out.println( "Don't recognize class: " + nextToken.getClass().getName() );
+			}
+		}
 		
-		public ExpressionNode( Symbol operator ) {
-			this.operator = operator;
+		if ( evalStack.size() == 0 ) {
+			throw new IllegalArgumentException( "Input missing values." );
+		}
+		else if ( evalStack.size() > 1 ) {
+			throw new IllegalArgumentException( "Input has extraneous values." );
+		}
+		else {
+			this.root = evalStack.peek();
 		}
 	}
 	
-	private class QuantifierNode extends ExpressionNode {
+	class ExpressionNode {
+
+		private Symbol value;
+		private ArrayList< ExpressionNode > children = new ArrayList< ExpressionNode >();
 		
-		private Variable[] vars;
+		public ExpressionNode( Symbol value ) {
+			this.value = value;
+		}
 		
-		public QuantifierNode( Quantifier operator , Variable[] vars ) {
-			super( operator );
-			this.vars = vars;
+		public void addChildren( ExpressionNode... children ) {
+			for ( ExpressionNode child : children ) {
+				this.children.add( child );
+			}
+		}
+		
+		/**
+		 * 
+		 * @return		the value stored by this node. Do not modify it.
+		 */
+		public Symbol getValue() {
+			return this.value;
+		}
+		
+		/**
+		 * @return 		the children of this node. Do not modify the returned list.
+		 */
+		public ArrayList< ExpressionNode > getChildren() {
+			return this.children;
 		}
 	}
-
 }

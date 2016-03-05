@@ -203,6 +203,69 @@ public class ExpressionTreeTest {
 		found = convertToPostfix( input );
 		Assert.assertTrue( expected.equals( found ) );
 		
-		//check that the algorithm knows 
+		//check that the algorithm distinguishes quantifiers from different
+		//implication/biconditional expressions
+		// "FORALL(x, y) x AND y <=> FORALL z, x AND y => z
+		// <=> "x y AND x y AND z => FORALL(z) <=> FORALL(x,y)" 
+		tracker = new SymbolTracker();
+		input = Arrays.asList( 
+				Quantifier.FORALL , Symbol.LEFT_PAREN , 
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , 
+				Symbol.RIGHT_PAREN , Symbol.COMMA ,
+				tracker.getVariableByName( "x" ) , Operator.AND , tracker.getVariableByName( "y" ) ,
+				Operator.BICONDITIONAL , Quantifier.FORALL , tracker.getNewVariable( "z" ) , Symbol.COMMA ,
+				tracker.getVariableByName( "x" ) , Operator.AND , tracker.getVariableByName( "y" ) ,
+				Operator.IMPLICATION , tracker.getVariableByName( "z" )
+			);
+		expected = Arrays.asList(
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
+				Operator.AND , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
+				Operator.AND , tracker.getVariableByName( "z" ) , Operator.IMPLICATION , 
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "z" ) ) ,
+				Operator.BICONDITIONAL ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
+			);
+		found = convertToPostfix( input );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		// "FORALL(x, y), EXISTS z S.T. x AND y => z
+		// <=> x y AND z => EXISTS z FORALL(x,y)
+		tracker = new SymbolTracker();
+		input = Arrays.asList( 
+				Quantifier.FORALL , Symbol.LEFT_PAREN , 
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , 
+				Symbol.RIGHT_PAREN , Symbol.COMMA ,
+				Quantifier.EXISTS , tracker.getNewVariable( "z" ) , Symbol.SUCH_THAT ,
+				tracker.getVariableByName( "x" ) , Operator.AND , tracker.getVariableByName( "y" ) ,
+				Operator.IMPLICATION , tracker.getVariableByName( "z" )
+			);
+		expected = Arrays.asList(
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
+				Operator.AND , tracker.getVariableByName( "z" ) , Operator.IMPLICATION ,
+				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "z" ) ) ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
+			);
+		found = convertToPostfix( input );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		// "FORALL(w, x, y), w => EXISTS z S.T. x AND y => z
+		// <=> w x y AND z => EXISTS(z) => FORALL(w,x,y)
+		tracker = new SymbolTracker();
+		input = Arrays.asList( 
+				Quantifier.FORALL , Symbol.LEFT_PAREN , tracker.getNewVariable( "w" ) ,
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , 
+				Symbol.RIGHT_PAREN , Symbol.COMMA , tracker.getVariableByName( "w" ) , Operator.IMPLICATION ,
+				Quantifier.EXISTS , tracker.getNewVariable( "z" ) , Symbol.SUCH_THAT ,
+				tracker.getVariableByName( "x" ) , Operator.AND , tracker.getVariableByName( "y" ) ,
+				Operator.IMPLICATION , tracker.getVariableByName( "z" )
+			);
+		expected = Arrays.asList(
+				tracker.getVariableByName( "w" ) , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
+				Operator.AND , tracker.getVariableByName( "z" ) , Operator.IMPLICATION ,
+				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "z" ) ) , Operator.IMPLICATION ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "w" ) , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
+			);
+		found = convertToPostfix( input );
+		Assert.assertTrue( expected.equals( found ) );
 	}
 }

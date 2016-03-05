@@ -97,6 +97,14 @@ class ExpressionTree {
 		}
 	}
 	
+	/**
+	 * Converts an infix boolean expression into postfix. Applies a modifier
+	 * version of Dijkstra's Shunting Yard Algorithm that incorporates
+	 * quantifiers.
+	 * 
+	 * @param infix		an infix expression
+	 * @return			the infix expression converted to postfix
+	 */
 	private static ArrayList< Symbol > convertToPostfix( List< Symbol > infix ) {
 		//TODO work in quantifiers
 		ArrayList< Symbol > outputQueue = new ArrayList< Symbol >();
@@ -115,9 +123,15 @@ class ExpressionTree {
 		
 		for ( Symbol currToken : infix ) {
 			
+			if ( currToken.equals( Symbol.SUCH_THAT ) ) {
+				//SUCH_THAT is just a "filler" word for
+				//to make expressions sound nice. we just discard it.
+				continue;
+			}
+			
 			//if the token is some kind of object
 			//we immediately add to postfix output
-			if ( currToken instanceof ObjectFOL ) {
+			else if ( currToken instanceof ObjectFOL ) {
 				outputQueue.add( currToken );
 			}
 			

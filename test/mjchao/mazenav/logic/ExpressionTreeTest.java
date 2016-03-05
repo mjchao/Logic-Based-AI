@@ -386,7 +386,22 @@ public class ExpressionTreeTest {
 		expected = input;
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		System.out.println( found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		// <=> x y AND z => EXISTS z FORALL(x,y)
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) ,
+				Operator.AND , tracker.getNewVariable( "z" ) , Operator.IMPLICATION ,
+				newQuantifierList( Quantifier.EXISTS , tracker.getNewVariable( "z" ) ) ,
+				newQuantifierList( Quantifier.FORALL , tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) )
+			);
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		expected = input;
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );
 	}
 }

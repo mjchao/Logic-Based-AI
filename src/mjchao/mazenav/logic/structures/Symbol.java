@@ -89,10 +89,20 @@ public class Symbol {
 		this.name = name;
 	}
 	
+	/**
+	 * @return		the full name of this symbol. this should be
+	 * 				unambiguous and complete, as opposed to
+	 * 				the <code>getShorthand()</code> method.
+	 */
 	public String getSymbolName() {
 		return name;
 	}
 	
+	/**
+	 * @return		a shorthand representation of this symbol
+	 * 				that can be used for convenient printing
+	 * 				purposes.
+	 */
 	public String getShorthand() {
 		
 		//by default, the shorthand will be the same as the name.
@@ -111,6 +121,6 @@ public class Symbol {
 	
 	@Override
 	public String toString() {
-		return this.name;
+		return getShorthand();
 	}
 }

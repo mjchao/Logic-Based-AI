@@ -68,15 +68,33 @@ public class Operator extends Symbol {
 		return null;
 	}
 	
-	private final int precedence;
+	private final double precedence;
 	
-	private Operator( String name , int precedence ) {
+	protected Operator( String name ) {
+		this( name , 0 );
+	}
+	
+	protected Operator( String name , int precedence ) {
 		super( name );
 		this.precedence = precedence;
 	}
 	
-	public int getPrecedence() {
+	public double getPrecedence() {
 		return this.precedence;
+	}
+	
+	/**
+	 * 
+	 * @param o
+	 * @return		returns if the precedence of this operator
+	 * 				is greater than the precedence of the other operator
+	 */
+	public boolean preceeds( Operator o ) {
+		return this.precedence > o.precedence;
+	}
+
+	public boolean preceedsLeftToRight( Operator o ) {
+		return this.precedence >= o.precedence;
 	}
 	
 	public boolean equals( String str ) {

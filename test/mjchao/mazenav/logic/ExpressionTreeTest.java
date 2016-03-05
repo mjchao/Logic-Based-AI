@@ -12,8 +12,10 @@ import org.junit.Test;
 
 import mjchao.mazenav.logic.structures.IntegerWorld;
 import mjchao.mazenav.logic.structures.Operator;
+import mjchao.mazenav.logic.structures.Quantifier;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
+import mjchao.mazenav.logic.structures.Variable;
 
 public class ExpressionTreeTest {
 
@@ -27,6 +29,10 @@ public class ExpressionTreeTest {
 			e.printStackTrace();
 			throw new RuntimeException( "Could not apply eliminateArrows() method to Processor object." );
 		}
+	}
+	
+	public static ExpressionTree.QuantifierList newQuantifierList( Quantifier quantifier , Variable... vars ) {
+		return new ExpressionTree.QuantifierList( quantifier , vars );
 	}
 	
 	@Test
@@ -120,7 +126,21 @@ public class ExpressionTreeTest {
 				tracker.getFunction( "DiffInt" ) , tracker.getRelation( "GreaterThan" )
 			);
 		found = convertToPostfix( input );
-		Assert.assertTrue( expected.equals( found ) );		
+		Assert.assertTrue( expected.equals( found ) );
 		
+		
+		//test expression with quantifiers
+		// "FORALL x, y"
+		tracker = new SymbolTracker();
+		input = Arrays.asList( 
+				Quantifier.FORALL , tracker.getNewVariable( "x" ) , Symbol.COMMA ,
+				tracker.getNewVariable( "y" )
+			);
+		expected = Arrays.asList(
+				tracker.getNewVariable( "y" ) , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) )
+			);
+		found = convertToPostfix( input );
+		System.out.println( found );
+		Assert.assertTrue( expected.equals( found ) );		
 	}
 }

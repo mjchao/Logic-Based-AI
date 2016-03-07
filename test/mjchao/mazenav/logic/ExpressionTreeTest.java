@@ -478,5 +478,22 @@ public class ExpressionTreeTest {
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );
+		
+		//test distributing nots on "x NOT NOT NOT NOT NOT NOT"  <=> "x"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , Operator.NOT , Operator.NOT , Operator.NOT ,
+				Operator.NOT , Operator.NOT , Operator.NOT
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNots( exprTree );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" )
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
 	}
 }

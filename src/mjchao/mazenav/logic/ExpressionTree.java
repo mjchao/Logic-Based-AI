@@ -40,8 +40,8 @@ class ExpressionTree {
 	 */
 	static class QuantifierList extends Symbol {
 		
-		private Quantifier quantifier;
-		private ArrayList< Variable > vars = new ArrayList< Variable >();
+		private final Quantifier quantifier;
+		private final ArrayList< Variable > vars = new ArrayList< Variable >();
 		
 		public QuantifierList( Quantifier quantifier ) {
 			super( quantifier.getShorthand() + "(...)" );
@@ -53,6 +53,25 @@ class ExpressionTree {
 			for ( Variable var : vars ) {
 				this.vars.add( var );
 			}
+		}
+		
+		public QuantifierList( Quantifier quantifier , List< Variable > vars ) {
+			this( quantifier );
+			for ( Variable var : vars ) {
+				this.vars.add( var );
+			}
+		}
+		
+		public Quantifier getQuantifier() {
+			return this.quantifier;
+		}
+		
+		/**
+		 * @return		a reference to the variables in this quantifier list. 
+		 * 				Don't modify it.
+		 */
+		public ArrayList< Variable > getVariables() {
+			return this.vars;
 		}
 		
 		public boolean isEmpty() {
@@ -428,8 +447,69 @@ class ExpressionTree {
 				if ( this.value.equals( Operator.NOT ) ) {
 					this.negated = !this.negated;
 				}
+				else if ( this.value.equals( Operator.EQUALS ) ) {
+					this.value = Operator.NOT_EQUALS;
+				}
+				else if ( this.value.equals( Operator.NOT_EQUALS ) ) {
+					this.value = Operator.EQUALS;
+				}
+				else if ( this.value.equals( Operator.AND ) ) {
+					
+					//apply DeMorgan's Law: !(P AND Q)  <=> !P OR !Q
+					//note: a prior call to buildTree() should 
+					//guarantee that there are 2 operands to the 
+					//AND operator
+					ExpressionNode P = this.children.get( 0 );
+					P.negate();
+					ExpressionNode Q = this.children.get( 1 );
+					Q.negate();
+					this.value = Operator.OR;
+				}
+				else if ( this.value.equals( Operator.OR ) ) {
+					
+					//apply DeMorgan's Law: !(P OR Q) <=> !P AND !Q
+					//note: a prior call to buildTree() should
+					//guarantee that there are 2 operands to the
+					//OR operator
+					ExpressionNode P = this.children.get( 0 );
+					P.negate();
+					ExpressionNode Q = this.children.get( 1 );
+					Q.negate();
+					this.value = Operator.AND;
+				}
+				else if ( this.value.equals( Operator.IMPLICATION ) ) {
+					this.eliminateArrows();
+					this.negate();
+				}
+				else if ( this.value.equals( Operator.BICONDITIONAL ) ) {
+					this.eliminateArrows();
+					this.negate();
+				}
 			}
-			else if ( this.value instanceof Quantifier ) {
+			else if ( this.value instanceof QuantifierList ) {
+				QuantifierList quantifierList = (QuantifierList) this.value;
+				//to negate a quantified expression FORALL(x1, x2, ...) P
+				//we change rewrite it as
+				//EXISTS(x1, x2, ...) !P
+				if ( quantifierList.getQuantifier().equals( Quantifier.FORALL ) ) {
+					
+					//again, a prior call to buildeTree() guarantees
+					//that there is 1 expression over which to the quantifier list
+					//quantifies
+					ExpressionNode quantifierExpr = this.children.get( 0 );
+					quantifierExpr.negate();
+					this.value = new QuantifierList( Quantifier.EXISTS , quantifierList.getVariables() );
+				}
+				
+				//to negate a quantified expression EXISTS(x1, x2, ...) P
+				//we rewrite it as
+				//FORALL(x1, x2, ...) !P
+				else if ( quantifierList.getQuantifier().equals( Quantifier.EXISTS ) ) {
+					
+					ExpressionNode quantifierExpr = this.children.get( 0 );
+					quantifierExpr.negate();
+					this.value = new QuantifierList( Quantifier.FORALL , quantifierList.getVariables() );
+				}
 				
 			}
 			else if ( this.value instanceof Function ) {
@@ -437,6 +517,41 @@ class ExpressionTree {
 			}
 			else if ( this.value instanceof Variable ) {
 				this.negated = !this.negated;
+			}
+		}
+		
+		/**
+		 * Removes implications and biconditionals
+		 * from this node.
+		 */
+		public void eliminateArrows() {
+			
+			//replace P => Q with !P OR Q
+			if ( this.value.equals( Operator.IMPLICATION ) ) {
+				ExpressionNode P = this.children.get( 0 );
+				P.negate();
+				this.value = Operator.OR;
+			}
+			else if ( this.value.equals( Operator.BICONDITIONAL ) ) {
+				
+				//replace P => Q with (!P OR Q) AND (!Q OR P)
+				ExpressionNode P = this.children.get( 0 );
+				ExpressionNode notP = P.deepCopy();
+				notP.negate();
+				
+				ExpressionNode Q = this.children.get( 1 );
+				ExpressionNode notQ = Q.deepCopy();
+				notQ.negate();
+				
+				this.value = Operator.AND;
+				
+				ExpressionNode child1 = new ExpressionNode( Operator.OR );
+				child1.addChildren( notP , Q );
+				ExpressionNode child2 = new ExpressionNode( Operator.OR );
+				child2.addChildren( notQ , P );
+				
+				this.children.clear();
+				this.addChildren( child1 , child2 );
 			}
 		}
 		
@@ -491,6 +606,20 @@ class ExpressionTree {
 		 */
 		public ArrayList< ExpressionNode > getChildren() {
 			return this.children;
+		}
+		
+		/**
+		 * Creates a parent-less deep copy of this node and all its children. 
+		 * @return
+		 */
+		public ExpressionNode deepCopy() {
+			ExpressionNode rtn = new ExpressionNode( this.value );
+			rtn.negated = this.negated;
+			rtn.parent = null;
+			for ( ExpressionNode child : this.children ) {
+				rtn.addChildren( child.deepCopy() );
+			}
+			return rtn;
 		}
 	}
 }

@@ -287,7 +287,7 @@ class ExpressionTree {
 	}
 	
 	private List< Symbol > postfixExpression;
-	private ExpressionNode root = null;
+	ExpressionNode root = null;
 	
 	/**
 	 * 
@@ -358,7 +358,6 @@ class ExpressionTree {
 					}
 					args[ i ] = evalStack.pop();
 				}
-				
 				newNode.addChildren( args );
 				evalStack.push( newNode );
 			}
@@ -378,18 +377,104 @@ class ExpressionTree {
 		}
 	}
 	
+	private void distributeNots() {
+		if ( this.root != null ) {
+			this.root.distributeNots();
+		}
+	}
+	
 	class ExpressionNode {
 
+		/**
+		 * Stores if the expression stemming
+		 * from this node has been negated.
+		 */
+		public boolean negated = false;
 		private Symbol value;
+		private ExpressionNode parent = null;
 		private ArrayList< ExpressionNode > children = new ArrayList< ExpressionNode >();
 		
 		public ExpressionNode( Symbol value ) {
 			this.value = value;
 		}
 		
-		public void addChildren( ExpressionNode... children ) {
-			for ( ExpressionNode child : children ) {
+		public void setParent( ExpressionNode node ) {
+			this.parent = node;
+		}
+		
+		public void addChildren( ExpressionNode... nodes ) {
+			for ( ExpressionNode child : nodes ) {
 				this.children.add( child );
+				child.setParent( this );
+			}
+		}
+		
+		public void addChildren( List< ExpressionNode > nodes ) {
+			for ( ExpressionNode child : nodes ) {
+				addChildren( child );
+			}
+		}
+		
+		public boolean isNegated() {
+			return this.negated;
+		}
+		
+		/**
+		 * Negates the expression beginning at this
+		 * node.
+		 */
+		public void negate() {
+			if ( this.value instanceof Operator ) {
+				if ( this.value.equals( Operator.NOT ) ) {
+					this.negated = !this.negated;
+				}
+			}
+			else if ( this.value instanceof Quantifier ) {
+				
+			}
+			else if ( this.value instanceof Function ) {
+				this.negated = !this.negated;
+			}
+			else if ( this.value instanceof Variable ) {
+				this.negated = !this.negated;
+			}
+		}
+		
+		/**
+		 * Distributes all NOT operators as far inward
+		 * as possible. Distribution stops when there
+		 * are no NOT operators left and only negated
+		 * ExpressionNode objects.
+		 */
+		public void distributeNots() {
+
+			//remove this NOT operator when
+			//distributing
+			if ( this.value.equals( Operator.NOT ) ) {
+				
+				//there should only be one child - if there
+				//are two children, the method buildTree()
+				//should have caught this problem and raised
+				//an exception earlier
+				ExpressionNode child = this.children.get( 0 );
+				
+				//negate the child and remove this NOT operator
+				if ( !this.negated ) {
+					child.negate();
+				}
+				child.parent = this.parent;
+				
+				//overwrite the root if a NOT operator was originally
+				//the root
+				if ( this.parent == null ) {
+					ExpressionTree.this.root = child;
+				}
+				child.distributeNots();
+			}
+			else {
+				for ( ExpressionNode child : children ) {
+					child.distributeNots();
+				}
 			}
 		}
 		

@@ -54,7 +54,7 @@ public class ExpressionTreeTest {
 			f.invoke( tree );
 		} catch (IllegalArgumentException | IllegalAccessException | SecurityException | NoSuchMethodException | InvocationTargetException e) {
 			e.printStackTrace();
-			throw new RuntimeException( "Could not apply convertToPostfix() method to ExpressionTree object." );
+			throw new RuntimeException( "Could not apply buildTree() method to ExpressionTree object." );
 		}		
 	}
 	
@@ -70,10 +70,25 @@ public class ExpressionTreeTest {
 		}		
 	}
 	
+	public void distributeNots( ExpressionTree tree ) {
+		Class<?> c = ExpressionTree.class;
+		try {
+			Method f = c.getDeclaredMethod( "distributeNots" );
+			f.setAccessible( true );
+			f.invoke( tree );
+		} catch (IllegalArgumentException | IllegalAccessException | SecurityException | NoSuchMethodException | InvocationTargetException e) {
+			e.printStackTrace();
+			throw new RuntimeException( "Could not apply distributeNots() method to ExpressionTree object." );
+		}			
+	}
+	
 	public void buildPostfixFromExpressionTree( ExpressionNode node , List< Symbol > postfix ) {
 		ArrayList< ExpressionNode > children = node.getChildren();
 		if ( children.size() == 0 ) {
 			postfix.add( node.getValue() );
+			if ( node.isNegated() ) {
+				postfix.add( Operator.NOT );
+			}
 			return;
 		}
 		
@@ -81,6 +96,9 @@ public class ExpressionTreeTest {
 			buildPostfixFromExpressionTree( child , postfix );
 		}
 		postfix.add( node.getValue() );
+		if ( node.isNegated() ) {
+			postfix.add( Operator.NOT );
+		}
 	}
 	
 	public static ExpressionTree.QuantifierList newQuantifierList( Quantifier quantifier , Variable... vars ) {
@@ -388,7 +406,7 @@ public class ExpressionTreeTest {
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );
 		
-		// <=> x y AND z => EXISTS z FORALL(x,y)
+		// x y AND z => EXISTS z FORALL(x,y)
 		tracker = new SymbolTracker();
 		input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) ,
@@ -400,6 +418,63 @@ public class ExpressionTreeTest {
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
 		expected = input;
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		// x NOT y NOT AND z => FORALL(x,y,z)
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , Operator.NOT ,
+				tracker.getNewVariable( "y" ) , Operator.NOT ,
+				Operator.AND , tracker.getNewVariable( "z" ) ,
+				Operator.IMPLICATION ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) ,
+					tracker.getVariableByName( "y" ) , tracker.getVariableByName( "z" ) )
+			);
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		expected = input;
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );		
+	}
+	
+	@Test
+	public void testDistributeNots() {
+		SymbolTracker tracker;
+		List< Symbol > input;
+		ExpressionTree exprTree;
+		List< Symbol > expected;
+		List< Symbol > found;
+		
+		//test distributing nots on "x NOT NOT"  <=> "x"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , Operator.NOT , Operator.NOT
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNots( exprTree );
+		expected = Arrays.asList( tracker.getVariableByName( "x" ) );
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test distributing nots on "x NOT NOT NOT"  <=> "x"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , Operator.NOT , Operator.NOT , Operator.NOT
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNots( exprTree );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , Operator.NOT 
+			);
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );

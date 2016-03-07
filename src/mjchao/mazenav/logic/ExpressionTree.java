@@ -396,9 +396,10 @@ class ExpressionTree {
 		}
 	}
 	
-	private void distributeNots() {
+	private void distributeNotsAndEliminateArrows() {
 		if ( this.root != null ) {
 			this.root.distributeNots();
+			this.root.eliminateArrows();
 		}
 	}
 	
@@ -552,6 +553,11 @@ class ExpressionTree {
 				
 				this.children.clear();
 				this.addChildren( child1 , child2 );
+			}
+			else {
+				for ( ExpressionNode child : this.children ) {
+					child.eliminateArrows();
+				}
 			}
 		}
 		

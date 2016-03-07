@@ -442,7 +442,7 @@ public class ExpressionTreeTest {
 	}
 	
 	@Test
-	public void testDistributeNots() {
+	public void testDistributeNotsAndEliminateArrows() {
 		SymbolTracker tracker;
 		List< Symbol > input;
 		ExpressionTree exprTree;
@@ -491,6 +491,49 @@ public class ExpressionTreeTest {
 		distributeNots( exprTree );
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "x" )
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test distributing nots and eliminating arrows on "x y => NOT"
+		// "!(x => y)"    <=>    "!(!x OR y)"     <=>      "x AND !y"
+		//in postfix, this is "x y NOT AND"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) ,
+				Operator.IMPLICATION , Operator.NOT
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNots( exprTree );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
+				Operator.NOT , Operator.AND
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test distributing nots and eliminating arrows on "x y <=> NOT"
+		// "!(x <=> y)"    <=>    "!((!x OR y) AND (!y OR x))"     <=>      
+		// "!(!x OR y) OR !(!y OR x)"		<=> 	"(x AND !y) OR (y AND !x)
+		//in postfix, this is "x y NOT AND y x NOT AND OR"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) ,
+				Operator.BICONDITIONAL , Operator.NOT
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNots( exprTree );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
+				Operator.NOT , Operator.AND , 
+				tracker.getVariableByName( "y" ) , tracker.getVariableByName( "x" ) ,
+				Operator.NOT , Operator.AND , Operator.OR 
 			);
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );

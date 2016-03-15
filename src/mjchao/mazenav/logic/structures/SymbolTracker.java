@@ -222,10 +222,25 @@ public class SymbolTracker {
 	private HashMap< String , Relation > relations = new HashMap< String , Relation >();
 	private HashMap< String , Function > constants = new HashMap< String , Function >();
 	
+	/**
+	 * A list of user-defined variables.
+	 */
 	private ArrayList< Variable > variables = new ArrayList< Variable >();
 	private HashMap< String , Variable > variablesByName = new HashMap< String , Variable >();
 	
-	private int nextVariableId = 0;
+	/**
+	 * A list of system-defined variables. System-defined variables can only
+	 * be used by the logic system (i.e. should not be exposed to the user)
+	 * and can only have the form "?[number]", for example "?0", "?1", "?2", ...
+	 */
+	private ArrayList< Variable > systemVariables = new ArrayList< Variable >();
+	
+	/**
+	 * A list of system-defined skolem functions. Skolem functions can only
+	 * be used by the logic system (i.e. should not be exposed to the user)
+	 * and can only have the form "$[number]", for example "$0", "$1", "$2", ...
+	 */
+	private ArrayList< SkolemFunction > skolemFunctions = new ArrayList< SkolemFunction >();
 	
 	public SymbolTracker() {
 		
@@ -308,10 +323,10 @@ public class SymbolTracker {
 	}
 	
 	public Variable getNewVariable() {
+		int nextVariableId = variables.size();
 		Variable rtn = new Variable( nextVariableId );
 		variables.add( rtn );
 		variablesByName.put( rtn.getSymbolName() , rtn );
-		++nextVariableId;
 		return rtn;
 	}
 	
@@ -323,6 +338,7 @@ public class SymbolTracker {
 		if ( variablesByName.containsKey( name ) ) {
 			throw new IllegalArgumentException( "A variable with name \"" + name + "\" already exists." );
 		}
+		int nextVariableId = variables.size();
 		Variable rtn = new Variable( name , nextVariableId );
 		variables.add( rtn );
 		variablesByName.put( name , rtn );
@@ -338,4 +354,56 @@ public class SymbolTracker {
 		return variables.get( id );
 	}
 	
+	/**
+	 * Creates and returns a new system-defined variable.
+	 * 
+	 * @return		a new system-defined variable.
+	 */
+	public Variable getNewSystemVariable() {
+		int nextId = systemVariables.size();
+		Variable rtn = new Variable( "?" + nextId , nextId );
+		systemVariables.add( rtn );
+		return rtn;
+	}
+	
+	/**
+	 * @param id
+	 * @return		the system variable with the given id
+	 */
+	public Variable getSystemVariableById( int id ) {
+		return systemVariables.get( id );
+	}
+	
+	/**
+	 * @param var
+	 * @return		if the given variable is system-defined (as opposed
+	 * 				to user-defined).
+	 */
+	@SuppressWarnings("static-method")
+	public boolean isSystemVariable( Variable var ) {
+		
+		//all system-defined variables start with "?"
+		return var.getSymbolName().startsWith( "?" );
+	}
+	
+	/**
+	 * Creates and returns a new system-defined skolem function.
+	 * 
+	 * @param vars	the variables that are the arguments to the skolem function.
+	 * @return		a new system-defined skolem function.
+	 */
+	public SkolemFunction getNewSkolemFunction( Variable... vars ) {
+		int nextId = skolemFunctions.size();
+		SkolemFunction rtn = new SkolemFunction( nextId , vars );
+		skolemFunctions.add( rtn );
+		return rtn;
+	}
+	
+	/**
+	 * @param id
+	 * @return		the system-defined skolem function with the given id
+	 */
+	public SkolemFunction getSkolemFunctionById( int id ) {
+		return skolemFunctions.get( id );
+	}
 }

@@ -600,6 +600,18 @@ class ExpressionTree {
 		}
 		
 		/**
+		 * Standardizes variables by changing duplicate user-defined variables
+		 * into multiple system-defined variables that are unambiguous.
+		 * 
+		 * @param userDefined		a user-defined variable
+		 * @param systemDefined		a system-defined variable with which to
+		 * 							replace the given user-defined variable.
+		 */
+		public void standardize( Variable userDefined , Variable systemDefined ) {
+			//TODO
+		}
+		
+		/**
 		 * 
 		 * @return		the value stored by this node. Do not modify it.
 		 */

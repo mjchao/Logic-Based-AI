@@ -320,6 +320,9 @@ public class SymbolTracker {
 			throw new IllegalArgumentException( "User-specified variable names must consist of {A-Z}, {a-z}, [0-9] " +
 												"or '_' and start with a letter." );
 		}
+		if ( variablesByName.containsKey( name ) ) {
+			throw new IllegalArgumentException( "A variable with name \"" + name + "\" already exists." );
+		}
 		Variable rtn = new Variable( name , nextVariableId );
 		variables.add( rtn );
 		variablesByName.put( name , rtn );

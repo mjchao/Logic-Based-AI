@@ -228,7 +228,7 @@ public class ExpressionTreeTest {
 				tracker.getNewVariable( "y" )
 			);
 		expected = Arrays.asList(
-				tracker.getNewVariable( "y" ) , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) )
+				tracker.getVariableByName( "y" ) , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) )
 			);
 		found = convertToPostfix( input );
 		Assert.assertTrue( expected.equals( found ) );	
@@ -411,8 +411,8 @@ public class ExpressionTreeTest {
 		input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) ,
 				Operator.AND , tracker.getNewVariable( "z" ) , Operator.IMPLICATION ,
-				newQuantifierList( Quantifier.EXISTS , tracker.getNewVariable( "z" ) ) ,
-				newQuantifierList( Quantifier.FORALL , tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) )
+				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "z" ) ) ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
 			);
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );

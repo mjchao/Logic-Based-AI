@@ -225,7 +225,7 @@ public class ProcessorTokenizeTest {
 		test = new Processor( logicStatement , tracker );
 		test.tokenize();
 		tokens = getTokens( test );
-		expected = Arrays.asList( Quantifier.FORALL , tracker.getNewVariable( "x" ) , 
+		expected = Arrays.asList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , 
 				Symbol.COMMA , tracker.getVariableByName( "x" ) ,
 				Operator.EQUALS , NumbersFOL.fromInt( 12345 ) , 
 				Operator.OR , tracker.getVariableByName( "x" ) ,

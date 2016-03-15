@@ -601,5 +601,64 @@ public class ExpressionTreeTest {
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );
 		
+		//test distributing nots over quantifiers and arrows on 
+		//"x y => FORALL(x,y)"
+		//"!(FORALL(x,y) x => y)" 	<=>		"EXISTS(x,y) !(x => y)"		<=>
+		//"EXISTS(x,y) !(!x OR y)"	<=>		"EXISTS(x,y) x AND !y
+		//in postfix this is "x y NOT AND EXISTS(x,y)"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) ,
+				Operator.IMPLICATION , 
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ) ,
+				Operator.NOT
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
+				Operator.NOT , Operator.AND ,
+				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test distributing nots over two quantifiers and arrows
+		//"x y => FORALL(x,y) w z => EXISTS(w,z) => !"
+		//!((FORALL(x,y) x => y) => EXISTS(w,z) w => z)			<=>
+		//!(!(FORALL(x,y) x => y) OR (EXISTS(w,z) w => z))		<=>
+		//FORALL(x,y) x => y AND !(EXISTS(w,z) w => z) 			<=>
+		//FORALL(x,y) x => y AND FORALL(w,z) !(w => z)			<=>
+		//(FORALL(x,y) !x OR y) AND (FORALL(w,z) w AND !z)
+		
+		//in postfix, this is
+		// x NOT y OR FORALL(x,y) w z NOT AND FORALL(w,z) AND 
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) ,
+				Operator.IMPLICATION ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ) ,
+				tracker.getNewVariable( "w" ) , tracker.getNewVariable( "z" ) ,
+				Operator.IMPLICATION ,
+				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "w" ) , tracker.getVariableByName( "z" ) ) ,
+				Operator.IMPLICATION , Operator.NOT
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , Operator.NOT , tracker.getVariableByName( "y" ) ,
+				Operator.OR , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ) ,
+				tracker.getVariableByName( "w" ) , tracker.getVariableByName( "z" ) , Operator.NOT , 
+				Operator.AND , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "w" ) , tracker.getVariableByName( "z" ) ) ,
+				Operator.AND
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
 	}
 }

@@ -713,8 +713,7 @@ public class ExpressionTreeTest {
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );
-		
-		//TODO rewrite standardize with HashMap and one recursive standardize()
+
 		//test standardizing "x AND y AND x" 	<=> "x y AND x AND"
 		//which should give "?0 ?1 AND ?0 AND"
 		tracker = new SymbolTracker();

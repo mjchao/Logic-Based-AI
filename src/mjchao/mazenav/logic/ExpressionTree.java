@@ -1,6 +1,7 @@
 package mjchao.mazenav.logic;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
@@ -421,7 +422,7 @@ class ExpressionTree {
 	
 	private void standardize( SymbolTracker tracker ) {
 		if ( this.root != null ) {
-			this.root.standardize( tracker );
+			this.root.standardize( new HashMap< Variable , Variable >() , tracker );
 		}
 	}
 	
@@ -621,70 +622,31 @@ class ExpressionTree {
 			}
 		}
 		
-		public void standardize( SymbolTracker tracker ) {
+		/**
+		 * Standardizes variables using the given user-variable to system-variable
+		 * mappings.
+		 * 
+		 * @param userSystemMapping		stores which user-variables refer to which system variables
+		 * @param tracker				tracker used for getting additional system variables
+		 */
+		public void standardize( HashMap< Variable , Variable > userSystemMapping , SymbolTracker tracker ) {
 			if ( this.getValue() instanceof Variable ) {
-				this.standardize( (Variable) this.getValue() , tracker.getNewSystemVariable() , tracker );
+				if ( userSystemMapping.get( this.getValue() ) == null ) {
+					Variable newMapping = tracker.getNewSystemVariable();
+					userSystemMapping.put( (Variable)this.getValue() , newMapping );
+				}
+				this.value = userSystemMapping.get( this.getValue() );
 			}
 			else if ( this.getValue() instanceof QuantifierList ) {
-				for( Variable v : ((QuantifierList)this.getValue()).getVariables() ) {
-					this.standardize( v , tracker.getNewSystemVariable() , tracker );
-				}
-			}
-			else {
-				for ( ExpressionNode child : this.getChildren() ) {
-					child.standardize( tracker );
-				}
-			}
-		}
-		
-		/**
-		 * Standardizes variables by changing duplicate user-defined variables
-		 * into multiple system-defined variables that are unambiguous.
-		 * 
-		 * @param userDefined		a user-defined variable
-		 * @param systemDefined		a system-defined variable with which to
-		 * 							replace the given user-defined variable.
-		 */
-		public void standardize( Variable userDefined , Variable systemDefined , 
-				SymbolTracker tracker ) {
-			if ( this.value instanceof Variable ) {
-				if ( this.value.equals( userDefined ) ) {
-					this.value = systemDefined;
-				}
-				for ( ExpressionNode child : this.children ) {
-					child.standardize( userDefined , systemDefined , tracker );
-				}
-			}
-			else if ( this.value instanceof QuantifierList ) {
-				QuantifierList list = (QuantifierList) this.value;
-				
-				//records if we overrode the variable for which
-				//this method was called to standardize
-				boolean overrodeVariable = false;
-				for ( Variable var : list.getVariables() ) {
+				for ( Variable v : ((QuantifierList) this.getValue()).getVariables() ) {
 					
-					//when we have a new quantifier, we will create a new system
-					//variable for each of the variables in the quantifier list
-					//and standardize with that - this overrides any duplicate
-					//variables
-					Variable newSystemVariable = tracker.getNewSystemVariable();
-					list.standardizeVariable( var , newSystemVariable );
-					for ( ExpressionNode child : this.children ) {
-						child.standardize( var , newSystemVariable ,  tracker );
-					}
-					if ( var.equals( userDefined ) ) {
-						overrodeVariable = true;
-					}
+					//when we quantify over new variables,
+					//we override the old mappings
+					userSystemMapping.put( v , tracker.getNewSystemVariable() );
 				}
-				
-				//if we did not override the variable for which
-				//this method was called to override, then
-				//we still need to standardize that.
-				if ( !overrodeVariable ) {
-					for ( ExpressionNode child : this.children ) {
-						child.standardize( userDefined , systemDefined , tracker );
-					}
-				}
+			}
+			for ( ExpressionNode child : this.getChildren() ) {
+				child.standardize( userSystemMapping , tracker );
 			}
 		}
 		

@@ -713,5 +713,26 @@ public class ExpressionTreeTest {
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );
+		
+		//TODO rewrite standardize with HashMap and one recursive standardize()
+		//test standardizing "x AND y AND x" 	<=> "x y AND x AND"
+		//which should give "?0 ?1 AND ?0 AND"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) ,  Operator.AND ,
+				tracker.getVariableByName( "x" ) , Operator.AND
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		standardize( exprTree , tracker );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
+				tracker.getSystemVariableById( 0 ) , Operator.AND );
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
 	}
 }

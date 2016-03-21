@@ -58,6 +58,18 @@ public class ExpressionTreeTest {
 		}		
 	}
 	
+	public void standardize( ExpressionTree tree , SymbolTracker tracker ) {
+		Class<?> c = ExpressionTree.class;
+		try {
+			Method f = c.getDeclaredMethod( "standardize" , SymbolTracker.class );
+			f.setAccessible( true );
+			f.invoke( tree , tracker );
+		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			e.printStackTrace();
+			throw new RuntimeException( "Could not apply standardize() method to ExpressionTree object." );
+		}
+	}
+	
 	public ExpressionNode getRoot( ExpressionTree tree ) {
 		Class<?> c = ExpressionTree.class;
 		try {
@@ -657,6 +669,47 @@ public class ExpressionTreeTest {
 				Operator.AND , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "w" ) , tracker.getVariableByName( "z" ) ) ,
 				Operator.AND
 			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+	}
+	
+	@Test
+	public void testStandardize() {
+		SymbolTracker tracker;
+		List< Symbol > input;
+		ExpressionTree exprTree;
+		List< Symbol > expected;
+		List< Symbol > found;	
+		
+		//test standardizing "x"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" )
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		standardize( exprTree , tracker );
+		expected = Arrays.asList( tracker.getSystemVariableById( 0 ) );
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test standardizing "x AND y"		<=> "x y AND"
+		//which should give "?0 ?1 AND"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) ,  Operator.AND
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		standardize( exprTree , tracker );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND );
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );

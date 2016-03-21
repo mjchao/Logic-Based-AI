@@ -11,6 +11,7 @@ import mjchao.mazenav.logic.structures.ObjectFOL;
 import mjchao.mazenav.logic.structures.Operator;
 import mjchao.mazenav.logic.structures.Quantifier;
 import mjchao.mazenav.logic.structures.Symbol;
+import mjchao.mazenav.logic.structures.SymbolTracker;
 import mjchao.mazenav.logic.structures.Variable;
 
 /**
@@ -80,6 +81,21 @@ class ExpressionTree {
 		
 		public void addVariable( Variable var ) {
 			this.vars.add( var );
+		}
+		
+		/**
+		 * Substitutes a system-defined variable for a user-defined variable
+		 * in this quantifier list.
+		 * 
+		 * @param userDefined
+		 * @param systemDefined
+		 */
+		public void standardizeVariable( Variable userDefined , Variable systemDefined ) {
+			for ( int i=0 ; i<vars.size() ; ++i ) {
+				if ( vars.get( i ).equals( userDefined ) ) {
+					vars.set( i , systemDefined );
+				}
+			}
 		}
 		
 		@Override
@@ -403,6 +419,12 @@ class ExpressionTree {
 		}
 	}
 	
+	private void standardize( SymbolTracker tracker ) {
+		if ( this.root != null ) {
+			this.root.standardize( tracker );
+		}
+	}
+	
 	class ExpressionNode {
 
 		/**
@@ -599,6 +621,22 @@ class ExpressionTree {
 			}
 		}
 		
+		public void standardize( SymbolTracker tracker ) {
+			if ( this.getValue() instanceof Variable ) {
+				this.standardize( (Variable) this.getValue() , tracker.getNewSystemVariable() , tracker );
+			}
+			else if ( this.getValue() instanceof QuantifierList ) {
+				for( Variable v : ((QuantifierList)this.getValue()).getVariables() ) {
+					this.standardize( v , tracker.getNewSystemVariable() , tracker );
+				}
+			}
+			else {
+				for ( ExpressionNode child : this.getChildren() ) {
+					child.standardize( tracker );
+				}
+			}
+		}
+		
 		/**
 		 * Standardizes variables by changing duplicate user-defined variables
 		 * into multiple system-defined variables that are unambiguous.
@@ -607,8 +645,47 @@ class ExpressionTree {
 		 * @param systemDefined		a system-defined variable with which to
 		 * 							replace the given user-defined variable.
 		 */
-		public void standardize( Variable userDefined , Variable systemDefined ) {
-			//TODO
+		public void standardize( Variable userDefined , Variable systemDefined , 
+				SymbolTracker tracker ) {
+			if ( this.value instanceof Variable ) {
+				if ( this.value.equals( userDefined ) ) {
+					this.value = systemDefined;
+				}
+				for ( ExpressionNode child : this.children ) {
+					child.standardize( userDefined , systemDefined , tracker );
+				}
+			}
+			else if ( this.value instanceof QuantifierList ) {
+				QuantifierList list = (QuantifierList) this.value;
+				
+				//records if we overrode the variable for which
+				//this method was called to standardize
+				boolean overrodeVariable = false;
+				for ( Variable var : list.getVariables() ) {
+					
+					//when we have a new quantifier, we will create a new system
+					//variable for each of the variables in the quantifier list
+					//and standardize with that - this overrides any duplicate
+					//variables
+					Variable newSystemVariable = tracker.getNewSystemVariable();
+					list.standardizeVariable( var , newSystemVariable );
+					for ( ExpressionNode child : this.children ) {
+						child.standardize( var , newSystemVariable ,  tracker );
+					}
+					if ( var.equals( userDefined ) ) {
+						overrodeVariable = true;
+					}
+				}
+				
+				//if we did not override the variable for which
+				//this method was called to override, then
+				//we still need to standardize that.
+				if ( !overrodeVariable ) {
+					for ( ExpressionNode child : this.children ) {
+						child.standardize( userDefined , systemDefined , tracker );
+					}
+				}
+			}
 		}
 		
 		/**

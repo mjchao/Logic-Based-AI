@@ -371,6 +371,11 @@ public class SymbolTracker {
 	 * @return		the system variable with the given id
 	 */
 	public Variable getSystemVariableById( int id ) {
+		if ( id >= systemVariables.size() ) {
+			throw new IllegalArgumentException( "id of system variable is out of bounds. \n" +
+								"id: " + id + "\n" +
+								"size: " + systemVariables.size() );
+		}
 		return systemVariables.get( id );
 	}
 	

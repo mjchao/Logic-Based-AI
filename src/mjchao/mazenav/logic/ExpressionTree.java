@@ -632,6 +632,12 @@ class ExpressionTree {
 		public void standardize( HashMap< Variable , Variable > userSystemMapping , SymbolTracker tracker ) {
 			if ( this.getValue() instanceof Variable ) {
 				if ( userSystemMapping.get( this.getValue() ) == null ) {
+					
+					//if no mapping for the user-defined variable 
+					//to a system-defined variable exists,
+					//then create a new system-defined variable.
+					//otherwise, we'll just standardize using
+					//the mapping that already exists
 					Variable newMapping = tracker.getNewSystemVariable();
 					userSystemMapping.put( (Variable)this.getValue() , newMapping );
 				}

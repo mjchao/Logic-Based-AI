@@ -728,10 +728,40 @@ public class ExpressionTreeTest {
 		standardize( exprTree , tracker );
 		expected = Arrays.asList( 
 				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
-				tracker.getSystemVariableById( 0 ) , Operator.AND );
+				tracker.getSystemVariableById( 0 ) , Operator.AND 
+				);
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );
 		
+		//test standardizing "FORALL x x => FORALL y y => FORALL x x" 		<=> 
+		//					"!(FORALL x x => FORALL y y) OR FORALL x x"		<=>
+		//					"!(EXISTS x !x OR FORALL y y) OR FORALL x x"	<=>
+		//					"FORALL x x AND EXISTS y !y OR FORALL x x"		<=>
+		//					"?0 FORALL(?0) ?1 ! EXISTS(?1) AND ?2 FORALL(?2) OR"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) ) ,
+				tracker.getNewVariable( "y" ) , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "y" ) ) ,
+				Operator.IMPLICATION , 
+				tracker.getVariableByName( "x" ) , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) ) ,
+				Operator.IMPLICATION
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		standardize( exprTree , tracker );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 0 ) , newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 0 ) ) ,
+				tracker.getSystemVariableById( 1 ) , Operator.NOT , newQuantifierList( Quantifier.EXISTS , tracker.getSystemVariableById( 1 ) ) ,
+				Operator.AND , 
+				tracker.getSystemVariableById( 2 ) , newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 2 ) ) ,
+				Operator.OR
+				);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		System.out.println( found.toString() );
+		Assert.assertTrue( expected.equals( found ) );
 	}
 }

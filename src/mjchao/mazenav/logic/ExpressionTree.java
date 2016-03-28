@@ -649,6 +649,7 @@ class ExpressionTree {
 					//when we quantify over new variables,
 					//we override the old mappings
 					userSystemMapping.put( v , tracker.getNewSystemVariable() );
+					((QuantifierList) this.getValue()).standardizeVariable( v , userSystemMapping.get( v ) );
 				}
 			}
 			for ( ExpressionNode child : this.getChildren() ) {

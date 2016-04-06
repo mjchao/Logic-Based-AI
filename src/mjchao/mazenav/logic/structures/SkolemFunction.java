@@ -14,6 +14,32 @@ import java.util.List;
 public class SkolemFunction extends Symbol {
 
 	/**
+	 * Builds the list of arguments to this skolem function as a tuple.
+	 * For example, if the vars were x, y, and z, this function returns
+	 * (x, y, z) so that we can represent this skolem function as 
+	 * $0(x, y, z).
+	 * 
+	 * @param args		the arguments to this skolem function
+	 * @return
+	 */
+	private static String buildArgList( Variable... args ) {
+		StringBuilder rtn = new StringBuilder( "(" );
+		if ( args.length == 0 ) {
+			//add no arguments
+		}
+		else if ( args.length == 1 ) {
+			rtn.append( args[ 0 ].getShorthand() );
+		}
+		else {
+			rtn.append( args[ 0 ].getShorthand() );
+			for ( int i=1 ; i<args.length ; ++i ) {
+				rtn.append( ", " + args[ i ].getShorthand() );
+			}
+		}
+		rtn.append( ")" );
+		return rtn.toString();
+	}
+	/**
 	 * Stores all the values with which this
 	 * skolem function has been unified. Each different
 	 * setting of this function's parameters allows for
@@ -34,8 +60,8 @@ public class SkolemFunction extends Symbol {
 	 * 					function (for printing purposes)
 	 * @param args		arguments to this SkolemFunction
 	 */
-	public SkolemFunction( int id , Variable[] args ) {
-		super( "$" + id );
+	public SkolemFunction( int id , Variable... args ) {
+		super( "$" + id + buildArgList( args ) );
 		this.args = args;
 	}
 	
@@ -47,7 +73,7 @@ public class SkolemFunction extends Symbol {
 	 * 
 	 * @param args		arguments to this SkolemFunction
 	 */
-	public SkolemFunction( Variable[] args ) {
+	public SkolemFunction( Variable... args ) {
 		this( 0 , args );
 	}
 	

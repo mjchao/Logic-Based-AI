@@ -16,6 +16,7 @@ import mjchao.mazenav.logic.structures.BooleanFOL;
 import mjchao.mazenav.logic.structures.IntegerWorld;
 import mjchao.mazenav.logic.structures.Operator;
 import mjchao.mazenav.logic.structures.Quantifier;
+import mjchao.mazenav.logic.structures.SkolemFunction;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
 import mjchao.mazenav.logic.structures.Variable;
@@ -68,6 +69,30 @@ public class ExpressionTreeTest {
 			e.printStackTrace();
 			throw new RuntimeException( "Could not apply standardize() method to ExpressionTree object." );
 		}
+	}
+	
+	public void skolemize( ExpressionTree tree , SymbolTracker tracker ) {
+		Class<?> c = ExpressionTree.class;
+		try {
+			Method f = c.getDeclaredMethod( "skolemize" , SymbolTracker.class );
+			f.setAccessible( true );
+			f.invoke( tree , tracker );
+		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			e.printStackTrace();
+			throw new RuntimeException( "Could not apply skolemize() method to ExpressionTree object." );
+		}		
+	}
+	
+	public void dropQuantifiers( ExpressionTree tree ) {
+		Class<?> c = ExpressionTree.class;
+		try {
+			Method f = c.getDeclaredMethod( "dropQuantifiers" );
+			f.setAccessible( true );
+			f.invoke( tree );
+		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			e.printStackTrace();
+			throw new RuntimeException( "Could not apply skolemize() method to ExpressionTree object." );
+		}		
 	}
 	
 	public ExpressionNode getRoot( ExpressionTree tree ) {
@@ -812,5 +837,80 @@ public class ExpressionTreeTest {
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );		
+	}
+	
+	@Test
+	public void testSkolemizeAndDropQuantifiers() {
+		SymbolTracker tracker;
+		List< Symbol > input;
+		ExpressionTree exprTree;
+		List< Symbol > expected;
+		List< Symbol > found;	
+		
+		//test skolemizing "EXISTS(x) x"
+		//shoudl yield "$0" after skolemizing and dropping quantifiers
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) )
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		expected = Arrays.asList( 
+				new SkolemFunction( 0 )
+				);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );	
+		
+		//test skolemizing "EXISTS(x) x AND EXISTS(x) x"
+		//should yield "$0 $1 AND" in postfix after skolemizing
+		//and dropping quantifiers
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
+				tracker.getVariableByName( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
+				Operator.AND 
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		expected = Arrays.asList( 
+				new SkolemFunction( 0 ) , new SkolemFunction( 1 ) , Operator.AND
+				);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );	
+		
+		//test skolemizing "FORALL(x) EXISTS(x) x AND EXISTS(x) x"
+		//should yield "$0(?0) $1(?0) AND" in postfix after skolemizing
+		//and dropping quantifiers
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
+				tracker.getVariableByName( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
+				Operator.AND , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) )
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		expected = Arrays.asList( 
+				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) ) , Operator.AND
+				);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );	
 	}
 }

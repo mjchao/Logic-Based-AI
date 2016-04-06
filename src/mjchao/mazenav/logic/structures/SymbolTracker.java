@@ -405,6 +405,23 @@ public class SymbolTracker {
 	}
 	
 	/**
+	 * Creates and returns a new system-defined skolem function.
+	 * 
+	 * @param vars	the variables that are the arguments to the skolem function.
+	 * @return		a new system-defined skolem function.
+	 */
+	public SkolemFunction getNewSkolemFunction( ArrayList< Variable > vars ) {
+		int nextId = skolemFunctions.size();
+		Variable[] varArray = new Variable[ vars.size() ];
+		for ( int i=0 ; i<vars.size() ; ++i ) {
+			varArray[ i ] = vars.get( i );
+		}
+		SkolemFunction rtn = new SkolemFunction( nextId , varArray );
+		skolemFunctions.add( rtn );
+		return rtn;
+	}
+	
+	/**
 	 * @param id
 	 * @return		the system-defined skolem function with the given id
 	 */

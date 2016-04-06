@@ -11,6 +11,7 @@ import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.ObjectFOL;
 import mjchao.mazenav.logic.structures.Operator;
 import mjchao.mazenav.logic.structures.Quantifier;
+import mjchao.mazenav.logic.structures.SkolemFunction;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
 import mjchao.mazenav.logic.structures.Variable;
@@ -426,6 +427,33 @@ class ExpressionTree {
 		}
 	}
 	
+	private void skolemize( SymbolTracker tracker ) {
+		if ( this.root != null ) {
+			ArrayList< Variable > vars = new ArrayList< Variable >();
+			this.root.skolemize( vars , tracker );
+		}
+	}
+	
+	private void dropQuantifiers() {
+		if ( this.root != null ) {
+			
+			//first make sure the root is not a quantifier
+			while ( this.root.getValue() instanceof QuantifierList ) {
+				if ( this.root.getChildren().size() == 1 ) {
+					this.root = this.root.getChildren().get( 0 );
+				}
+				else {
+					
+					//we cannot have a list of variables after the quantifier.
+					//for example, we can't just say "FORALL(x) x y z" - we have
+					//to say something like "FORALL(x) x AND y AND z"
+					throw new IllegalArgumentException( "Quantifying over an invalid expression." );
+				}
+			}
+			this.root.dropQuantifiers();
+		}
+	}
+	
 	class ExpressionNode {
 
 		/**
@@ -654,6 +682,95 @@ class ExpressionTree {
 			}
 			for ( ExpressionNode child : this.getChildren() ) {
 				child.standardize( userSystemMapping , tracker );
+			}
+		}
+		
+		/**
+		 * Replace all instances of a Variable with the given Skolem Function
+		 * 
+		 * @param var		the variable to be replaced
+		 * @param func		the skolem function to be substituted for the variable
+		 */
+		public void replaceWithSkolemFunction( Variable var , SkolemFunction func ) {
+			if ( this.getValue().equals( var ) ) {
+				this.value = func;
+			}
+			for ( ExpressionNode child : this.getChildren() ) {
+				child.replaceWithSkolemFunction( var , func );
+			}
+		}
+		
+		/**
+		 * Replaces all existential quantifiers with skolem functions.
+		 * 
+		 * @param universalVariables	a list of universal variables that will affect
+		 * 								existential quantifiers
+		 * @param tracker				tracker used for getting additional skolem functions
+		 */
+		public void skolemize( ArrayList< Variable > universalVariables , SymbolTracker tracker ) {
+			if ( this.getValue() instanceof QuantifierList ) {
+				QuantifierList quantifier = (QuantifierList) this.getValue();
+				if ( quantifier.getQuantifier().equals( Quantifier.EXISTS ) ) {
+					for ( Variable v : quantifier.getVariables() ) {
+						SkolemFunction func = tracker.getNewSkolemFunction( universalVariables );
+						for ( ExpressionNode child : this.getChildren() ) {
+							child.replaceWithSkolemFunction( v , func );
+						}
+					}
+				}
+				else if ( quantifier.getQuantifier().equals( Quantifier.FORALL ) ) {
+					
+					int variablesAdded = 0;
+					for ( Variable v :quantifier.getVariables() ) {
+						if ( !universalVariables.contains( v ) ) {
+							universalVariables.add( v );
+							++variablesAdded;
+						}
+					}
+					
+					for ( ExpressionNode child : this.getChildren() ) {
+						child.skolemize( universalVariables , tracker );
+					}
+					
+					//once we go out of scope of this universal quantifier,
+					//we need to remove the variables it quantifies
+					//note: universalVariables is invariant
+					//before and after a deeper call to skolemize so 
+					//we can just remove from the end of the list
+					for ( int i=0 ; i<variablesAdded ; ++i ) {
+						universalVariables.remove( universalVariables.size()-1 );
+					}
+					return;
+				}
+			}
+			
+			//propagate skolemization down the tree
+			for ( ExpressionNode child : this.getChildren() ) {
+				child.skolemize( universalVariables , tracker );
+			}
+		}
+		
+		/**
+		 * Removes all quantifiers that are descendants of this node
+		 */
+		public void dropQuantifiers() {
+			for ( int childIdx = 0 ; childIdx < this.children.size() ; ++childIdx ) {
+				if ( children.get( childIdx ).getValue() instanceof QuantifierList ) {
+					ArrayList< ExpressionNode > quantifierChildren = children.get( childIdx ).getChildren();
+					if ( quantifierChildren.size() == 1 ) {
+						children.set( childIdx ,  quantifierChildren.get( 0 ) );
+					}
+					else {
+						
+						//we cannot have a list of variables after the quantifier.
+						//for example, we can't just say "FORALL(x) x y z" - we have
+						//to say something like "FORALL(x) x AND y AND z"
+						throw new IllegalArgumentException( "Quantifying invalid expression." );
+					}
+				}
+			}
+			for ( ExpressionNode child : this.children ) {
+				child.dropQuantifiers();
 			}
 		}
 		

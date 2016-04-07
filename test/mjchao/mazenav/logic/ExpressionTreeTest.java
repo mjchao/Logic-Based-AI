@@ -836,7 +836,36 @@ public class ExpressionTreeTest {
 				);
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );		
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test standardizing "FORALL(x,y) x AND y AND EXISTS(x,y,z) x OR y OR z"
+		//which in postfix is "x y AND x y OR z OR EXISTS(x,y,z) AND FORALL(x,y)"
+		//should yield "?0 ?1 AND ?2 ?3 OR ?4 OR EXISTS(?2,?3,?4) AND FORALL(?0,?1)"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , Operator.AND ,
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) , Operator.OR ,
+				tracker.getNewVariable( "z" ) , Operator.OR ,
+				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) , tracker.getVariableByName( "z" ) ) ,
+				Operator.AND , 
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		standardize( exprTree , tracker );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
+				tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 3 ) , Operator.OR ,
+				tracker.getSystemVariableById( 4 ) , Operator.OR ,
+				newQuantifierList( Quantifier.EXISTS , tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 3 ) , tracker.getSystemVariableById( 4 ) ) ,
+				Operator.AND ,
+				newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) )
+				);		
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
 	}
 	
 	@Test
@@ -847,8 +876,29 @@ public class ExpressionTreeTest {
 		List< Symbol > expected;
 		List< Symbol > found;	
 		
+		//test no skolemization necessary: "x AND y AND z"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , Operator.AND ,
+				tracker.getNewVariable( "z" ) , Operator.AND
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
+				tracker.getSystemVariableById( 2 ) , Operator.AND
+				);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );			
+		
 		//test skolemizing "EXISTS(x) x"
-		//shoudl yield "$0" after skolemizing and dropping quantifiers
+		//should yield "$0" after skolemizing and dropping quantifiers
 		tracker = new SymbolTracker();
 		input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) )
@@ -908,6 +958,60 @@ public class ExpressionTreeTest {
 		dropQuantifiers( exprTree );
 		expected = Arrays.asList( 
 				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) ) , Operator.AND
+				);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test skolemizing "FORALL(y) EXISTS(x) x AND y AND EXISTS(x) x"
+		//should yield "$0(?0) y AND $1(?0) AND" in postfix after skolemizing
+		//and dropping quantifiers
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
+				tracker.getNewVariable( "y" ) , Operator.AND ,
+				tracker.getVariableByName( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
+				Operator.AND , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "y" ) )
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		expected = Arrays.asList( 
+				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , tracker.getSystemVariableById( 0 ) , Operator.AND , new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) ) , Operator.AND
+				);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );	
+		
+		//test skolemizing "FORALL(x,y) x AND y AND EXISTS(x,y,z) x OR y OR z"
+		//which in postfix is "x y AND x y OR z OR EXISTS(x,y,z) AND FORALL(x,y)"
+		//should yield "?0 ?1 AND $0(?0,?1) $1(?0,?1) OR $2(?0,?1) OR AND
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , Operator.AND ,
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) , Operator.OR ,
+				tracker.getNewVariable( "z" ) , Operator.OR ,
+				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) , tracker.getVariableByName( "z" ) ) ,
+				Operator.AND , 
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
+				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) ) , 
+				new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) ) ,
+				Operator.OR , new SkolemFunction( 2 , tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) ) , 
+				Operator.OR , Operator.AND
 				);
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );

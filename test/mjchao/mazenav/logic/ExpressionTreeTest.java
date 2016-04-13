@@ -959,7 +959,7 @@ public class ExpressionTreeTest {
 	}
 	
 	@Test
-	public void testSkolemizeAndDropQuantifiers() {
+	public void testSkolemizeAndDropQuantifiers() throws IOException {
 		SymbolTracker tracker;
 		List< Symbol > input;
 		ExpressionTree exprTree;
@@ -1102,6 +1102,36 @@ public class ExpressionTreeTest {
 				new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) ) ,
 				Operator.OR , new SkolemFunction( 2 , tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) ) , 
 				Operator.OR , Operator.AND
+				);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );	
+		
+		//test skolemizing variables inside functions
+		//FORALL(x) x AND EXISTS(x) GreaterThan(x, DiffInt(x,x))
+		//in postfix this is
+		//x x x x DiffInt GreaterThan EXISTS(x) AND FORALL(x)
+		//which standardizes and skolemizes to
+		//?0 $0(?0) $0(?0) $0(?0) DiffInt GreaterThan AND
+		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) ,
+				tracker.getVariableByName( "x" ) , tracker.getFunction( "DiffInt" ) , tracker.getRelation( "GreaterThan" ) ,
+				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) , Operator.AND ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) )
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 0 ) , new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) ,
+				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) ,
+				tracker.getFunction( "DiffInt" ) , tracker.getRelation( "GreaterThan" ) ,
+				Operator.AND
 				);
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );

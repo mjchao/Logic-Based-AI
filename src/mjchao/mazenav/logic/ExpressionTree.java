@@ -630,17 +630,23 @@ class ExpressionTree {
 				//an exception earlier
 				ExpressionNode child = this.children.get( 0 );
 				
-				//negate the child and remove this NOT operator
-				if ( !this.negated ) {
-					child.negate();
-				}
-				child.parent = this.parent;
-				
+				//remove this NOT operator
 				//overwrite the root if a NOT operator was originally
 				//the root
 				if ( this.parent == null ) {
 					ExpressionTree.this.root = child;
+					child.parent = null;
 				}
+				else {
+					this.parent.getChildren().clear();
+					this.parent.addChildren( child );
+				}
+				
+				//negate the child if necessary
+				if ( !this.negated ) {
+					child.negate();
+				}
+				
 				child.distributeNots();
 			}
 			else {

@@ -251,7 +251,7 @@ public class ExpressionTreeTest {
 	}
 	
 	@Test
-	public void testConverToPostfixWithQuantifiers() {
+	public void testConverToPostfixWithQuantifiers() throws IOException {
 		SymbolTracker tracker;
 		List< Symbol > input;
 		List< Symbol > expected;
@@ -386,6 +386,28 @@ public class ExpressionTreeTest {
 			);
 		found = convertToPostfix( input );
 		Assert.assertTrue( expected.equals( found ) );
+		
+		//test expression with functions and quantifiers
+		// "EXISTS(x,y) S.T. GreaterThan(SumInt( x , y ), DiffInt( x , y )) 
+		// <=>  "x y SumInt x y DiffInt GreaterThan EXISTS(x,y)"
+		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		input = Arrays.asList( 
+				Quantifier.EXISTS , Symbol.LEFT_PAREN , tracker.getNewVariable( "x" ) , Symbol.COMMA ,
+				tracker.getNewVariable( "y" ) , Symbol.RIGHT_PAREN , Symbol.SUCH_THAT ,
+				tracker.getRelation( "GreaterThan" ) , Symbol.LEFT_PAREN , tracker.getFunction( "SumInt" ) ,
+				Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
+				Symbol.RIGHT_PAREN , Symbol.COMMA , tracker.getFunction( "DiffInt" ) , Symbol.LEFT_PAREN ,
+				tracker.getVariableByName( "x" ) , Symbol.COMMA , tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
+			);
+		expected = Arrays.asList(
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
+				tracker.getFunction( "SumInt" ) , 
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
+				tracker.getFunction( "DiffInt" ) , tracker.getRelation( "GreaterThan" ) ,
+				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
+			);
+		found = convertToPostfix( input );
+		Assert.assertTrue( expected.equals( found ) );
 	}
 	
 	@Test
@@ -479,7 +501,7 @@ public class ExpressionTreeTest {
 	}
 	
 	@Test
-	public void testDistributeNotsAndEliminateArrows() {
+	public void testDistributeNotsAndEliminateArrows() throws IOException {
 		SymbolTracker tracker;
 		List< Symbol > input;
 		ExpressionTree exprTree;
@@ -693,6 +715,40 @@ public class ExpressionTreeTest {
 				tracker.getVariableByName( "w" ) , tracker.getVariableByName( "z" ) , Operator.NOT , 
 				Operator.AND , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "w" ) , tracker.getVariableByName( "z" ) ) ,
 				Operator.AND
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test distributing nots with functions
+		//it is important that we do not distribute NOTs into a function
+		// FORALL(y), !EXISTS(x) GreaterThan(SumInt(y,y), DiffInt(x,x))
+		//in postfix this is equivalent to
+		// y y SumInt x x DiffInt GreaterThan EXISTS(x) ! FORALL(y)
+		
+		//after distributing NOTs, we should have
+		// FORALL(y) !EXISTS(x) GreaterThan(SumInt(y,y), DiffInt(x,x))		<=>
+		// FORALL(y) FORALL(x) !GreaterThan(SumInt(y,y), DiffInt(x,x))	
+		//in postfix this is equivalent to
+		// y y SumInt x x DiffInt GreaterThan ! FORALL(x) FORALL(y)
+		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		input = Arrays.asList(
+				tracker.getNewVariable( "y" ) , tracker.getVariableByName( "y" ) , tracker.getFunction( "SumInt" ) ,
+				tracker.getNewVariable( "x" ) , tracker.getVariableByName( "x" ) , tracker.getFunction( "DiffInt" ) ,
+				tracker.getRelation( "GreaterThan" ) , 
+				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) , Operator.NOT ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "y" ) )
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "y" ) , tracker.getVariableByName( "y" ) , tracker.getFunction( "SumInt" ) ,
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , tracker.getFunction( "DiffInt" ) ,
+				tracker.getRelation( "GreaterThan" ) ,  Operator.NOT ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) ) ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "y" ) )				
 			);
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );

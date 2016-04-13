@@ -18,7 +18,19 @@ There are a few main steps in processing FOL statements:
 
 ###Tokenizing
 
+This can be performed by scanning forward and attempting match keywords and known variables, objects, functions, and relations to segments of the input. If nothing matches, then we automatically treat the text segment a new variable and add it to a known list of variables.
+
 ###Conversion to Conjunctive Normal Form (CNF)
+
+First, we convert our tokenized infix expression into postfix so that we don't have to deal with parentheses anymore. Next, we construct a tree to represent our postfix expression. All non-leaf nodes are operators, functions, relations, or quantifiers and all leaf nodes are variables and objects. This structure enables us to more-easily apply the algorithm presented in Ruseel and Norvig for converting to CNF.
+
+This algorithm in Russel and Norvig follows these steps:
+1. Eliminate arrows (implications and biconditionals)
+2. Distribute Nots inward (specifically, converting to negation-normal form)
+3. Standardize variables names: if two variables have the same name in different quantified expressions, we differentiate between them
+4. Skolemize existential quantifiers: replaces all existential quantifiers with a skolem function parameterized by all universal variables that are in scope at the time of the existential quantifier
+5. Drop universal quantifiers
+6. Distribute ORs inward over ANDs which gets us to CNF
 
 ###Resolution
 

@@ -59,6 +59,18 @@ public class ExpressionTreeTest {
 		}		
 	}
 	
+	public void eliminateArrowsAndDistributeNots( ExpressionTree tree ) {
+		Class<?> c = ExpressionTree.class;
+		try {
+			Method f = c.getDeclaredMethod( "eliminateArrowsAndDistributeNots" );
+			f.setAccessible( true );
+			f.invoke( tree );
+		} catch (IllegalArgumentException | IllegalAccessException | SecurityException | NoSuchMethodException | InvocationTargetException e) {
+			e.printStackTrace();
+			throw new RuntimeException( "Could not apply eliminateArrowsAndDistributeNots() method to ExpressionTree object." );
+		}			
+	}
+	
 	public void standardize( ExpressionTree tree , SymbolTracker tracker ) {
 		Class<?> c = ExpressionTree.class;
 		try {
@@ -91,7 +103,19 @@ public class ExpressionTreeTest {
 			f.invoke( tree );
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 			e.printStackTrace();
-			throw new RuntimeException( "Could not apply skolemize() method to ExpressionTree object." );
+			throw new RuntimeException( "Could not apply dropQuantifiers() method to ExpressionTree object." );
+		}		
+	}
+	
+	public void distributeOrOverAnd( ExpressionTree tree ) {
+		Class<?> c = ExpressionTree.class;
+		try {
+			Method f = c.getDeclaredMethod( "distributeOrOverAnd" );
+			f.setAccessible( true );
+			f.invoke( tree );
+		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+			e.printStackTrace();
+			throw new RuntimeException( "Could not apply distributeOrOverAnd() method to ExpressionTree object." );
 		}		
 	}
 	
@@ -105,18 +129,6 @@ public class ExpressionTreeTest {
 			e.printStackTrace();
 			throw new RuntimeException( "Could not access field root of ExpressionTree object." );
 		}		
-	}
-	
-	public void eliminateArrowsAndDistributeNots( ExpressionTree tree ) {
-		Class<?> c = ExpressionTree.class;
-		try {
-			Method f = c.getDeclaredMethod( "eliminateArrowsAndDistributeNots" );
-			f.setAccessible( true );
-			f.invoke( tree );
-		} catch (IllegalArgumentException | IllegalAccessException | SecurityException | NoSuchMethodException | InvocationTargetException e) {
-			e.printStackTrace();
-			throw new RuntimeException( "Could not apply eliminateArrowsAndDistributeNots() method to ExpressionTree object." );
-		}			
 	}
 	
 	public void buildPostfixFromExpressionTree( ExpressionNode node , List< Symbol > postfix ) {
@@ -1133,6 +1145,69 @@ public class ExpressionTreeTest {
 				tracker.getFunction( "DiffInt" ) , tracker.getRelation( "GreaterThan" ) ,
 				Operator.AND
 				);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );	
+	}
+	
+	@Test
+	public void testDistributeOrOverAnd() {
+		SymbolTracker tracker;
+		List< Symbol > input;
+		ExpressionTree exprTree;
+		List< Symbol > expected;
+		List< Symbol > found;
+		
+		//test straightforward P OR (Q AND R)
+		//which is "P Q R AND OR" in postfix
+		//this should yield (P OR Q) AND (P OR R) 
+		//when standardized, this should be
+		//?0 ?1 OR ?0 ?2 OR AND
+		tracker = new SymbolTracker();
+		input = Arrays.asList( 
+				tracker.getNewVariable( "P" ) , tracker.getNewVariable( "Q" ) , 
+				tracker.getNewVariable( "R" ) , Operator.AND , Operator.OR 
+			);
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		distributeOrOverAnd( exprTree );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.OR ,
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 2 ) , Operator.OR ,
+				Operator.AND
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );	
+		
+		//test straightforward (P AND Q) OR R
+		//which is "P Q AND R OR" in postfix
+		//this should yield (P OR R) AND (Q OR R) 
+		//when standardized, this should be
+		//?0 ?2 OR ?1 ?2 OR AND
+		tracker = new SymbolTracker();
+		input = Arrays.asList( 
+				tracker.getNewVariable( "P" ) , tracker.getNewVariable( "Q" ) , Operator.AND , 
+				tracker.getNewVariable( "R" ) , Operator.OR 
+			);
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		distributeOrOverAnd( exprTree );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 2 ) , Operator.OR ,
+				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 2 ) , Operator.OR ,
+				Operator.AND
+			);
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );	

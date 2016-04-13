@@ -468,7 +468,7 @@ class ExpressionTree {
 	 * (Russel and Norvig). The steps are as follows:
 	 * <ol>
 	 * 	<li> eliminate arrows
-	 *  <li> distribute nots inward
+	 *  <li> distribute NOTs inward
 	 *  <li> standardize variable names
 	 *  <li> skolemize existential quantifiers
 	 *  <li> drop universal quantifiers
@@ -844,6 +844,29 @@ class ExpressionTree {
 					//add in the operands to this AND operator
 					//so that we have (P OR R) AND (Q OR R)
 					this.addChildren( operand1 , operand2 );
+				}
+				else if ( operand2.getValue().equals( Operator.AND ) ) {
+					ExpressionNode P = operand1;
+					ExpressionNode Q = operand2.getChildren().get( 0 );
+					ExpressionNode R = operand2.getChildren().get( 1 );
+					
+					//rewrite P OR (Q AND R) as (P OR Q) AND (P OR R)
+					this.value = Operator.AND;
+					this.children.clear();
+					
+					//construct the expression (P OR Q)
+					operand1 = new ExpressionNode( Operator.OR );
+					operand1.addChildren( P , Q );
+					
+					//construct the expression (P OR R)
+					operand2.value = Operator.OR;
+					operand2.children.clear();
+					operand2.addChildren( P.deepCopy() , R );
+					
+					//add in the operands to this AND operator
+					//so that we have (P OR Q) AND (P OR R)
+					this.addChildren( operand1 , operand2 );
+					
 				}
 			}
 			for ( ExpressionNode child : this.children ) {

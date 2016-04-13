@@ -25,6 +25,7 @@ This can be performed by scanning forward and attempting match keywords and know
 First, we convert our tokenized infix expression into postfix so that we don't have to deal with parentheses anymore. Next, we construct a tree to represent our postfix expression. All non-leaf nodes are operators, functions, relations, or quantifiers and all leaf nodes are variables and objects. This structure enables us to more-easily apply the algorithm presented in Ruseel and Norvig for converting to CNF.
 
 This algorithm in Russel and Norvig follows these steps:
+
 1. Eliminate arrows (implications and biconditionals)
 2. Distribute Nots inward (specifically, converting to negation-normal form)
 3. Standardize variables names: if two variables have the same name in different quantified expressions, we differentiate between them

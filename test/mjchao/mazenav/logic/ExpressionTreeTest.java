@@ -1268,5 +1268,77 @@ public class ExpressionTreeTest {
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );	
+		
+		//test (P AND Q AND R) OR (S AND T AND U)
+		//which is "P Q AND R AND S T AND U AND OR" in postfix
+		//this should yield
+		//(P OR S) AND (P OR T) AND (P OR U) AND (Q OR S) AND (Q OR T) AND (Q OR U) AND (R OR S) AND (R OR T) AND (R OR U)
+		//when standardized, this should be
+		//?0 ?3 OR ?0 ?4 OR AND ?0 ?5 OR AND ?1 ?3 OR ?1 ?4 OR AND ?1 ?5 OR AND AND ?2 ?3 OR ?2 ?4 OR AND ?2 ?5 OR AND AND  
+		tracker = new SymbolTracker();
+		input = Arrays.asList( 
+				tracker.getNewVariable( "P" ) , tracker.getNewVariable( "Q" ) , Operator.AND ,
+				tracker.getNewVariable( "R" ) , Operator.AND , 
+				tracker.getNewVariable( "S" ) , tracker.getNewVariable( "T" ) , Operator.AND ,
+				tracker.getNewVariable( "U" ) , Operator.AND , Operator.OR
+			);
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		distributeOrOverAnd( exprTree );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 3 ) , Operator.OR , 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 4 ) , Operator.OR , Operator.AND ,
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 5 ) , Operator.OR , Operator.AND ,
+				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 3 ) , Operator.OR , 
+				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 4 ) , Operator.OR , Operator.AND ,
+				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 5 ) , Operator.OR , Operator.AND , Operator.AND ,
+				tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 3 ) , Operator.OR ,
+				tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 4 ) , Operator.OR , Operator.AND ,
+				tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 5 ) , Operator.OR , Operator.AND ,  Operator.AND 
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );	
+		
+
+		//test requiring two ORs be distributed over ANDs
+		//P OR (Q OR (R AND S))
+		//which is "P Q R S AND OR OR"  in postfix.
+		//this should yield
+		//P OR ((Q OR R) AND (Q OR S)) 		<=>
+		//(P OR Q OR R) AND (P OR Q OR S)
+		//in postfix this is
+		//P Q R OR OR P Q S OR OR AND
+		//when standardized, we get
+		//?0 ?1 OR ?2 OR ?0 ?1 OR ?3 OR AND
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "P" ) , tracker.getNewVariable( "Q" ) , 
+				tracker.getNewVariable( "R" ) , tracker.getNewVariable( "S" ) , 
+				Operator.AND , Operator.OR , Operator.OR 
+			);
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		distributeOrOverAnd( exprTree );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) ,  tracker.getSystemVariableById( 2 ) , 
+				Operator.OR , Operator.OR , 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 3 ) , 
+				Operator.OR , Operator.OR , Operator.AND
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		System.out.println( found.toString() );
+		Assert.assertTrue( expected.equals( found ) );	
 	}
 }

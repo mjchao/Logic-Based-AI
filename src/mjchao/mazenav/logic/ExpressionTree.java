@@ -865,8 +865,21 @@ class ExpressionTree {
 					
 					//add in the operands to this AND operator
 					//so that we have (P OR Q) AND (P OR R)
-					this.addChildren( operand1 , operand2 );
-					
+					this.addChildren( operand1 , operand2 );	
+				}
+				else {
+					for ( ExpressionNode child : this.children ) {
+						child.distributeOrOverAnd();
+					}
+					if ( this.children.get( 0 ).getValue().equals( Operator.AND ) || 
+							this.children.get( 1 ).getValue().equals( Operator.AND ) ) {
+						
+						//if later distributions of ORs over AND caused additional
+						//ANDs to shift up to a child of this node,
+						//we need to repeat the process
+						this.distributeOrOverAnd();
+					}
+					return;
 				}
 			}
 			for ( ExpressionNode child : this.children ) {

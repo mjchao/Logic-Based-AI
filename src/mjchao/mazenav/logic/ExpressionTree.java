@@ -414,10 +414,10 @@ class ExpressionTree {
 		}
 	}
 	
-	private void distributeNotsAndEliminateArrows() {
+	private void eliminateArrowsAndDistributeNots() {
 		if ( this.root != null ) {
-			this.root.distributeNots();
 			this.root.eliminateArrows();
+			this.root.distributeNots();
 		}
 	}
 	
@@ -452,6 +452,37 @@ class ExpressionTree {
 			}
 			this.root.dropQuantifiers();
 		}
+	}
+	
+	private void distributeOrOverAnd() {
+		if ( this.root != null ) {
+			this.root.distributeOrOverAnd();
+		}
+	}
+	
+	/**
+	 * Builds this tree from the postfix expression it contains
+	 * and converts that expression into conjunctive normal form.
+	 * The conversion closely follows the process described in
+	 * Artificial Intelligence: A Modern Approach 3rd Edition
+	 * (Russel and Norvig). The steps are as follows:
+	 * <ol>
+	 * 	<li> eliminate arrows
+	 *  <li> distribute nots inward
+	 *  <li> standardize variable names
+	 *  <li> skolemize existential quantifiers
+	 *  <li> drop universal quantifiers
+	 *  <li> distribute ORs inward over ANDs
+	 * </ol>
+	 * @param tracker
+	 */
+	public void convertToCNF( SymbolTracker tracker ) {
+		buildTree();
+		eliminateArrowsAndDistributeNots();
+		standardize( tracker );
+		skolemize( tracker );
+		dropQuantifiers();
+		distributeOrOverAnd();
 	}
 	
 	class ExpressionNode {
@@ -777,6 +808,46 @@ class ExpressionTree {
 			}
 			for ( ExpressionNode child : this.children ) {
 				child.dropQuantifiers();
+			}
+		}
+		
+		public void distributeOrOverAnd() {
+			if ( this.value.equals( Operator.OR ) ) {
+				
+				//this node should have two children -
+				//if this node does not have two children,
+				//the buildTree() function should have
+				//thrown an exception earlier
+				ExpressionNode operand1 = this.children.get( 0 );
+				ExpressionNode operand2 = this.children.get( 1 );
+				if ( operand1.getValue().equals( Operator.AND ) ) {
+					ExpressionNode P = operand1.getChildren().get( 0 );
+					ExpressionNode Q = operand1.getChildren().get( 1 );
+					ExpressionNode R = operand2;
+					
+					//rewrite (P AND Q) OR R as (P OR R) AND (Q OR R)
+					this.value = Operator.AND;
+					this.children.clear();
+					
+					//construct the expression (P OR R)
+					operand1.value = Operator.OR;
+					operand1.children.clear();
+					operand1.addChildren( P , R );
+					
+					//construct the expression (Q OR R)
+					//note the R must be deep copied because
+					//we already put a refernece to it in the
+					//other operand
+					operand2 = new ExpressionNode( Operator.OR );
+					operand2.addChildren( Q , R.deepCopy() );
+					
+					//add in the operands to this AND operator
+					//so that we have (P OR R) AND (Q OR R)
+					this.addChildren( operand1 , operand2 );
+				}
+			}
+			for ( ExpressionNode child : this.children ) {
+				child.distributeOrOverAnd();
 			}
 		}
 		

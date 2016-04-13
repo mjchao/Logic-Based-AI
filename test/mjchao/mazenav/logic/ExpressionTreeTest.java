@@ -107,15 +107,15 @@ public class ExpressionTreeTest {
 		}		
 	}
 	
-	public void distributeNotsAndEliminateArrows( ExpressionTree tree ) {
+	public void eliminateArrowsAndDistributeNots( ExpressionTree tree ) {
 		Class<?> c = ExpressionTree.class;
 		try {
-			Method f = c.getDeclaredMethod( "distributeNotsAndEliminateArrows" );
+			Method f = c.getDeclaredMethod( "eliminateArrowsAndDistributeNots" );
 			f.setAccessible( true );
 			f.invoke( tree );
 		} catch (IllegalArgumentException | IllegalAccessException | SecurityException | NoSuchMethodException | InvocationTargetException e) {
 			e.printStackTrace();
-			throw new RuntimeException( "Could not apply distributeNots() method to ExpressionTree object." );
+			throw new RuntimeException( "Could not apply eliminateArrowsAndDistributeNots() method to ExpressionTree object." );
 		}			
 	}
 	
@@ -516,7 +516,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		expected = Arrays.asList( tracker.getVariableByName( "x" ) );
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
@@ -530,7 +530,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "x" ) , Operator.NOT 
 			);
@@ -547,7 +547,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "x" )
 			);
@@ -565,7 +565,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "x" ) , Operator.NOT ,
 				tracker.getVariableByName( "y" ) , Operator.OR
@@ -584,7 +584,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "x" ) , Operator.NOT ,
 				tracker.getVariableByName( "y" ) , Operator.OR ,
@@ -606,7 +606,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
 				Operator.NOT , Operator.AND
@@ -627,7 +627,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
 				Operator.NOT , Operator.AND , 
@@ -650,7 +650,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "x" ) ,
 				tracker.getVariableByName( "y" ) , Operator.NOT , Operator.AND ,
@@ -675,7 +675,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
 				Operator.NOT , Operator.AND ,
@@ -708,7 +708,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "x" ) , Operator.NOT , tracker.getVariableByName( "y" ) ,
 				Operator.OR , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ) ,
@@ -742,7 +742,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		expected = Arrays.asList( 
 				tracker.getVariableByName( "y" ) , tracker.getVariableByName( "y" ) , tracker.getFunction( "SumInt" ) ,
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , tracker.getFunction( "DiffInt" ) ,
@@ -771,7 +771,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		expected = Arrays.asList( tracker.getSystemVariableById( 0 ) );
 		found = new ArrayList< Symbol >();
@@ -787,7 +787,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		expected = Arrays.asList( 
 				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND );
@@ -805,7 +805,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		expected = Arrays.asList( 
 				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
@@ -824,7 +824,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		expected = Arrays.asList( 
 				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
@@ -850,7 +850,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		expected = Arrays.asList( 
 				tracker.getSystemVariableById( 0 ) , newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 0 ) ) ,
@@ -879,7 +879,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		expected = Arrays.asList( 
 				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
@@ -909,7 +909,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		expected = Arrays.asList( 
 				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
@@ -942,7 +942,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		expected = Arrays.asList( 
 				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 0 ) , tracker.getRelation( "GreaterThan" ) ,
@@ -975,7 +975,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		skolemize( exprTree , tracker );
 		dropQuantifiers( exprTree );
@@ -996,7 +996,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		skolemize( exprTree , tracker );
 		dropQuantifiers( exprTree );
@@ -1019,7 +1019,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		skolemize( exprTree , tracker );
 		dropQuantifiers( exprTree );
@@ -1042,7 +1042,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		skolemize( exprTree , tracker );
 		dropQuantifiers( exprTree );
@@ -1066,7 +1066,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		skolemize( exprTree , tracker );
 		dropQuantifiers( exprTree );
@@ -1092,7 +1092,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		skolemize( exprTree , tracker );
 		dropQuantifiers( exprTree );
@@ -1123,7 +1123,7 @@ public class ExpressionTreeTest {
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
 		buildTree( exprTree );
-		distributeNotsAndEliminateArrows( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		skolemize( exprTree , tracker );
 		dropQuantifiers( exprTree );

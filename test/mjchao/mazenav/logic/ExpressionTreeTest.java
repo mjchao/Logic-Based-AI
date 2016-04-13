@@ -756,7 +756,7 @@ public class ExpressionTreeTest {
 	}
 	
 	@Test
-	public void testStandardize() {
+	public void testStandardize() throws IOException {
 		SymbolTracker tracker;
 		List< Symbol > input;
 		ExpressionTree exprTree;
@@ -919,6 +919,40 @@ public class ExpressionTreeTest {
 				Operator.AND ,
 				newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) )
 				);		
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test standardizing arguments to functions
+		// FORALL(x) GreaterThan(x,x) AND FORALL(x) GreaterThan(x,x) OR EXISTS(x) GreaterThan(SumInt(x,x), DiffInt(x,x))
+		//in postfix this is equivalent to
+		// x x GreaterThan x x SumInt x x DiffInt GreaterThan EXISTS(x) x x GreaterThan FORALL(x) OR AND FORALL(x)
+		//and this standardizes to
+		// ?0 ?0 GreaterThan ?1 ?1 SumInt ?1 ?1 DiffInt GreaterThan EXISTS(?1) ?2 ?2 GreaterThan FORALL(?2) OR AND FORALL(?0) 
+		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getVariableByName( "x" ) , tracker.getRelation( "GreaterThan" ) ,
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , tracker.getFunction( "SumInt" ) ,
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , tracker.getFunction( "DiffInt" ) ,
+				tracker.getRelation( "GreaterThan" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , tracker.getRelation( "GreaterThan" ) ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) ) , Operator.OR , Operator.AND ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) )
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		distributeNotsAndEliminateArrows( exprTree );
+		standardize( exprTree , tracker );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 0 ) , tracker.getRelation( "GreaterThan" ) ,
+				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 1 ) , tracker.getFunction( "SumInt" ) ,
+				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 1 ) , tracker.getFunction( "DiffInt" ) ,
+				tracker.getRelation( "GreaterThan" ) , newQuantifierList( Quantifier.EXISTS , tracker.getSystemVariableById( 1 ) ) ,
+				tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 2 ) , tracker.getRelation( "GreaterThan" ) ,
+				newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 2 ) ) , Operator.OR , Operator.AND ,
+				newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 0 ) )
+			);		
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );

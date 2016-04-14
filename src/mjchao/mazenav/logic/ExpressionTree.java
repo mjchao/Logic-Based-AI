@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Stack;
 
+import mjchao.mazenav.logic.ExpressionTree.ExpressionNode;
 import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.ObjectFOL;
 import mjchao.mazenav.logic.structures.Operator;
@@ -325,6 +326,7 @@ class ExpressionTree {
 	
 	private List< Symbol > postfixExpression;
 	ExpressionNode root = null;
+	private boolean inCNF = false;
 	
 	/**
 	 * 
@@ -477,12 +479,29 @@ class ExpressionTree {
 	 * @param tracker
 	 */
 	public void convertToCNF( SymbolTracker tracker ) {
-		buildTree();
-		eliminateArrowsAndDistributeNots();
-		standardize( tracker );
-		skolemize( tracker );
-		dropQuantifiers();
-		distributeOrOverAnd();
+		if ( !inCNF ) {
+			buildTree();
+			eliminateArrowsAndDistributeNots();
+			standardize( tracker );
+			skolemize( tracker );
+			dropQuantifiers();
+			distributeOrOverAnd();
+			inCNF = true;
+		}
+	}
+	
+	/**
+	 * @param tracker
+	 * @return				the conjunctive normal form in postfix of the
+	 * 						expression contained by this tree
+	 */
+	public List< Symbol > getCNFPostfix( SymbolTracker tracker ) {
+		convertToCNF( tracker );
+		ArrayList< Symbol > rtn = new ArrayList< Symbol >();
+		if ( root != null ) {
+			root.buildPostfix( rtn );
+		}
+		return rtn;
 	}
 	
 	class ExpressionNode {
@@ -720,6 +739,7 @@ class ExpressionTree {
 			for ( ExpressionNode child : this.getChildren() ) {
 				child.standardize( userSystemMapping , tracker );
 			}
+			//TODO do we need to restore previous mappings?
 		}
 		
 		/**
@@ -884,6 +904,24 @@ class ExpressionTree {
 			}
 			for ( ExpressionNode child : this.children ) {
 				child.distributeOrOverAnd();
+			}
+		}
+		
+		public void buildPostfix( ArrayList< Symbol > postfix ) {
+			if ( children.size() == 0 ) {
+				postfix.add( this.getValue() );
+				if ( this.isNegated() ) {
+					postfix.add( Operator.NOT );
+				}
+				return;
+			}
+			
+			for ( ExpressionNode child : children ) {
+				child.buildPostfix( postfix );
+			}
+			postfix.add( this.getValue() );
+			if ( this.isNegated() ) {
+				postfix.add( Operator.NOT );
 			}
 		}
 		

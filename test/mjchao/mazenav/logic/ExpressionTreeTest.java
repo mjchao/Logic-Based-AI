@@ -14,8 +14,10 @@ import org.junit.Test;
 import mjchao.mazenav.logic.ExpressionTree.ExpressionNode;
 import mjchao.mazenav.logic.structures.BooleanFOL;
 import mjchao.mazenav.logic.structures.IntegerWorld;
+import mjchao.mazenav.logic.structures.ObjectFOL;
 import mjchao.mazenav.logic.structures.Operator;
 import mjchao.mazenav.logic.structures.Quantifier;
+import mjchao.mazenav.logic.structures.Relation;
 import mjchao.mazenav.logic.structures.SkolemFunction;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
@@ -1315,7 +1317,7 @@ public class ExpressionTreeTest {
 		//in postfix this is
 		//P Q R OR OR P Q S OR OR AND
 		//when standardized, we get
-		//?0 ?1 OR ?2 OR ?0 ?1 OR ?3 OR AND
+		//?0 ?1 ?2 OR OR ?0 ?1 ?3 OR OR AND
 		tracker = new SymbolTracker();
 		input = Arrays.asList(
 				tracker.getNewVariable( "P" ) , tracker.getNewVariable( "Q" ) , 
@@ -1338,7 +1340,75 @@ public class ExpressionTreeTest {
 			);
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		System.out.println( found.toString() );
 		Assert.assertTrue( expected.equals( found ) );	
+	}
+	
+	/**
+	 * Mock class that does nothing. It's methods are used to 
+	 * define functions for integration test 1.
+	 * 
+	 * @author mjchao
+	 *
+	 */
+	private class Integration1 {
+		
+		public Integration1() {
+			
+		}
+		
+		public BooleanFOL Animal( ObjectFOL obj ) {
+			return BooleanFOL.True();
+		}
+		
+		public BooleanFOL Loves( ObjectFOL arg1 , ObjectFOL arg2 ) {
+			return BooleanFOL.True();
+		}
+	}
+	
+	/**
+	 * Applies the test 
+	 * ∀x (∀y Animal(y) => Loves(x,y)) => (∃y Loves(y,x))
+	 * 
+	 * which yields (slightly modified from Russel and Norvig -
+	 * note that Russel and Norvig have a typo and their
+	 * G(z) should actually have been G(x))
+	 * [Animal(F(x)) ∨ Loves(G(x),x)] ∧ [¬Loves(x,F(x)) ∨ Loves(G(x),x)]
+	 * 
+	 * and in postfix, this expression is
+	 * $0(?0) Animal $1(?0) ?0 Loves OR ?0 $0(?0) Loves NOT $1(?0) ?0 Loves OR AND
+	 * 
+	 */
+	@Test
+	public void testIntegration1() {
+		Integration1 definingInstance = new Integration1();
+		Relation Animal = new Relation( "Animal" , definingInstance , "Object" );
+		Relation Loves = new Relation( "Loves" , definingInstance , "Object" , "Object" );
+		
+		SymbolTracker tracker = new SymbolTracker();
+		tracker.addRelation( "Animal" , Animal );
+		tracker.addRelation( "Loves" , Loves );
+		
+		Variable x = tracker.getNewVariable( "x" );
+		Variable y = tracker.getNewVariable( "y" );
+		List< Symbol > input = Arrays.asList(
+				Quantifier.FORALL , x , Symbol.LEFT_PAREN ,
+				Quantifier.FORALL , y , Animal , Symbol.LEFT_PAREN , y , Symbol.RIGHT_PAREN ,
+				Operator.IMPLICATION , Loves , Symbol.LEFT_PAREN , x , Symbol.COMMA , y ,
+				Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , Operator.IMPLICATION ,
+				Symbol.LEFT_PAREN , Quantifier.EXISTS , y , Loves , Symbol.LEFT_PAREN , y , Symbol.COMMA , x ,
+				Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
+			);
+		
+		ExpressionTree exprTree = new ExpressionTree( input );
+		List< Symbol > output = exprTree.getCNFPostfix( tracker );
+		List< Symbol > expected = Arrays.asList(
+				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , Animal , 
+				new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) ) , tracker.getSystemVariableById( 0 ) ,
+				Loves , Operator.OR , tracker.getSystemVariableById( 0 ) ,
+				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , Loves ,
+				Operator.NOT , new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) ) ,
+				tracker.getSystemVariableById( 0 ) , Loves , Operator.OR , Operator.AND
+			);
+		Assert.assertTrue( expected.equals( output ) );	
 	}
 }

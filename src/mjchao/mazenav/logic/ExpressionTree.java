@@ -726,7 +726,7 @@ class ExpressionTree {
 		 * @param tracker				tracker used for getting additional system variables
 		 */
 		public void standardize( HashMap< Variable , Variable > userSystemMapping , SymbolTracker tracker ) {
-			if ( this.getValue() instanceof Variable ) {
+			if ( this.getValue() instanceof Variable && !tracker.isSystemVariable( (Variable) this.getValue() ) ) {
 				if ( userSystemMapping.get( this.getValue() ) == null ) {
 					
 					//if no mapping for the user-defined variable 
@@ -773,6 +773,7 @@ class ExpressionTree {
 				//goes out of scope
 				for ( int i=0 ; i<oldVariables.size() ; ++i ) {
 					userSystemMapping.put( oldVariables.get( i ) , oldMappings.get( i ) );
+					System.out.println( "Removed " + oldVariables.get( i ) );
 				}
 			}
 			else {

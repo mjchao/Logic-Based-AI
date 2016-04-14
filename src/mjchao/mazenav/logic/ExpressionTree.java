@@ -727,7 +727,6 @@ class ExpressionTree {
 		 */
 		public void standardize( HashMap< Variable , Variable > userSystemMapping , SymbolTracker tracker ) {
 			if ( this.getValue() instanceof Variable ) {
-				Variable oldMapping = userSystemMapping.get( this.getValue() );
 				if ( userSystemMapping.get( this.getValue() ) == null ) {
 					
 					//if no mapping for the user-defined variable 
@@ -745,8 +744,6 @@ class ExpressionTree {
 				for ( ExpressionNode child : this.getChildren() ) {
 					child.standardize( userSystemMapping , tracker );
 				}
-				
-				userSystemMapping.put( (Variable)this.getValue() , oldMapping );
 			}
 			else if ( this.getValue() instanceof QuantifierList ) {
 				

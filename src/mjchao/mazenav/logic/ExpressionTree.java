@@ -481,26 +481,13 @@ class ExpressionTree {
 	public void convertToCNF( SymbolTracker tracker ) {
 		if ( !inCNF ) {
 			buildTree();
-			System.out.println( toPostfix( tracker ) );
 			eliminateArrowsAndDistributeNots();
-			System.out.println( toPostfix( tracker ) );
 			standardize( tracker );
-			System.out.println( toPostfix( tracker ) );
 			skolemize( tracker );
-			System.out.println( toPostfix( tracker ) );
 			dropQuantifiers();
-			System.out.println( toPostfix( tracker ) );
 			distributeOrOverAnd();
 			inCNF = true;
 		}
-	}
-	
-	private ArrayList< Symbol > toPostfix( SymbolTracker tracker ) {
-		ArrayList< Symbol > rtn = new ArrayList< Symbol >();
-		if ( root != null ) {
-			root.buildPostfix( rtn );
-		}
-		return rtn;		
 	}
 	
 	/**
@@ -510,7 +497,11 @@ class ExpressionTree {
 	 */
 	public List< Symbol > getCNFPostfix( SymbolTracker tracker ) {
 		convertToCNF( tracker );
-		return toPostfix( tracker );
+		ArrayList< Symbol > rtn = new ArrayList< Symbol >();
+		if ( root != null ) {
+			root.buildPostfix( rtn );
+		}
+		return rtn;
 	}
 	
 	class ExpressionNode {
@@ -697,10 +688,8 @@ class ExpressionTree {
 					child.parent = null;
 				}
 				else {
-					//this.parent.getChildren().clear();
-					//this.parent.addChildren( child );
-					this.parent.getChildren().set( 0 , child );
-					child.parent = this.parent;
+					this.parent.getChildren().clear();
+					this.parent.addChildren( child );
 				}
 				
 				//negate the child if necessary
@@ -711,7 +700,6 @@ class ExpressionTree {
 				child.distributeNots();
 			}
 			else {
-				
 				for ( ExpressionNode child : children ) {
 					child.distributeNots();
 				}
@@ -727,7 +715,6 @@ class ExpressionTree {
 		 */
 		public void standardize( HashMap< Variable , Variable > userSystemMapping , SymbolTracker tracker ) {
 			if ( this.getValue() instanceof Variable ) {
-				Variable oldMapping = userSystemMapping.get( this.getValue() );
 				if ( userSystemMapping.get( this.getValue() ) == null ) {
 					
 					//if no mapping for the user-defined variable 
@@ -745,8 +732,6 @@ class ExpressionTree {
 				for ( ExpressionNode child : this.getChildren() ) {
 					child.standardize( userSystemMapping , tracker );
 				}
-				
-				userSystemMapping.put( (Variable)this.getValue() , oldMapping );
 			}
 			else if ( this.getValue() instanceof QuantifierList ) {
 				
@@ -761,7 +746,7 @@ class ExpressionTree {
 					//to be restored when this quantifier goes out of scope
 					oldVariables.add( v );
 					oldMappings.add( userSystemMapping.get( v ) );
-
+					
 					userSystemMapping.put( v , tracker.getNewSystemVariable() );
 					((QuantifierList) this.getValue()).standardizeVariable( v , userSystemMapping.get( v ) );
 				}

@@ -1548,7 +1548,7 @@ public class ExpressionTreeTest {
 	
 	/**
 	 * We test converting the expression
-	 * "All students of philosophy read one of their teacher's books":
+	 * "All students of philosophy read one of their teacher's books:
 	 * 
 	 * ∀x ∀y (Philosopher(x) AND StudentOf(y,x) => ∃z(Book(z) AND Write(x,z) AND Read(y,z)))
 	 * 
@@ -1608,129 +1608,5 @@ public class ExpressionTreeTest {
 				v1 , s0 , Read , Operator.OR , Operator.AND
 			);
 		Assert.assertTrue( expected.equals( output ) );	
-	}
-	
-	class Integration4 {
-		
-		public Integration4() {
-			
-		}
-		
-		public BooleanFOL Philosopher( ObjectFOL arg0 ) {
-			return BooleanFOL.True();
-		}
-		
-		public BooleanFOL StudentOf( ObjectFOL arg0 , ObjectFOL arg1 ) {
-			return BooleanFOL.True();
-		}
-	}
-	
-	/**
-	 * Test converting the expression 
-	 * "There exists a philosopher with students":
-	 * 
-	 * ∃x ∃y (Philosopher(x) AND StudentOf(y,x))
-	 * 
-	 * which is equivalent to
-	 * Philosopher($0()) AND StudentOf($1(),$0()) 
-	 *
-	 * in postfix, this is
-	 * 
-	 * $0() Philosopher $1() $0() StudentOf AND
-	 */
-	@Test
-	public void integration4() {
-		Integration4 definingInstance = new Integration4();
-		Relation Philosopher = new Relation( "Philosopher" , definingInstance , "Object" );
-		Relation StudentOf = new Relation( "StudentOf" , definingInstance , "Object" , "Object" );
-		
-		SymbolTracker tracker = new SymbolTracker();
-		tracker.addRelation( "Philosopher" , Philosopher );
-		tracker.addRelation( "StudentOf" , StudentOf );
-		
-		Variable x = tracker.getNewVariable( "x" );
-		Variable y = tracker.getNewVariable( "y" );
-		
-		//input = ∃x ∃y (Philosopher(x) AND StudentOf(y,x))
-		List< Symbol > input = Arrays.asList( 
-				Quantifier.EXISTS , x , Quantifier.EXISTS , y , Symbol.LEFT_PAREN ,
-				Philosopher , Symbol.LEFT_PAREN , x , Symbol.RIGHT_PAREN , Operator.AND ,
-				StudentOf , Symbol.LEFT_PAREN , y , Symbol.COMMA , x , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
-			);
-		
-		ExpressionTree exprTree = new ExpressionTree( input );
-		List< Symbol > output = exprTree.getCNFPostfix( tracker );
-		
-		//expected = $0() Philosopher $1() $0() StudentOf AND
-		List< Symbol > expected = Arrays.asList( 
-				new SkolemFunction( 0 ) , Philosopher ,
-				new SkolemFunction( 1 ) , new SkolemFunction( 0 ) , StudentOf ,
-				Operator.AND
-			);
-		Assert.assertTrue( output.equals( expected ) );
-	}
-	
-	private class Integration5 {
-		
-		public Integration5() {
-			
-		}
-		
-		public BooleanFOL Person( ObjectFOL arg0 ) {
-			return BooleanFOL.True();
-		}
-		
-		public BooleanFOL Likes( ObjectFOL arg0 , ObjectFOL arg1 ) {
-			return BooleanFOL.True();
-		}
-	}
-	
-	/**
-	 * Test converting the expression
-	 * "There exists a person who likes someone else but dislikes someone that someone else likes:"
-	 * 
-	 * ∃x ∀y ∀z (Person(x) ∧ ((Likes(x,y) ∧ y != z ) => !Likes(x,z)))
-	 * 
-	 * which is equivalent to
-	 * 
-	 * ∃x ∀y ∀z (Person(x) AND ((!Likes(x,y) OR y == z) OR !Likes(x,z)))		<=>
-	 * Person( $0() ) AND (!Likes($0(), ?1) OR ?1 == ?2 OR !Likes($0(), ?2))
-	 *
-	 * which when in postfix becomes
-	 * 
-	 * $0() Person $0() ?1 Likes ! ?1 ?2 == OR $0() ?2 Likes ! OR AND
-	 */
-	@Test
-	public void integration5() {
-		Integration5 definingInstance = new Integration5();
-		Relation Person = new Relation( "Person" , definingInstance , "Object" );
-		Relation Likes = new Relation( "Likes" , definingInstance , "Object" , "Object" );
-		
-		SymbolTracker tracker = new SymbolTracker();
-		tracker.addRelation( "Person" , Person );
-		tracker.addRelation( "Likes" ,  Likes );
-		
-		Variable x = tracker.getNewVariable( "x" );
-		Variable y = tracker.getNewVariable( "y" );
-		Variable z = tracker.getNewVariable( "z" );
-		
-		//input = ∃x ∀y ∀z (Person(x) ∧ ((Likes(x,y) ∧ y != z ) => !Likes(x,z)))
-		List< Symbol > input = Arrays.asList( 
-				Quantifier.EXISTS , x , Quantifier.FORALL , y , Quantifier.FORALL , z ,
-				Symbol.LEFT_PAREN , Person , Symbol.LEFT_PAREN , x , Symbol.RIGHT_PAREN ,
-				Operator.AND , Symbol.LEFT_PAREN , Symbol.LEFT_PAREN , Likes , Symbol.LEFT_PAREN ,
-				x , Symbol.COMMA , y , Symbol.RIGHT_PAREN , Operator.AND , y , Operator.OR , z ,
-				Symbol.RIGHT_PAREN , Operator.IMPLICATION , Operator.NOT , Likes , Symbol.LEFT_PAREN ,
-				x , Symbol.COMMA , z , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
-			);
-		
-		ExpressionTree exprTree = new ExpressionTree( input );
-		List< Symbol > output = exprTree.getCNFPostfix( tracker );
-		
-		//expected = $0() Philosopher $1() $0() StudentOf AND
-		List< Symbol > expected = Arrays.asList( 
-
-			);
-		System.out.println( output );
 	}
 }

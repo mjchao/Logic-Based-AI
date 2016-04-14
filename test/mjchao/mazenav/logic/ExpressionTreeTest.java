@@ -1405,7 +1405,7 @@ public class ExpressionTreeTest {
 	 * 
 	 */
 	@Test
-	public void testIntegration1() {
+	public void integration1() {
 		Integration1 definingInstance = new Integration1();
 		Relation Animal = new Relation( "Animal" , definingInstance , "Object" );
 		Relation Loves = new Relation( "Loves" , definingInstance , "Object" , "Object" );
@@ -1465,6 +1465,7 @@ public class ExpressionTreeTest {
 	
 	/**
 	 * We test converting the expression
+	 * "Every person has a heart":
 	 * 
 	 * ∀x Person(x) => ∃y Heart(y) AND Has(x,y)
 	 * 
@@ -1480,7 +1481,7 @@ public class ExpressionTreeTest {
 	 * (https://april.eecs.umich.edu/courses/eecs492_w10/wiki/images/6/6b/CNF_conversion.pdf)
 	 */
 	@Test
-	public void testIntegration2() {
+	public void integration2() {
 		Integration2 definingInstance = new Integration2();
 		Relation Person = new Relation( "Person" , definingInstance , "Object" );
 		Function Heart = new Function( "Heart" , definingInstance , "Person" );
@@ -1514,7 +1515,98 @@ public class ExpressionTreeTest {
 				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) ,
 				Has , Operator.OR , Operator.AND 
 			);
-		System.out.println( output );
 		Assert.assertTrue( expected.equals( output ) );	
+	}
+	
+	private class Integration3 {
+		
+		public Integration3() {
+			
+		}
+		
+		public BooleanFOL Philosopher( ObjectFOL arg0 ) {
+			return BooleanFOL.True();
+		}
+		
+		public BooleanFOL StudentOf( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return BooleanFOL.True();
+		}
+		
+		public BooleanFOL Book( ObjectFOL arg0 ) {
+			return BooleanFOL.True();
+		}
+		
+		public BooleanFOL Write( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return BooleanFOL.True();
+		}
+		
+		public BooleanFOL Read( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return BooleanFOL.True();
+		}
+		
+	}
+	
+	/**
+	 * We test converting the expression
+	 * "All students of philosophy read one of their teacher's books:
+	 * 
+	 * ∀x ∀y (Philosopher(x) AND StudentOf(y,x) => ∃z(Book(z) AND Write(x,z) AND Read(y,z)))
+	 * 
+	 * which is equivalent to
+	 * ∀x ∀y ( (!Philosopher(x) OR !StudentOf(y,x)) OR ∃z(Book(z) AND Write(x,z) AND Read(y,z)) )		<=>
+	 * ∀(?0) ∀(?1) ( (!Philosopher(?0) OR !StudentOf(?1,?0)) OR (Book($0(?0,?1)) AND Write(?0, $0(?0,?1)) AND Read(?1,$0(?0,?1))) )	<=>
+	 * ∀(?0) ∀(?1) (!Philosopher(?0) OR !StudentOf(?1,?0) OR Book($0(?0,?1))) AND (!Philosopher(?0) OR !StudentOf(?1,?0) OR Write(?0, $0(?0,?1))) AND (!Philosopher(?0) OR !StudentOf(?1,?0) OR Read(?1,$0(?0,?1))) 
+	 * 
+	 * which converts to postfix as
+	 * ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR $0(?0,?1) Book OR ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR ?0 $0(?0,?1) Write OR AND ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR ?1, $0(?0,?1) READ OR AND
+	 * 
+	 * Example taken from
+	 * http://www.cs.toronto.edu/~sheila/384/w11/Lectures/csc384w11-KR-tutorial.pdf
+	 */
+	@Test
+	public void integration3() {
+		Integration3 definingInstance = new Integration3();
+		Relation Philosopher = new Relation( "Philosopher" , definingInstance , "Object" );
+		Relation StudentOf = new Relation( "StudentOf" , definingInstance , "Object" , "Object" );
+		Relation Book = new Relation( "Book" , definingInstance , "Object" );
+		Relation Write = new Relation( "Write" , definingInstance , "Object" , "Object" );
+		Relation Read = new Relation( "Read" , definingInstance , "Object" , "Object" );
+		
+		SymbolTracker tracker = new SymbolTracker();
+		tracker.addRelation( "Philospher" , Philosopher );
+		tracker.addRelation( "StudentOf" , StudentOf );
+		tracker.addRelation( "Book" , Book );
+		tracker.addRelation( "Write" , Write );
+		tracker.addRelation( "Read" , Read );
+		
+		Variable x = tracker.getNewVariable( "x" );
+		Variable y = tracker.getNewVariable( "y" );
+		Variable z = tracker.getNewVariable( "z" );
+		
+		//Input = ∀x ∀y (Philosopher(x) AND StudentOf(y,x) => ∃z(Book(z) AND Write(x,z) AND Read(y,z)))
+		List< Symbol > input = Arrays.asList(
+				Quantifier.FORALL , x , Quantifier.FORALL , y , Symbol.LEFT_PAREN ,
+				Philosopher , Symbol.LEFT_PAREN , x , Symbol.RIGHT_PAREN , Operator.AND ,
+				StudentOf , Symbol.LEFT_PAREN , y , Symbol.COMMA , x , Symbol.RIGHT_PAREN ,
+				Operator.IMPLICATION , Quantifier.EXISTS , z , Symbol.LEFT_PAREN , 
+				Book , Symbol.LEFT_PAREN , z , Symbol.RIGHT_PAREN , Operator.AND , 
+				Write , Symbol.LEFT_PAREN , x , Symbol.COMMA , z , Symbol.RIGHT_PAREN , Operator.AND ,
+				Read , Symbol.LEFT_PAREN , y , Symbol.COMMA , z , Symbol.RIGHT_PAREN, Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
+			);
+		
+		ExpressionTree exprTree = new ExpressionTree( input );
+		List< Symbol > output = exprTree.getCNFPostfix( tracker );
+		
+		Variable v0 = tracker.getSystemVariableById( 0 );
+		Variable v1 = tracker.getSystemVariableById( 1 );
+		SkolemFunction s0 = new SkolemFunction( 0 , v0 , v1 );
+		//Expected = ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR $0(?0,?1) Book OR ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR ?0 $0(?0,?1) Write OR AND ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR ?1, $0(?0,?1) READ OR AND
+		List< Symbol > expected = Arrays.asList(
+				v0 , Philosopher , Operator.NOT , v1 , v0 , StudentOf , Operator.NOT , Operator.OR ,
+				s0 , Book , Operator.OR , v0 , Philosopher , Operator.NOT , v1 , v0 , StudentOf , Operator.NOT , Operator.OR , 
+				v0 , s0 , Write , Operator.OR , Operator.AND , v0 , Philosopher , Operator.NOT , v1 , v0 , StudentOf , Operator.NOT , Operator.OR , 
+				v1 , s0 , Read , Operator.OR , Operator.AND
+			);
+		//Assert.assertTrue( expected.equals( output ) );	
 	}
 }

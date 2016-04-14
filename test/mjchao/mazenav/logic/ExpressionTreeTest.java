@@ -1607,6 +1607,6 @@ public class ExpressionTreeTest {
 				v0 , s0 , Write , Operator.OR , Operator.AND , v0 , Philosopher , Operator.NOT , v1 , v0 , StudentOf , Operator.NOT , Operator.OR , 
 				v1 , s0 , Read , Operator.OR , Operator.AND
 			);
-		//Assert.assertTrue( expected.equals( output ) );	
+		Assert.assertTrue( expected.equals( output ) );	
 	}
 }

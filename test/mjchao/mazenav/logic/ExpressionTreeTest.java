@@ -13,6 +13,7 @@ import org.junit.Test;
 
 import mjchao.mazenav.logic.ExpressionTree.ExpressionNode;
 import mjchao.mazenav.logic.structures.BooleanFOL;
+import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.IntegerWorld;
 import mjchao.mazenav.logic.structures.ObjectFOL;
 import mjchao.mazenav.logic.structures.Operator;
@@ -1399,7 +1400,7 @@ public class ExpressionTreeTest {
 	 * G(z) should actually have been G(x))
 	 * [Animal(F(x)) ∨ Loves(G(x),x)] ∧ [¬Loves(x,F(x)) ∨ Loves(G(x),x)]
 	 * 
-	 * and in postfix, this expression is
+	 * and in our standardized postfix, this expression is
 	 * $0(?0) Animal $1(?0) ?0 Loves OR ?0 $0(?0) Loves NOT $1(?0) ?0 Loves OR AND
 	 * 
 	 */
@@ -1434,6 +1435,86 @@ public class ExpressionTreeTest {
 				Operator.NOT , new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) ) ,
 				tracker.getSystemVariableById( 0 ) , Loves , Operator.OR , Operator.AND
 			);
+		Assert.assertTrue( expected.equals( output ) );	
+	}
+	
+	/**
+	 * Mock class that does nothing. It's methods are used
+	 * to define functions for integration test 2
+	 * @author mjchao
+	 *
+	 */
+	private class Integration2 {
+		
+		public Integration2() {
+			
+		}
+		
+		public BooleanFOL Person( ObjectFOL arg0 ) {
+			return BooleanFOL.True();
+		}
+		
+		public ObjectFOL Heart( ObjectFOL arg0 ) {
+			return null;
+		}
+		
+		public BooleanFOL Has( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return BooleanFOL.True();
+		}
+	}
+	
+	/**
+	 * We test converting the expression
+	 * 
+	 * ∀x Person(x) => ∃y Heart(y) AND Has(x,y)
+	 * 
+	 * which is equivalent to
+	 * ∀x !Person(x) OR (∃y Heart(y) AND Has(x,y))		<=>
+	 * !Person(?0) OR (Heart($0(?0)) AND Has(?0, $0(?0)))	<=>
+	 * (!Person(?0) OR Heart($0(?0))) AND (!Person(?0) OR Has(?0, $0(?0)))
+	 *
+	 * In postfix, this is
+	 * ?0 Person NOT $0(?0) Heart OR ?0 Person NOT ?0 $0(?0) HAS OR AND
+	 *  
+	 * Example taken from
+	 * (https://april.eecs.umich.edu/courses/eecs492_w10/wiki/images/6/6b/CNF_conversion.pdf)
+	 */
+	@Test
+	public void testIntegration2() {
+		Integration2 definingInstance = new Integration2();
+		Relation Person = new Relation( "Person" , definingInstance , "Object" );
+		Function Heart = new Function( "Heart" , definingInstance , "Person" );
+		Relation Has = new Relation( "Has" , definingInstance , "Person" , "Heart" );
+		
+		SymbolTracker tracker = new SymbolTracker();
+		tracker.addRelation( "Person" , Person );
+		tracker.addFunction( "Heart" , Heart );
+		tracker.addRelation( "Has" , Has );
+		
+		Variable x = tracker.getNewVariable( "x" );
+		Variable y = tracker.getNewVariable( "y" );
+		
+		//Input = ∀x Person(x) => ∃y Heart(y) AND Has(x,y)
+		List< Symbol > input = Arrays.asList(
+				Quantifier.FORALL , x , Person , Symbol.LEFT_PAREN , x , Symbol.RIGHT_PAREN ,
+				Operator.IMPLICATION , Quantifier.EXISTS , y , 
+				Heart , Symbol.LEFT_PAREN , y , Symbol.RIGHT_PAREN , Operator.AND ,
+				Has , Symbol.LEFT_PAREN , x , Symbol.COMMA , y , Symbol.RIGHT_PAREN
+			);
+		
+		ExpressionTree exprTree = new ExpressionTree( input );
+		List< Symbol > output = exprTree.getCNFPostfix( tracker );
+		
+		//Expected = ?0 Person NOT $0(?0) Heart OR ?0 Person NOT ?0 $0(?0) HAS OR AND
+		List< Symbol > expected = Arrays.asList(
+				tracker.getSystemVariableById( 0 ) , Person , Operator.NOT , 
+				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , 
+				Heart , Operator.OR , tracker.getSystemVariableById( 0 ) , 
+				Person , Operator.NOT , tracker.getSystemVariableById( 0 ) ,
+				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) ,
+				Has , Operator.OR , Operator.AND 
+			);
+		System.out.println( output );
 		Assert.assertTrue( expected.equals( output ) );	
 	}
 }

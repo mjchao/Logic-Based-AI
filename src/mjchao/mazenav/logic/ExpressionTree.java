@@ -726,20 +726,50 @@ class ExpressionTree {
 					userSystemMapping.put( (Variable)this.getValue() , newMapping );
 				}
 				this.value = userSystemMapping.get( this.getValue() );
+				
+				//continue standardizing after we've
+				//successfully standardized this variable
+				for ( ExpressionNode child : this.getChildren() ) {
+					child.standardize( userSystemMapping , tracker );
+				}
 			}
 			else if ( this.getValue() instanceof QuantifierList ) {
+				
+				ArrayList< Variable > oldVariables = new ArrayList< Variable >();
+				ArrayList< Variable > oldMappings = new ArrayList< Variable >();
+				
 				for ( Variable v : ((QuantifierList) this.getValue()).getVariables() ) {
 					
 					//when we quantify over new variables,
 					//we override the old mappings
+					//but cache the old mappings because they need
+					//to be restored when this quantifier goes out of scope
+					oldVariables.add( v );
+					oldMappings.add( userSystemMapping.get( v ) );
+					
 					userSystemMapping.put( v , tracker.getNewSystemVariable() );
 					((QuantifierList) this.getValue()).standardizeVariable( v , userSystemMapping.get( v ) );
 				}
+				
+				//continue standardizing with the new
+				//user variable to system variable mapping
+				for ( ExpressionNode child : this.getChildren() ) {
+					child.standardize( userSystemMapping , tracker );
+				}
+				
+				//restore previous mappings when this quantifier
+				//goes out of scope
+				for ( int i=0 ; i<oldVariables.size() ; ++i ) {
+					userSystemMapping.put( oldVariables.get( i ) , oldMappings.get( i ) );
+				}
 			}
-			for ( ExpressionNode child : this.getChildren() ) {
-				child.standardize( userSystemMapping , tracker );
+			else {
+				
+				//continue standardizing
+				for ( ExpressionNode child : this.getChildren() ) {
+					child.standardize( userSystemMapping , tracker );
+				}
 			}
-			//TODO do we need to restore previous mappings?
 		}
 		
 		/**

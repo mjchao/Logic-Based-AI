@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Stack;
 
-import mjchao.mazenav.logic.ExpressionTree.ExpressionNode;
 import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.ObjectFOL;
 import mjchao.mazenav.logic.structures.Operator;
@@ -481,7 +480,7 @@ class ExpressionTree {
 	public void convertToCNF( SymbolTracker tracker ) {
 		if ( !inCNF ) {
 			buildTree();
-			eliminateArrowsAndDistributeNots();
+			eliminateArrowsAndDistributeNots();	
 			standardize( tracker );
 			skolemize( tracker );
 			dropQuantifiers();
@@ -659,10 +658,8 @@ class ExpressionTree {
 				this.children.clear();
 				this.addChildren( child1 , child2 );
 			}
-			else {
-				for ( ExpressionNode child : this.children ) {
-					child.eliminateArrows();
-				}
+			for ( ExpressionNode child : this.children ) {
+				child.eliminateArrows();
 			}
 		}
 		

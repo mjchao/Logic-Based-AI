@@ -1695,6 +1695,9 @@ public class ExpressionTreeTest {
 	 * in postfix, this is
 	 * 
 	 * $0() Philosopher $1() $0() StudentOf AND
+	 * 
+	 * Example taken from
+	 * http://www.cs.toronto.edu/~sheila/384/w11/Lectures/csc384w11-KR-tutorial.pdf
 	 */
 	@Test
 	public void integration4() {
@@ -1757,6 +1760,9 @@ public class ExpressionTreeTest {
 	 * which when in postfix becomes
 	 * 
 	 * $0() Person $0() ?1 Likes ! ?1 ?2 == OR $0() ?2 Likes ! OR AND
+	 * 
+	 * Example taken from
+	 * http://math.stackexchange.com/questions/511119/how-to-convert-this-first-order-sentence-into-conjunctive-normal-form
 	 */
 	@Test
 	public void integration5() {
@@ -1793,6 +1799,82 @@ public class ExpressionTreeTest {
 				Operator.EQUALS , Operator.OR , new SkolemFunction( 0 ) , 
 				tracker.getSystemVariableById( 2 ) , Likes , Operator.NOT , Operator.OR ,
 				Operator.AND
+			);
+		Assert.assertTrue( output.equals( expected ) );
+	}
+	
+	private class Integration6 {
+		
+		public BooleanFOL P( ObjectFOL arg0 ) {
+			return BooleanFOL.True();
+		}
+		
+		public BooleanFOL Q( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return BooleanFOL.True();
+		}
+		
+		public ObjectFOL f( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return null;
+		}
+	}
+	
+	/**
+	 * Test converting the expression
+	 * 
+	 * ∀x(P(x) => (∀y(P(y) => P(f(x,y))) ^ !(∀y(Q(x,y) => P(y)))))
+	 * 
+	 * Answer (see <http://pages.cs.wisc.edu/~dyer/cs540/notes/fopc.html> for steps):
+	 * (!P(x) v !P(y) v P(f(x,y))) ^ (!P(x) v Q(x,g(x,y))) ^ (!P(x) v !P(g(x,y)))
+	 * 
+	 * in postfix, this is
+	 * ?0 P NOT ?1 P NOT ?0 ?1 f P OR OR ?0 P NOT ?0 $0(?0,?1) Q OR ?0 P NOT $0(?0,?1) P NOT OR AND AND 
+	 * Example taken from
+	 * http://pages.cs.wisc.edu/~dyer/cs540/notes/fopc.html
+	 */
+	@Test
+	public void integration6() {
+		Integration6 definingInstance = new Integration6();
+		
+		Relation P = new Relation( "P" , definingInstance , "Object" );
+		Relation Q = new Relation( "Q" , definingInstance , "Object" , "Object" );
+		Function f = new Function( "f" , definingInstance , "Object" , "Object" );
+		
+		SymbolTracker tracker = new SymbolTracker();
+		tracker.addRelation( "P" , P );
+		tracker.addRelation( "Q" , Q );
+		tracker.addFunction( "f" , f );
+		
+		Variable x = tracker.getNewVariable( "x" );
+		Variable y = tracker.getNewVariable( "y" );
+		
+		//[∀(x), x, P, ∀(y), y, P, x, y, f, P, =>, ∀(y), x, y, Q, y, P, =>, !, &&, =>]
+		//[x, P, ∀(y), y, P, x, y, f, P, =>, ∀(y), x, y, Q, y, P, =>, !, &&, =>, ∀(x)]
+		//input = ∀x(P(x) => (∀y(P(y) => P(f(x,y))) ^ !(∀y(Q(x,y) => P(y)))))
+		List< Symbol > input = Arrays.asList( 
+				Quantifier.FORALL , x , Symbol.LEFT_PAREN , P , Symbol.LEFT_PAREN , x , Symbol.RIGHT_PAREN ,
+				Operator.IMPLICATION , Symbol.LEFT_PAREN , Quantifier.FORALL , y , 
+				Symbol.LEFT_PAREN , P , Symbol.LEFT_PAREN , y , Symbol.RIGHT_PAREN , Operator.IMPLICATION ,
+				P , Symbol.LEFT_PAREN , f , Symbol.LEFT_PAREN , x , Symbol.COMMA , y , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN ,
+				Operator.AND , Operator.NOT , Symbol.LEFT_PAREN , Quantifier.FORALL , y , Symbol.LEFT_PAREN , 
+				Q , Symbol.LEFT_PAREN , x , Symbol.COMMA , y , Symbol.RIGHT_PAREN , Operator.IMPLICATION ,
+				P , Symbol.LEFT_PAREN , y , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , 
+				Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
+			);
+		
+		ExpressionTree exprTree = new ExpressionTree( input );
+		List< Symbol > output = exprTree.getCNFPostfix( tracker );
+		
+		Variable v0 = tracker.getSystemVariableById( 0 );
+		Variable v1 = tracker.getSystemVariableById( 1 );
+		SkolemFunction s0 = new SkolemFunction( 0 , v0 , v1 );
+		Symbol NOT = Operator.NOT;
+		Symbol OR = Operator.OR;
+		Symbol AND = Operator.AND;
+		
+		//expected = ?0 P NOT ?1 P NOT ?0 ?1 f P OR OR ?0 P NOT ?0 $0(?0,?1) Q OR ?0 P NOT $0(?0,?1) P NOT OR AND AND 
+		List< Symbol > expected = Arrays.asList( 
+				v0 , P , NOT , v1 , P , NOT , v0 , v1 , f , P , OR , OR ,
+				v0 , P , NOT , v0 , s0 , Q , OR , v0 , P , NOT , s0 , P , NOT , OR , AND , AND
 			);
 		Assert.assertTrue( output.equals( expected ) );
 	}

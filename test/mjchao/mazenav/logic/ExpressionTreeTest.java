@@ -570,6 +570,64 @@ public class ExpressionTreeTest {
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );
 		
+		//test basic application of DeMorgan's Laws on "x y OR NOT"
+		//which should yield "x NOT y NOT AND
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , 
+				Operator.OR , Operator.NOT
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , Operator.NOT , 
+				tracker.getVariableByName( "y" ) , Operator.NOT , Operator.AND
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test basic application of DeMorgan's Laws on "x y AND NOT"
+		//which should yield "x NOT y NOT OR
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , 
+				Operator.AND , Operator.NOT
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , Operator.NOT , 
+				tracker.getVariableByName( "y" ) , Operator.NOT , Operator.OR
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test that NOTs get removed from correct parents:
+		//	"x x y OR NOT AND" 		should yield
+		//  "x x NOT y NOT AND AND
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getVariableByName( "x" ) , tracker.getNewVariable( "y" ) , 
+				Operator.OR , Operator.NOT , Operator.AND
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , Operator.NOT , 
+				tracker.getVariableByName( "y" ) , Operator.NOT , Operator.AND , Operator.AND
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
 		//test eliminating arrows on "x y =>"
 		//should result in "x NOT y OR
 		tracker = new SymbolTracker();

@@ -1719,7 +1719,7 @@ public class ExpressionTreeTest {
 				Quantifier.EXISTS , x , Quantifier.FORALL , y , Quantifier.FORALL , z ,
 				Symbol.LEFT_PAREN , Person , Symbol.LEFT_PAREN , x , Symbol.RIGHT_PAREN ,
 				Operator.AND , Symbol.LEFT_PAREN , Symbol.LEFT_PAREN , Likes , Symbol.LEFT_PAREN ,
-				x , Symbol.COMMA , y , Symbol.RIGHT_PAREN , Operator.AND , y , Operator.OR , z ,
+				x , Symbol.COMMA , y , Symbol.RIGHT_PAREN , Operator.AND , y , Operator.NOT_EQUALS , z ,
 				Symbol.RIGHT_PAREN , Operator.IMPLICATION , Operator.NOT , Likes , Symbol.LEFT_PAREN ,
 				x , Symbol.COMMA , z , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
 			);

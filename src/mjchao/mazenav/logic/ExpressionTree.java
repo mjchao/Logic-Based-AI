@@ -481,21 +481,16 @@ class ExpressionTree {
 	public void convertToCNF( SymbolTracker tracker ) {
 		if ( !inCNF ) {
 			buildTree();
-			System.out.println( toPostfix( tracker ) );
 			eliminateArrowsAndDistributeNots();
-			System.out.println( toPostfix( tracker ) );
 			standardize( tracker );
-			System.out.println( toPostfix( tracker ) );
 			skolemize( tracker );
-			System.out.println( toPostfix( tracker ) );
 			dropQuantifiers();
-			System.out.println( toPostfix( tracker ) );
 			distributeOrOverAnd();
 			inCNF = true;
 		}
 	}
 	
-	private ArrayList< Symbol > toPostfix( SymbolTracker tracker ) {
+	private ArrayList< Symbol > toPostfix() {
 		ArrayList< Symbol > rtn = new ArrayList< Symbol >();
 		if ( root != null ) {
 			root.buildPostfix( rtn );
@@ -510,7 +505,7 @@ class ExpressionTree {
 	 */
 	public List< Symbol > getCNFPostfix( SymbolTracker tracker ) {
 		convertToCNF( tracker );
-		return toPostfix( tracker );
+		return toPostfix();
 	}
 	
 	class ExpressionNode {
@@ -697,10 +692,13 @@ class ExpressionTree {
 					child.parent = null;
 				}
 				else {
-					//this.parent.getChildren().clear();
-					//this.parent.addChildren( child );
-					this.parent.getChildren().set( 0 , child );
-					child.parent = this.parent;
+					
+					//remove this child from its parent 
+					for ( int i=0 ; i<parent.getChildren().size() ; ++i ) {
+						if ( parent.getChildren().get( i ) == this ) {
+							parent.getChildren().set( i , child );
+						}
+					}
 				}
 				
 				//negate the child if necessary
@@ -773,7 +771,6 @@ class ExpressionTree {
 				//goes out of scope
 				for ( int i=0 ; i<oldVariables.size() ; ++i ) {
 					userSystemMapping.put( oldVariables.get( i ) , oldMappings.get( i ) );
-					System.out.println( "Removed " + oldVariables.get( i ) );
 				}
 			}
 			else {

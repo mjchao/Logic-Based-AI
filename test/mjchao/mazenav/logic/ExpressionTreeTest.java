@@ -1727,10 +1727,15 @@ public class ExpressionTreeTest {
 		ExpressionTree exprTree = new ExpressionTree( input );
 		List< Symbol > output = exprTree.getCNFPostfix( tracker );
 		
-		//expected = $0() Philosopher $1() $0() StudentOf AND
+		//expected = $0() Person $0() ?1 Likes ! ?1 ?2 == OR $0() ?2 Likes ! OR AND
 		List< Symbol > expected = Arrays.asList( 
-
+				new SkolemFunction( 0 ) , Person , new SkolemFunction( 0 ) , 
+				tracker.getSystemVariableById( 1 ) , Likes , Operator.NOT ,
+				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 2 ) ,
+				Operator.EQUALS , Operator.OR , new SkolemFunction( 0 ) , 
+				tracker.getSystemVariableById( 2 ) , Likes , Operator.NOT , Operator.OR ,
+				Operator.AND
 			);
-		System.out.println( output );
+		Assert.assertTrue( output.equals( expected ) );
 	}
 }

@@ -13,9 +13,12 @@ import org.junit.Test;
 
 import mjchao.mazenav.logic.ExpressionTree.ExpressionNode;
 import mjchao.mazenav.logic.structures.BooleanFOL;
+import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.IntegerWorld;
+import mjchao.mazenav.logic.structures.ObjectFOL;
 import mjchao.mazenav.logic.structures.Operator;
 import mjchao.mazenav.logic.structures.Quantifier;
+import mjchao.mazenav.logic.structures.Relation;
 import mjchao.mazenav.logic.structures.SkolemFunction;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
@@ -567,6 +570,64 @@ public class ExpressionTreeTest {
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );
 		
+		//test basic application of DeMorgan's Laws on "x y OR NOT"
+		//which should yield "x NOT y NOT AND
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , 
+				Operator.OR , Operator.NOT
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , Operator.NOT , 
+				tracker.getVariableByName( "y" ) , Operator.NOT , Operator.AND
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test basic application of DeMorgan's Laws on "x y AND NOT"
+		//which should yield "x NOT y NOT OR
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , 
+				Operator.AND , Operator.NOT
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , Operator.NOT , 
+				tracker.getVariableByName( "y" ) , Operator.NOT , Operator.OR
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test that NOTs get removed from correct parents:
+		//	"x x y OR NOT AND" 		should yield
+		//  "x x NOT y NOT AND AND
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , tracker.getVariableByName( "x" ) , tracker.getNewVariable( "y" ) , 
+				Operator.OR , Operator.NOT , Operator.AND
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , Operator.NOT , 
+				tracker.getVariableByName( "y" ) , Operator.NOT , Operator.AND , Operator.AND
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
 		//test eliminating arrows on "x y =>"
 		//should result in "x NOT y OR
 		tracker = new SymbolTracker();
@@ -876,17 +937,17 @@ public class ExpressionTreeTest {
 		Assert.assertTrue( expected.equals( found ) );
 		
 		//test standardizing "FORALL(x,y,z) x AND y AND z AND FORALL(x,y) x AND y AND z" 	<=>
-		//					"x y AND z AND FORALL(x,y,z) x y AND z AND FORALL(x,y) AND"	<=>
-		//					"?0 ?1 AND ?2 AND FORALL(?0,?1,?2) ?3 ?4 AND ?2 AND FORALL(?3,?4)"
+		//					"x y AND z AND x y AND z AND FORALL(x,y) AND FORALL(x,y,z)"	<=>
+		//					"?0 ?1 AND ?2 AND ?3 ?4 AND ?2 AND FORALL(?3,?4) AND FORALL(?0,?1,?2)"
 		tracker = new SymbolTracker();
 		input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , Operator.AND ,
 				tracker.getNewVariable( "z" ) , Operator.AND , 
-				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) , tracker.getVariableByName( "z" ) ) ,
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) , Operator.AND , 
 				tracker.getVariableByName( "z" ) , Operator.AND ,
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ) ,
-				Operator.AND
+				Operator.AND ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) , tracker.getVariableByName( "z" ) )
 			);		
 		exprTree = new ExpressionTree();
 		setPostfix( exprTree , input );
@@ -896,11 +957,10 @@ public class ExpressionTreeTest {
 		expected = Arrays.asList( 
 				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
 				tracker.getSystemVariableById( 2 ) , Operator.AND ,
-				newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 2 ) ) ,
 				tracker.getSystemVariableById( 3 ) , tracker.getSystemVariableById( 4 ) , Operator.AND ,
 				tracker.getSystemVariableById( 2 ) , Operator.AND ,
 				newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 3 ) , tracker.getSystemVariableById( 4 ) ) ,
-				Operator.AND 
+				Operator.AND , newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 2 ) )
 				);
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
@@ -964,6 +1024,32 @@ public class ExpressionTreeTest {
 				tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 2 ) , tracker.getRelation( "GreaterThan" ) ,
 				newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 2 ) ) , Operator.OR , Operator.AND ,
 				newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 0 ) )
+			);		
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+		
+		//test for potential scope errors:
+		//EXISTS(x) (EXISTS(x) x) AND x
+		//in postfix, this is equivalent to
+		// x EXISTS(x) x AND EXISTS(x)
+		//which should yield the following when standardized:
+		// ?1 EXISTS(?1) ?0 AND EXISTS(?0)
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
+				tracker.getVariableByName( "x" ) , Operator.AND ,
+				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) )
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		standardize( exprTree , tracker );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 1 ) , newQuantifierList( Quantifier.EXISTS , tracker.getSystemVariableById( 1 ) ) ,
+				tracker.getSystemVariableById( 0 ) , Operator.AND ,
+				newQuantifierList( Quantifier.EXISTS , tracker.getSystemVariableById( 0 ) )
 			);		
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
@@ -1268,5 +1354,573 @@ public class ExpressionTreeTest {
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );	
+		
+		//test (P AND Q AND R) OR (S AND T AND U)
+		//which is "P Q AND R AND S T AND U AND OR" in postfix
+		//this should yield
+		//(P OR S) AND (P OR T) AND (P OR U) AND (Q OR S) AND (Q OR T) AND (Q OR U) AND (R OR S) AND (R OR T) AND (R OR U)
+		//when standardized, this should be
+		//?0 ?3 OR ?0 ?4 OR AND ?0 ?5 OR AND ?1 ?3 OR ?1 ?4 OR AND ?1 ?5 OR AND AND ?2 ?3 OR ?2 ?4 OR AND ?2 ?5 OR AND AND  
+		tracker = new SymbolTracker();
+		input = Arrays.asList( 
+				tracker.getNewVariable( "P" ) , tracker.getNewVariable( "Q" ) , Operator.AND ,
+				tracker.getNewVariable( "R" ) , Operator.AND , 
+				tracker.getNewVariable( "S" ) , tracker.getNewVariable( "T" ) , Operator.AND ,
+				tracker.getNewVariable( "U" ) , Operator.AND , Operator.OR
+			);
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		distributeOrOverAnd( exprTree );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 3 ) , Operator.OR , 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 4 ) , Operator.OR , Operator.AND ,
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 5 ) , Operator.OR , Operator.AND ,
+				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 3 ) , Operator.OR , 
+				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 4 ) , Operator.OR , Operator.AND ,
+				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 5 ) , Operator.OR , Operator.AND , Operator.AND ,
+				tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 3 ) , Operator.OR ,
+				tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 4 ) , Operator.OR , Operator.AND ,
+				tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 5 ) , Operator.OR , Operator.AND ,  Operator.AND 
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );	
+		
+
+		//test requiring two ORs be distributed over ANDs
+		//P OR (Q OR (R AND S))
+		//which is "P Q R S AND OR OR"  in postfix.
+		//this should yield
+		//P OR ((Q OR R) AND (Q OR S)) 		<=>
+		//(P OR Q OR R) AND (P OR Q OR S)
+		//in postfix this is
+		//P Q R OR OR P Q S OR OR AND
+		//when standardized, we get
+		//?0 ?1 ?2 OR OR ?0 ?1 ?3 OR OR AND
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "P" ) , tracker.getNewVariable( "Q" ) , 
+				tracker.getNewVariable( "R" ) , tracker.getNewVariable( "S" ) , 
+				Operator.AND , Operator.OR , Operator.OR 
+			);
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		distributeOrOverAnd( exprTree );
+		expected = Arrays.asList( 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) ,  tracker.getSystemVariableById( 2 ) , 
+				Operator.OR , Operator.OR , 
+				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 3 ) , 
+				Operator.OR , Operator.OR , Operator.AND
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );	
+	}
+	
+	/**
+	 * Mock class that does nothing. It's methods are used to 
+	 * define functions for integration test 1.
+	 * 
+	 * @author mjchao
+	 *
+	 */
+	private class Integration1 {
+		
+		public Integration1() {
+			
+		}
+		
+		public BooleanFOL Animal( ObjectFOL obj ) {
+			return BooleanFOL.True();
+		}
+		
+		public BooleanFOL Loves( ObjectFOL arg1 , ObjectFOL arg2 ) {
+			return BooleanFOL.True();
+		}
+	}
+	
+	/**
+	 * Applies the test 
+	 * ∀x (∀y Animal(y) => Loves(x,y)) => (∃y Loves(y,x))
+	 * 
+	 * which yields (slightly modified from Russel and Norvig -
+	 * note that Russel and Norvig have a typo and their
+	 * G(z) should actually have been G(x))
+	 * [Animal(F(x)) ∨ Loves(G(x),x)] ∧ [¬Loves(x,F(x)) ∨ Loves(G(x),x)]
+	 * 
+	 * and in our standardized postfix, this expression is
+	 * $0(?0) Animal $1(?0) ?0 Loves OR ?0 $0(?0) Loves NOT $1(?0) ?0 Loves OR AND
+	 * 
+	 */
+	@Test
+	public void integration1() {
+		Integration1 definingInstance = new Integration1();
+		Relation Animal = new Relation( "Animal" , definingInstance , "Object" );
+		Relation Loves = new Relation( "Loves" , definingInstance , "Object" , "Object" );
+		
+		SymbolTracker tracker = new SymbolTracker();
+		tracker.addRelation( "Animal" , Animal );
+		tracker.addRelation( "Loves" , Loves );
+		
+		Variable x = tracker.getNewVariable( "x" );
+		Variable y = tracker.getNewVariable( "y" );
+		List< Symbol > input = Arrays.asList(
+				Quantifier.FORALL , x , Symbol.LEFT_PAREN ,
+				Quantifier.FORALL , y , Animal , Symbol.LEFT_PAREN , y , Symbol.RIGHT_PAREN ,
+				Operator.IMPLICATION , Loves , Symbol.LEFT_PAREN , x , Symbol.COMMA , y ,
+				Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , Operator.IMPLICATION ,
+				Symbol.LEFT_PAREN , Quantifier.EXISTS , y , Loves , Symbol.LEFT_PAREN , y , Symbol.COMMA , x ,
+				Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
+			);
+		
+		ExpressionTree exprTree = new ExpressionTree( input );
+		List< Symbol > output = exprTree.getCNFPostfix( tracker );
+		List< Symbol > expected = Arrays.asList(
+				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , Animal , 
+				new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) ) , tracker.getSystemVariableById( 0 ) ,
+				Loves , Operator.OR , tracker.getSystemVariableById( 0 ) ,
+				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , Loves ,
+				Operator.NOT , new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) ) ,
+				tracker.getSystemVariableById( 0 ) , Loves , Operator.OR , Operator.AND
+			);
+		Assert.assertTrue( expected.equals( output ) );	
+	}
+	
+	/**
+	 * Mock class that does nothing. It's methods are used
+	 * to define functions for integration test 2
+	 * @author mjchao
+	 *
+	 */
+	private class Integration2 {
+		
+		public Integration2() {
+			
+		}
+		
+		public BooleanFOL Person( ObjectFOL arg0 ) {
+			return BooleanFOL.True();
+		}
+		
+		public ObjectFOL Heart( ObjectFOL arg0 ) {
+			return null;
+		}
+		
+		public BooleanFOL Has( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return BooleanFOL.True();
+		}
+	}
+	
+	/**
+	 * We test converting the expression
+	 * "Every person has a heart":
+	 * 
+	 * ∀x Person(x) => ∃y Heart(y) AND Has(x,y)
+	 * 
+	 * which is equivalent to
+	 * ∀x !Person(x) OR (∃y Heart(y) AND Has(x,y))		<=>
+	 * !Person(?0) OR (Heart($0(?0)) AND Has(?0, $0(?0)))	<=>
+	 * (!Person(?0) OR Heart($0(?0))) AND (!Person(?0) OR Has(?0, $0(?0)))
+	 *
+	 * In postfix, this is
+	 * ?0 Person NOT $0(?0) Heart OR ?0 Person NOT ?0 $0(?0) HAS OR AND
+	 *  
+	 * Example taken from
+	 * (https://april.eecs.umich.edu/courses/eecs492_w10/wiki/images/6/6b/CNF_conversion.pdf)
+	 */
+	@Test
+	public void integration2() {
+		Integration2 definingInstance = new Integration2();
+		Relation Person = new Relation( "Person" , definingInstance , "Object" );
+		Function Heart = new Function( "Heart" , definingInstance , "Person" );
+		Relation Has = new Relation( "Has" , definingInstance , "Person" , "Heart" );
+		
+		SymbolTracker tracker = new SymbolTracker();
+		tracker.addRelation( "Person" , Person );
+		tracker.addFunction( "Heart" , Heart );
+		tracker.addRelation( "Has" , Has );
+		
+		Variable x = tracker.getNewVariable( "x" );
+		Variable y = tracker.getNewVariable( "y" );
+		
+		//Input = ∀x Person(x) => ∃y Heart(y) AND Has(x,y)
+		List< Symbol > input = Arrays.asList(
+				Quantifier.FORALL , x , Person , Symbol.LEFT_PAREN , x , Symbol.RIGHT_PAREN ,
+				Operator.IMPLICATION , Quantifier.EXISTS , y , 
+				Heart , Symbol.LEFT_PAREN , y , Symbol.RIGHT_PAREN , Operator.AND ,
+				Has , Symbol.LEFT_PAREN , x , Symbol.COMMA , y , Symbol.RIGHT_PAREN
+			);
+		
+		ExpressionTree exprTree = new ExpressionTree( input );
+		List< Symbol > output = exprTree.getCNFPostfix( tracker );
+		
+		//Expected = ?0 Person NOT $0(?0) Heart OR ?0 Person NOT ?0 $0(?0) HAS OR AND
+		List< Symbol > expected = Arrays.asList(
+				tracker.getSystemVariableById( 0 ) , Person , Operator.NOT , 
+				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , 
+				Heart , Operator.OR , tracker.getSystemVariableById( 0 ) , 
+				Person , Operator.NOT , tracker.getSystemVariableById( 0 ) ,
+				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) ,
+				Has , Operator.OR , Operator.AND 
+			);
+		Assert.assertTrue( expected.equals( output ) );	
+	}
+	
+	private class Integration3 {
+		
+		public Integration3() {
+			
+		}
+		
+		public BooleanFOL Philosopher( ObjectFOL arg0 ) {
+			return BooleanFOL.True();
+		}
+		
+		public BooleanFOL StudentOf( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return BooleanFOL.True();
+		}
+		
+		public BooleanFOL Book( ObjectFOL arg0 ) {
+			return BooleanFOL.True();
+		}
+		
+		public BooleanFOL Write( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return BooleanFOL.True();
+		}
+		
+		public BooleanFOL Read( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return BooleanFOL.True();
+		}
+		
+	}
+	
+	/**
+	 * We test converting the expression
+	 * "All students of philosophy read one of their teacher's books":
+	 * 
+	 * ∀x ∀y (Philosopher(x) AND StudentOf(y,x) => ∃z(Book(z) AND Write(x,z) AND Read(y,z)))
+	 * 
+	 * which is equivalent to
+	 * ∀x ∀y ( (!Philosopher(x) OR !StudentOf(y,x)) OR ∃z(Book(z) AND Write(x,z) AND Read(y,z)) )		<=>
+	 * ∀(?0) ∀(?1) ( (!Philosopher(?0) OR !StudentOf(?1,?0)) OR (Book($0(?0,?1)) AND Write(?0, $0(?0,?1)) AND Read(?1,$0(?0,?1))) )	<=>
+	 * ∀(?0) ∀(?1) (!Philosopher(?0) OR !StudentOf(?1,?0) OR Book($0(?0,?1))) AND (!Philosopher(?0) OR !StudentOf(?1,?0) OR Write(?0, $0(?0,?1))) AND (!Philosopher(?0) OR !StudentOf(?1,?0) OR Read(?1,$0(?0,?1))) 
+	 * 
+	 * which converts to postfix as
+	 * ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR $0(?0,?1) Book OR ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR ?0 $0(?0,?1) Write OR AND ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR ?1, $0(?0,?1) READ OR AND
+	 * 
+	 * Example taken from
+	 * http://www.cs.toronto.edu/~sheila/384/w11/Lectures/csc384w11-KR-tutorial.pdf
+	 */
+	@Test
+	public void integration3() {
+		Integration3 definingInstance = new Integration3();
+		Relation Philosopher = new Relation( "Philosopher" , definingInstance , "Object" );
+		Relation StudentOf = new Relation( "StudentOf" , definingInstance , "Object" , "Object" );
+		Relation Book = new Relation( "Book" , definingInstance , "Object" );
+		Relation Write = new Relation( "Write" , definingInstance , "Object" , "Object" );
+		Relation Read = new Relation( "Read" , definingInstance , "Object" , "Object" );
+		
+		SymbolTracker tracker = new SymbolTracker();
+		tracker.addRelation( "Philospher" , Philosopher );
+		tracker.addRelation( "StudentOf" , StudentOf );
+		tracker.addRelation( "Book" , Book );
+		tracker.addRelation( "Write" , Write );
+		tracker.addRelation( "Read" , Read );
+		
+		Variable x = tracker.getNewVariable( "x" );
+		Variable y = tracker.getNewVariable( "y" );
+		Variable z = tracker.getNewVariable( "z" );
+		
+		//Input = ∀x ∀y (Philosopher(x) AND StudentOf(y,x) => ∃z(Book(z) AND Write(x,z) AND Read(y,z)))
+		List< Symbol > input = Arrays.asList(
+				Quantifier.FORALL , x , Quantifier.FORALL , y , Symbol.LEFT_PAREN ,
+				Philosopher , Symbol.LEFT_PAREN , x , Symbol.RIGHT_PAREN , Operator.AND ,
+				StudentOf , Symbol.LEFT_PAREN , y , Symbol.COMMA , x , Symbol.RIGHT_PAREN ,
+				Operator.IMPLICATION , Quantifier.EXISTS , z , Symbol.LEFT_PAREN , 
+				Book , Symbol.LEFT_PAREN , z , Symbol.RIGHT_PAREN , Operator.AND , 
+				Write , Symbol.LEFT_PAREN , x , Symbol.COMMA , z , Symbol.RIGHT_PAREN , Operator.AND ,
+				Read , Symbol.LEFT_PAREN , y , Symbol.COMMA , z , Symbol.RIGHT_PAREN, Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
+			);
+		
+		ExpressionTree exprTree = new ExpressionTree( input );
+		List< Symbol > output = exprTree.getCNFPostfix( tracker );
+		
+		Variable v0 = tracker.getSystemVariableById( 0 );
+		Variable v1 = tracker.getSystemVariableById( 1 );
+		SkolemFunction s0 = new SkolemFunction( 0 , v0 , v1 );
+		//Expected = ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR $0(?0,?1) Book OR ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR ?0 $0(?0,?1) Write OR AND ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR ?1, $0(?0,?1) READ OR AND
+		List< Symbol > expected = Arrays.asList(
+				v0 , Philosopher , Operator.NOT , v1 , v0 , StudentOf , Operator.NOT , Operator.OR ,
+				s0 , Book , Operator.OR , v0 , Philosopher , Operator.NOT , v1 , v0 , StudentOf , Operator.NOT , Operator.OR , 
+				v0 , s0 , Write , Operator.OR , Operator.AND , v0 , Philosopher , Operator.NOT , v1 , v0 , StudentOf , Operator.NOT , Operator.OR , 
+				v1 , s0 , Read , Operator.OR , Operator.AND
+			);
+		Assert.assertTrue( expected.equals( output ) );	
+	}
+	
+	class Integration4 {
+		
+		public Integration4() {
+			
+		}
+		
+		public BooleanFOL Philosopher( ObjectFOL arg0 ) {
+			return BooleanFOL.True();
+		}
+		
+		public BooleanFOL StudentOf( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return BooleanFOL.True();
+		}
+	}
+	
+	/**
+	 * Test converting the expression 
+	 * "There exists a philosopher with students":
+	 * 
+	 * ∃x ∃y (Philosopher(x) AND StudentOf(y,x))
+	 * 
+	 * which is equivalent to
+	 * Philosopher($0()) AND StudentOf($1(),$0()) 
+	 *
+	 * in postfix, this is
+	 * 
+	 * $0() Philosopher $1() $0() StudentOf AND
+	 * 
+	 * Example taken from
+	 * http://www.cs.toronto.edu/~sheila/384/w11/Lectures/csc384w11-KR-tutorial.pdf
+	 */
+	@Test
+	public void integration4() {
+		Integration4 definingInstance = new Integration4();
+		Relation Philosopher = new Relation( "Philosopher" , definingInstance , "Object" );
+		Relation StudentOf = new Relation( "StudentOf" , definingInstance , "Object" , "Object" );
+		
+		SymbolTracker tracker = new SymbolTracker();
+		tracker.addRelation( "Philosopher" , Philosopher );
+		tracker.addRelation( "StudentOf" , StudentOf );
+		
+		Variable x = tracker.getNewVariable( "x" );
+		Variable y = tracker.getNewVariable( "y" );
+		
+		//input = ∃x ∃y (Philosopher(x) AND StudentOf(y,x))
+		List< Symbol > input = Arrays.asList( 
+				Quantifier.EXISTS , x , Quantifier.EXISTS , y , Symbol.LEFT_PAREN ,
+				Philosopher , Symbol.LEFT_PAREN , x , Symbol.RIGHT_PAREN , Operator.AND ,
+				StudentOf , Symbol.LEFT_PAREN , y , Symbol.COMMA , x , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
+			);
+		
+		ExpressionTree exprTree = new ExpressionTree( input );
+		List< Symbol > output = exprTree.getCNFPostfix( tracker );
+		
+		//expected = $0() Philosopher $1() $0() StudentOf AND
+		List< Symbol > expected = Arrays.asList( 
+				new SkolemFunction( 0 ) , Philosopher ,
+				new SkolemFunction( 1 ) , new SkolemFunction( 0 ) , StudentOf ,
+				Operator.AND
+			);
+		Assert.assertTrue( output.equals( expected ) );
+	}
+	
+	private class Integration5 {
+		
+		public Integration5() {
+			
+		}
+		
+		public BooleanFOL Person( ObjectFOL arg0 ) {
+			return BooleanFOL.True();
+		}
+		
+		public BooleanFOL Likes( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return BooleanFOL.True();
+		}
+	}
+	
+	/**
+	 * Test converting the expression
+	 * "There exists a person who likes someone else but dislikes someone that someone else likes:"
+	 * 
+	 * ∃x ∀y ∀z (Person(x) ∧ ((Likes(x,y) ∧ y != z ) => !Likes(x,z)))
+	 * 
+	 * which is equivalent to
+	 * 
+	 * ∃x ∀y ∀z (Person(x) AND ((!Likes(x,y) OR y == z) OR !Likes(x,z)))		<=>
+	 * Person( $0() ) AND (!Likes($0(), ?1) OR ?1 == ?2 OR !Likes($0(), ?2))
+	 *
+	 * which when in postfix becomes
+	 * 
+	 * $0() Person $0() ?1 Likes ! ?1 ?2 == OR $0() ?2 Likes ! OR AND
+	 * 
+	 * Example taken from
+	 * http://math.stackexchange.com/questions/511119/how-to-convert-this-first-order-sentence-into-conjunctive-normal-form
+	 */
+	@Test
+	public void integration5() {
+		Integration5 definingInstance = new Integration5();
+		Relation Person = new Relation( "Person" , definingInstance , "Object" );
+		Relation Likes = new Relation( "Likes" , definingInstance , "Object" , "Object" );
+		
+		SymbolTracker tracker = new SymbolTracker();
+		tracker.addRelation( "Person" , Person );
+		tracker.addRelation( "Likes" ,  Likes );
+		
+		Variable x = tracker.getNewVariable( "x" );
+		Variable y = tracker.getNewVariable( "y" );
+		Variable z = tracker.getNewVariable( "z" );
+		
+		//input = ∃x ∀y ∀z (Person(x) ∧ ((Likes(x,y) ∧ y != z ) => !Likes(x,z)))
+		List< Symbol > input = Arrays.asList( 
+				Quantifier.EXISTS , x , Quantifier.FORALL , y , Quantifier.FORALL , z ,
+				Symbol.LEFT_PAREN , Person , Symbol.LEFT_PAREN , x , Symbol.RIGHT_PAREN ,
+				Operator.AND , Symbol.LEFT_PAREN , Symbol.LEFT_PAREN , Likes , Symbol.LEFT_PAREN ,
+				x , Symbol.COMMA , y , Symbol.RIGHT_PAREN , Operator.AND , y , Operator.NOT_EQUALS , z ,
+				Symbol.RIGHT_PAREN , Operator.IMPLICATION , Operator.NOT , Likes , Symbol.LEFT_PAREN ,
+				x , Symbol.COMMA , z , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
+			);
+		
+		ExpressionTree exprTree = new ExpressionTree( input );
+		List< Symbol > output = exprTree.getCNFPostfix( tracker );
+		
+		//expected = $0() Person $0() ?1 Likes ! ?1 ?2 == OR $0() ?2 Likes ! OR AND
+		List< Symbol > expected = Arrays.asList( 
+				new SkolemFunction( 0 ) , Person , new SkolemFunction( 0 ) , 
+				tracker.getSystemVariableById( 1 ) , Likes , Operator.NOT ,
+				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 2 ) ,
+				Operator.EQUALS , Operator.OR , new SkolemFunction( 0 ) , 
+				tracker.getSystemVariableById( 2 ) , Likes , Operator.NOT , Operator.OR ,
+				Operator.AND
+			);
+		Assert.assertTrue( output.equals( expected ) );
+	}
+	
+	private class Integration6 {
+		
+		public BooleanFOL P( ObjectFOL arg0 ) {
+			return BooleanFOL.True();
+		}
+		
+		public BooleanFOL Q( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return BooleanFOL.True();
+		}
+		
+		public ObjectFOL f( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return null;
+		}
+	}
+	
+	/**
+	 * Test converting the expression
+	 * 
+	 * ∀x(P(x) => (∀y(P(y) => P(f(x,y))) ^ !(∀y(Q(x,y) => P(y)))))
+	 * 
+	 * Answer (see <http://pages.cs.wisc.edu/~dyer/cs540/notes/fopc.html> for steps):
+	 * (!P(x) v !P(y) v P(f(x,y))) ^ (!P(x) v Q(x,g(x,y))) ^ (!P(x) v !P(g(x,y)))
+	 * 
+	 * in postfix, this is
+	 * ?0 P NOT ?1 P NOT ?0 ?1 f P OR OR ?0 P NOT ?0 $0(?0,?1) Q OR ?0 P NOT $0(?0,?1) P NOT OR AND AND 
+	 * Example taken from
+	 * http://pages.cs.wisc.edu/~dyer/cs540/notes/fopc.html
+	 */
+	@Test
+	public void integration6() {
+		Integration6 definingInstance = new Integration6();
+		
+		Relation P = new Relation( "P" , definingInstance , "Object" );
+		Relation Q = new Relation( "Q" , definingInstance , "Object" , "Object" );
+		Function f = new Function( "f" , definingInstance , "Object" , "Object" );
+		
+		SymbolTracker tracker = new SymbolTracker();
+		tracker.addRelation( "P" , P );
+		tracker.addRelation( "Q" , Q );
+		tracker.addFunction( "f" , f );
+		
+		Variable x = tracker.getNewVariable( "x" );
+		Variable y = tracker.getNewVariable( "y" );
+		
+		//[∀(x), x, P, ∀(y), y, P, x, y, f, P, =>, ∀(y), x, y, Q, y, P, =>, !, &&, =>]
+		//[x, P, ∀(y), y, P, x, y, f, P, =>, ∀(y), x, y, Q, y, P, =>, !, &&, =>, ∀(x)]
+		//input = ∀x(P(x) => (∀y(P(y) => P(f(x,y))) ^ !(∀y(Q(x,y) => P(y)))))
+		List< Symbol > input = Arrays.asList( 
+				Quantifier.FORALL , x , Symbol.LEFT_PAREN , P , Symbol.LEFT_PAREN , x , Symbol.RIGHT_PAREN ,
+				Operator.IMPLICATION , Symbol.LEFT_PAREN , Quantifier.FORALL , y , 
+				Symbol.LEFT_PAREN , P , Symbol.LEFT_PAREN , y , Symbol.RIGHT_PAREN , Operator.IMPLICATION ,
+				P , Symbol.LEFT_PAREN , f , Symbol.LEFT_PAREN , x , Symbol.COMMA , y , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN ,
+				Operator.AND , Operator.NOT , Symbol.LEFT_PAREN , Quantifier.FORALL , y , Symbol.LEFT_PAREN , 
+				Q , Symbol.LEFT_PAREN , x , Symbol.COMMA , y , Symbol.RIGHT_PAREN , Operator.IMPLICATION ,
+				P , Symbol.LEFT_PAREN , y , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN , 
+				Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
+			);
+		
+		ExpressionTree exprTree = new ExpressionTree( input );
+		List< Symbol > output = exprTree.getCNFPostfix( tracker );
+		
+		Variable v0 = tracker.getSystemVariableById( 0 );
+		Variable v1 = tracker.getSystemVariableById( 1 );
+		SkolemFunction s0 = new SkolemFunction( 0 , v0 , v1 );
+		Symbol NOT = Operator.NOT;
+		Symbol OR = Operator.OR;
+		Symbol AND = Operator.AND;
+		
+		//expected = ?0 P NOT ?1 P NOT ?0 ?1 f P OR OR ?0 P NOT ?0 $0(?0,?1) Q OR ?0 P NOT $0(?0,?1) P NOT OR AND AND 
+		List< Symbol > expected = Arrays.asList( 
+				v0 , P , NOT , v1 , P , NOT , v0 , v1 , f , P , OR , OR ,
+				v0 , P , NOT , v0 , s0 , Q , OR , v0 , P , NOT , s0 , P , NOT , OR , AND , AND
+			);
+		Assert.assertTrue( output.equals( expected ) );
+	}
+	
+	/**
+	 * Test converting 
+	 * 
+	 * X <=> Y <=> Z		which is read as X <=> (Y <=> Z) by the program
+	 * 
+	 * Answer: 
+	 * (X OR Y OR Z) AND (X OR !X OR Z) AND (!Y OR Y OR Z) AND (!Y OR !X OR Z) AND (!Z OR !X OR Y) AND (!Z OR !Y OR X)
+	 * 
+	 * in postfix this is
+	 * ?0 ?1 OR ?2 OR ?0 ?0 ! OR ?2 AND ?1 ! ?1 OR ?2 OR ?1 ! ?0 ! OR ?2 OR AND AND ?2 ! ?0 ! ?1 OR OR ?2 ! ?1 ! ?0 OR OR AND AND
+	 * 
+	 * (verified via truth table by WolframAlpha)
+	 */
+	@Test
+	public void integration7() {
+		
+		SymbolTracker tracker = new SymbolTracker();
+		
+		Variable X = tracker.getNewVariable( "X" );
+		Variable Y = tracker.getNewVariable( "Y" );
+		Variable Z = tracker.getNewVariable( "Z" );
+		
+		//input = X <=> Y <=> Z
+		List< Symbol > input = Arrays.asList( 
+				X , Operator.BICONDITIONAL , Y , Operator.BICONDITIONAL , Z
+			);
+		
+		ExpressionTree exprTree = new ExpressionTree( input );
+		List< Symbol > output = exprTree.getCNFPostfix( tracker );
+		
+		Variable v0 = tracker.getSystemVariableById( 0 );
+		Variable v1 = tracker.getSystemVariableById( 1 );
+		Variable v2 = tracker.getSystemVariableById( 2 );
+		Operator NOT = Operator.NOT;
+		Operator AND = Operator.AND;
+		Operator OR = Operator.OR;
+		//expected = ?0 ?1 OR ?2 OR ?0 ?0 ! OR ?2 AND ?1 ! ?1 OR ?2 OR ?1 ! ?0 ! OR ?2 OR AND AND ?2 ! ?0 ! ?1 OR OR ?2 ! ?1 ! ?0 OR OR AND AND
+		List< Symbol > expected = Arrays.asList(
+				v0 , v1 , OR , v2 , OR , v0 , v0 , NOT , OR , v2 , OR , AND , v1 , NOT , v1 ,
+				OR , v2 , OR , v1 , NOT , v0 , NOT , OR , v2 , OR , AND , AND , v2 , NOT , v0 , 
+				NOT , v1 , OR , OR , v2 , NOT , v1 , NOT , v0 , OR , OR , AND , AND
+			);
+		Assert.assertTrue( output.equals( expected ) );
 	}
 }

@@ -325,6 +325,7 @@ class ExpressionTree {
 	
 	private List< Symbol > postfixExpression;
 	ExpressionNode root = null;
+	private boolean inCNF = false;
 	
 	/**
 	 * 
@@ -477,12 +478,33 @@ class ExpressionTree {
 	 * @param tracker
 	 */
 	public void convertToCNF( SymbolTracker tracker ) {
-		buildTree();
-		eliminateArrowsAndDistributeNots();
-		standardize( tracker );
-		skolemize( tracker );
-		dropQuantifiers();
-		distributeOrOverAnd();
+		if ( !inCNF ) {
+			buildTree();
+			eliminateArrowsAndDistributeNots();	
+			standardize( tracker );
+			skolemize( tracker );
+			dropQuantifiers();
+			distributeOrOverAnd();
+			inCNF = true;
+		}
+	}
+	
+	private ArrayList< Symbol > toPostfix() {
+		ArrayList< Symbol > rtn = new ArrayList< Symbol >();
+		if ( root != null ) {
+			root.buildPostfix( rtn );
+		}
+		return rtn;		
+	}
+	
+	/**
+	 * @param tracker
+	 * @return				the conjunctive normal form in postfix of the
+	 * 						expression contained by this tree
+	 */
+	public List< Symbol > getCNFPostfix( SymbolTracker tracker ) {
+		convertToCNF( tracker );
+		return toPostfix();
 	}
 	
 	class ExpressionNode {
@@ -636,10 +658,8 @@ class ExpressionTree {
 				this.children.clear();
 				this.addChildren( child1 , child2 );
 			}
-			else {
-				for ( ExpressionNode child : this.children ) {
-					child.eliminateArrows();
-				}
+			for ( ExpressionNode child : this.children ) {
+				child.eliminateArrows();
 			}
 		}
 		
@@ -669,8 +689,13 @@ class ExpressionTree {
 					child.parent = null;
 				}
 				else {
-					this.parent.getChildren().clear();
-					this.parent.addChildren( child );
+					
+					//remove this child from its parent 
+					for ( int i=0 ; i<parent.getChildren().size() ; ++i ) {
+						if ( parent.getChildren().get( i ) == this ) {
+							parent.getChildren().set( i , child );
+						}
+					}
 				}
 				
 				//negate the child if necessary
@@ -681,6 +706,7 @@ class ExpressionTree {
 				child.distributeNots();
 			}
 			else {
+				
 				for ( ExpressionNode child : children ) {
 					child.distributeNots();
 				}
@@ -695,7 +721,7 @@ class ExpressionTree {
 		 * @param tracker				tracker used for getting additional system variables
 		 */
 		public void standardize( HashMap< Variable , Variable > userSystemMapping , SymbolTracker tracker ) {
-			if ( this.getValue() instanceof Variable ) {
+			if ( this.getValue() instanceof Variable && !tracker.isSystemVariable( (Variable) this.getValue() ) ) {
 				if ( userSystemMapping.get( this.getValue() ) == null ) {
 					
 					//if no mapping for the user-defined variable 
@@ -707,18 +733,49 @@ class ExpressionTree {
 					userSystemMapping.put( (Variable)this.getValue() , newMapping );
 				}
 				this.value = userSystemMapping.get( this.getValue() );
+				
+				//continue standardizing after we've
+				//successfully standardized this variable
+				for ( ExpressionNode child : this.getChildren() ) {
+					child.standardize( userSystemMapping , tracker );
+				}
 			}
 			else if ( this.getValue() instanceof QuantifierList ) {
+				
+				ArrayList< Variable > oldVariables = new ArrayList< Variable >();
+				ArrayList< Variable > oldMappings = new ArrayList< Variable >();
+				
 				for ( Variable v : ((QuantifierList) this.getValue()).getVariables() ) {
 					
 					//when we quantify over new variables,
 					//we override the old mappings
+					//but cache the old mappings because they need
+					//to be restored when this quantifier goes out of scope
+					oldVariables.add( v );
+					oldMappings.add( userSystemMapping.get( v ) );
+
 					userSystemMapping.put( v , tracker.getNewSystemVariable() );
 					((QuantifierList) this.getValue()).standardizeVariable( v , userSystemMapping.get( v ) );
 				}
+				
+				//continue standardizing with the new
+				//user variable to system variable mapping
+				for ( ExpressionNode child : this.getChildren() ) {
+					child.standardize( userSystemMapping , tracker );
+				}
+				
+				//restore previous mappings when this quantifier
+				//goes out of scope
+				for ( int i=0 ; i<oldVariables.size() ; ++i ) {
+					userSystemMapping.put( oldVariables.get( i ) , oldMappings.get( i ) );
+				}
 			}
-			for ( ExpressionNode child : this.getChildren() ) {
-				child.standardize( userSystemMapping , tracker );
+			else {
+				
+				//continue standardizing
+				for ( ExpressionNode child : this.getChildren() ) {
+					child.standardize( userSystemMapping , tracker );
+				}
 			}
 		}
 		
@@ -865,12 +922,43 @@ class ExpressionTree {
 					
 					//add in the operands to this AND operator
 					//so that we have (P OR Q) AND (P OR R)
-					this.addChildren( operand1 , operand2 );
-					
+					this.addChildren( operand1 , operand2 );	
+				}
+				else {
+					for ( ExpressionNode child : this.children ) {
+						child.distributeOrOverAnd();
+					}
+					if ( this.children.get( 0 ).getValue().equals( Operator.AND ) || 
+							this.children.get( 1 ).getValue().equals( Operator.AND ) ) {
+						
+						//if later distributions of ORs over AND caused additional
+						//ANDs to shift up to a child of this node,
+						//we need to repeat the process
+						this.distributeOrOverAnd();
+					}
+					return;
 				}
 			}
 			for ( ExpressionNode child : this.children ) {
 				child.distributeOrOverAnd();
+			}
+		}
+		
+		public void buildPostfix( ArrayList< Symbol > postfix ) {
+			if ( children.size() == 0 ) {
+				postfix.add( this.getValue() );
+				if ( this.isNegated() ) {
+					postfix.add( Operator.NOT );
+				}
+				return;
+			}
+			
+			for ( ExpressionNode child : children ) {
+				child.buildPostfix( postfix );
+			}
+			postfix.add( this.getValue() );
+			if ( this.isNegated() ) {
+				postfix.add( Operator.NOT );
 			}
 		}
 		

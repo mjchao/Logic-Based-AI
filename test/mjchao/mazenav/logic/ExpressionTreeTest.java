@@ -1878,4 +1878,49 @@ public class ExpressionTreeTest {
 			);
 		Assert.assertTrue( output.equals( expected ) );
 	}
+	
+	/**
+	 * Test converting 
+	 * 
+	 * X <=> Y <=> Z		which is read as X <=> (Y <=> Z) by the program
+	 * 
+	 * Answer: 
+	 * (X OR Y OR Z) AND (X OR !X OR Z) AND (!Y OR Y OR Z) AND (!Y OR !X OR Z) AND (!Z OR !X OR Y) AND (!Z OR !Y OR X)
+	 * 
+	 * in postfix this is
+	 * ?0 ?1 OR ?2 OR ?0 ?0 ! OR ?2 AND ?1 ! ?1 OR ?2 OR ?1 ! ?0 ! OR ?2 OR AND AND ?2 ! ?0 ! ?1 OR OR ?2 ! ?1 ! ?0 OR OR AND AND
+	 * 
+	 * (verified via truth table by WolframAlpha)
+	 */
+	@Test
+	public void integration7() {
+		
+		SymbolTracker tracker = new SymbolTracker();
+		
+		Variable X = tracker.getNewVariable( "X" );
+		Variable Y = tracker.getNewVariable( "Y" );
+		Variable Z = tracker.getNewVariable( "Z" );
+		
+		//input = X <=> Y <=> Z
+		List< Symbol > input = Arrays.asList( 
+				X , Operator.BICONDITIONAL , Y , Operator.BICONDITIONAL , Z
+			);
+		
+		ExpressionTree exprTree = new ExpressionTree( input );
+		List< Symbol > output = exprTree.getCNFPostfix( tracker );
+		
+		Variable v0 = tracker.getSystemVariableById( 0 );
+		Variable v1 = tracker.getSystemVariableById( 1 );
+		Variable v2 = tracker.getSystemVariableById( 2 );
+		Operator NOT = Operator.NOT;
+		Operator AND = Operator.AND;
+		Operator OR = Operator.OR;
+		//expected = ?0 ?1 OR ?2 OR ?0 ?0 ! OR ?2 AND ?1 ! ?1 OR ?2 OR ?1 ! ?0 ! OR ?2 OR AND AND ?2 ! ?0 ! ?1 OR OR ?2 ! ?1 ! ?0 OR OR AND AND
+		List< Symbol > expected = Arrays.asList(
+				v0 , v1 , OR , v2 , OR , v0 , v0 , NOT , OR , v2 , OR , AND , v1 , NOT , v1 ,
+				OR , v2 , OR , v1 , NOT , v0 , NOT , OR , v2 , OR , AND , AND , v2 , NOT , v0 , 
+				NOT , v1 , OR , OR , v2 , NOT , v1 , NOT , v0 , OR , OR , AND , AND
+			);
+		Assert.assertTrue( output.equals( expected ) );
+	}
 }

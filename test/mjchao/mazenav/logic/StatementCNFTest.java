@@ -47,4 +47,36 @@ public class StatementCNFTest {
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
 		Assert.assertEquals( "(?0 OR ?1) AND (?2) AND (?3)" , cnf.toString() );
 	}
+	
+	@Test
+	public void BAT6() {
+		String infix = "(!A OR B) AND (A OR B)";
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
+		Assert.assertEquals( "(!?0 OR ?1) AND (?0 OR ?1)" , cnf.toString() );
+	}
+	
+	@Test
+	public void BAT7() {
+		String infix = "(!A OR !B) AND (!A OR !B)";
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
+		Assert.assertEquals( "(!?0 OR !?1) AND (!?0 OR !?1)" , cnf.toString() );
+	}
+	
+	@Test
+	public void BAT8() {
+		String infix = "(!!!A OR !B) AND (!A OR !B)";
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
+		Assert.assertEquals( "(!?0 OR !?1) AND (!?0 OR !?1)" , cnf.toString() );
+	}
+	
+	@Test
+	public void BAT9() {
+		String infix = "!!!A OR B";
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
+		Assert.assertEquals( "!?0 OR ?1" , cnf.toString() );
+	}
 }

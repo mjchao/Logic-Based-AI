@@ -694,6 +694,7 @@ class ExpressionTree {
 					for ( int i=0 ; i<parent.getChildren().size() ; ++i ) {
 						if ( parent.getChildren().get( i ) == this ) {
 							parent.getChildren().set( i , child );
+							child.setParent( parent );
 						}
 					}
 				}
@@ -702,7 +703,7 @@ class ExpressionTree {
 				if ( !this.negated ) {
 					child.negate();
 				}
-				
+
 				child.distributeNots();
 			}
 			else {

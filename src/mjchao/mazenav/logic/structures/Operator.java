@@ -19,31 +19,31 @@ public class Operator extends Symbol {
 
 	public static final String NOT_SHORTHAND = "!";
 	public static final int NOT_PRECEDENCE = 5;
-	public static final Operator NOT = new Operator( "NOT" , 1 , NOT_PRECEDENCE );
+	public static final Operator NOT = new Operator( "NOT" , 1 , NOT_PRECEDENCE , false );
 	
 	public static final String EQUALS_SHORTHAND = "==";
 	public static final int EQUALS_PRECEDENCE = 4;
-	public static final Operator EQUALS = new Operator( "EQUALS" , 2 , EQUALS_PRECEDENCE );
+	public static final Operator EQUALS = new Operator( "EQUALS" , 2 , EQUALS_PRECEDENCE , true  );
 	
 	public static final String NOT_EQUALS_SHORTHAND = "!=";
 	public static final int NOT_EQUALS_PRECEDENCE = 4;
-	public static final Operator NOT_EQUALS = new Operator( "NEQUALS" , 2 , NOT_EQUALS_PRECEDENCE );
+	public static final Operator NOT_EQUALS = new Operator( "NEQUALS" , 2 , NOT_EQUALS_PRECEDENCE , true );
 	
 	public static final String AND_SHORTHAND = "&&";
 	public static final int AND_PRECEDENCE = 3;
-	public static final Operator AND = new Operator( "AND" , 2 , AND_PRECEDENCE );
+	public static final Operator AND = new Operator( "AND" , 2 , AND_PRECEDENCE , true );
 	
 	public static final String OR_SHORTHAND = "||";
 	public static final int OR_PRECEDENCE = 2;
-	public static final Operator OR = new Operator( "OR" , 2 , OR_PRECEDENCE );
+	public static final Operator OR = new Operator( "OR" , 2 , OR_PRECEDENCE , true );
 	
 	public static final String IMPLICATION_SHORTHAND = "=>";
 	public static final int IMPLICATION_PRECEDENCE = 1;
-	public static final Operator IMPLICATION = new Operator( "IMPLICATION" , 2 , IMPLICATION_PRECEDENCE );
+	public static final Operator IMPLICATION = new Operator( "IMPLICATION" , 2 , IMPLICATION_PRECEDENCE , true );
 	
 	public static final String BICONDITIONAL_SHORTHAND = "<=>";
 	public static final int BICONDITIONAL_PRECEDENCE = 0;
-	public static final Operator BICONDITIONAL = new Operator( "BICONDITIONAL" , 2 , BICONDITIONAL_PRECEDENCE );
+	public static final Operator BICONDITIONAL = new Operator( "BICONDITIONAL" , 2 , BICONDITIONAL_PRECEDENCE , true );
 	
 	public static final Operator[] OPERATOR_LIST = new Operator[] { 
 			BICONDITIONAL , IMPLICATION , OR , AND , NOT_EQUALS , EQUALS , NOT 
@@ -70,15 +70,17 @@ public class Operator extends Symbol {
 	
 	private final double precedence;
 	private final int numOperands;
+	private final boolean leftAssociative;
 	
 	protected Operator( String name , int numOperands ) {
-		this( name , numOperands , 0 );
+		this( name , numOperands , 0 , true );
 	}
 	
-	protected Operator( String name , int numOperands , int precedence ) {
+	protected Operator( String name , int numOperands , int precedence , boolean leftAssociative ) {
 		super( name );
 		this.numOperands = numOperands;
 		this.precedence = precedence;
+		this.leftAssociative = leftAssociative;
 	}
 	
 	public double getPrecedence() {
@@ -94,13 +96,15 @@ public class Operator extends Symbol {
 	 * @param o
 	 * @return		returns if the precedence of this operator
 	 * 				is greater than the precedence of the other operator
+	 * 				when read from left to right
 	 */
-	public boolean preceeds( Operator o ) {
-		return this.precedence > o.precedence;
-	}
-
 	public boolean preceedsLeftToRight( Operator o ) {
-		return this.precedence >= o.precedence;
+		if ( this.leftAssociative ) {
+			return this.precedence >= o.precedence;
+		}
+		else {
+			return this.precedence > o.precedence;
+		}
 	}
 	
 	public boolean equals( String str ) {

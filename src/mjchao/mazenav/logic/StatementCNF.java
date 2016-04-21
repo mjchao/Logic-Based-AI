@@ -15,6 +15,14 @@ import mjchao.mazenav.logic.structures.SymbolTracker;
  */
 public class StatementCNF {
 	
+	/**
+	 * Builds a Statement CNF object from an infix logic expression.
+	 * 
+	 * @param infix			a logic expression in infix notation
+	 * @param tracker		tracker for recognizing variables and names
+	 * @return				a StatementCNF object representing the
+	 * 						logic expression in CNF
+	 */
 	public static StatementCNF fromInfixString( String infix , SymbolTracker tracker ) {
 		Processor p = new Processor( infix , tracker );
 		List< Symbol > postfix = p.process();
@@ -27,8 +35,7 @@ public class StatementCNF {
 	 * MUST be valid.
 	 * 
 	 * @param postfix		a valid postfix expression
-	 * @param tracker		tracker for the variables and names that we
-	 * 						recognize
+	 * @param tracker		tracker for recognizing variables and names
 	 * @return				a StatementCNF object representing the postfix
 	 * 						conjunctive normal form expression.
 	 */
@@ -68,6 +75,15 @@ public class StatementCNF {
 				}
 			}
 			
+			//if we read in a NOT operator and the given expression
+			//was successfully converted to CNF, then we must have
+			//just read in a unit type and it must be part of a
+			//1-term disjunction on the stack right now. So,
+			//we can go ahead and just negate it
+			else if ( s.equals( Operator.NOT ) ) {
+				evalStack.peek().negate();
+			}
+			
 			//if it's not an AND or OR operator, it must be
 			//some kind of variable, skolem function or unit
 			//that cannot be decomposed further (i.e. operands
@@ -81,17 +97,44 @@ public class StatementCNF {
 	}
 
 	public static class Disjunction {
+		
+		private static class Term {
+			public Symbol value;
+			public boolean negated;
+			
+			public Term( Symbol value , boolean negated ) {
+				this.value = value;
+				this.negated = negated;
+			}
+			
+			public Term( Symbol value ) {
+				this( value , false );
+			}
+			
+			@Override
+			public String toString() {
+				if ( this.negated ) {
+					return "!" + value.toString();
+				}
+				else {
+					return value.toString();
+				}
+			}
+		}
 	
-		private List< Symbol > terms;
+		private List< Term > terms;
 		
 		Disjunction( List< Symbol > terms ) {
-			this.terms = terms;
+			this.terms = new ArrayList< Term >();
+			for ( Symbol term : terms ) {
+				this.terms.add( new Term( term ) );
+			}
 		}
 		
 		Disjunction( Symbol... terms ) {
-			this.terms = new ArrayList< Symbol >();
+			this.terms = new ArrayList< Term >();
 			for ( Symbol term : terms ) {
-				this.terms.add( term );
+				this.terms.add( new Term( term ) );
 			}
 		}
 		
@@ -100,7 +143,11 @@ public class StatementCNF {
 		}
 		
 		void addTerm( Symbol s ) {
-			this.terms.add( s );
+			this.terms.add( new Term(s) );
+		}
+		
+		void addTerm( Term t ) {
+			this.terms.add( t );
 		}
 		
 		/**
@@ -111,7 +158,7 @@ public class StatementCNF {
 		 * @param other		the other disjunction to be merged in
 		 */
 		void mergeIn( Disjunction other ) {
-			for ( Symbol s : other.terms ) {
+			for ( Term s : other.terms ) {
 				addTerm( s );
 			}
 		}
@@ -124,9 +171,16 @@ public class StatementCNF {
 		 * @param other		the other disjunction to be merged into
 		 */
 		void mergeInto( Disjunction other ) {
-			for ( Symbol s : this.terms ) {
+			for ( Term s : this.terms ) {
 				other.addTerm( s );
 			}
+		}
+		
+		void negate() {
+			if ( size() != 1 ) {
+				throw new IllegalStateException( "Input is not in CNF. Should not negate a multi-term disjunction." );
+			}
+			terms.get( 0 ).negated = !terms.get( 0 ).negated;
 		}
 		
 		public int size() {

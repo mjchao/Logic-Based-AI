@@ -197,6 +197,20 @@ public class ExpressionTreeTest {
 		found = convertToPostfix( input );
 		Assert.assertTrue( expected.equals( found ) );
 		
+		//test multiple NOTs:
+		//"!!!x OR !y"
+		tracker = new SymbolTracker();
+		input = Arrays.asList( 
+				Operator.NOT , Operator.NOT , Operator.NOT , tracker.getNewVariable( "x" ) , Operator.OR ,
+				Operator.NOT , tracker.getNewVariable( "y" )
+			);
+		expected = Arrays.asList(
+				tracker.getVariableByName( "x" ) , Operator.NOT , Operator.NOT , Operator.NOT ,
+				tracker.getVariableByName( "y" ) ,Operator.NOT , Operator.OR
+			);
+		found = convertToPostfix( input );
+		Assert.assertTrue( expected.equals( found ) );
+		
 		//test expressions with constants (just to make sure it handles
 		//objects of type ObjectFOL)
 		// "True => True"
@@ -537,7 +551,7 @@ public class ExpressionTreeTest {
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );
 		
-		//test distributing nots on "x NOT NOT NOT"  <=> "x"
+		//test distributing nots on "x NOT NOT NOT"  <=> "x NOT"
 		tracker = new SymbolTracker();
 		input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , Operator.NOT , Operator.NOT , Operator.NOT
@@ -552,6 +566,26 @@ public class ExpressionTreeTest {
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expected.equals( found ) );
+		
+		//test distributing nots on "x NOT NOT NOT y OR"  <=> "x NOT y OR"
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , Operator.NOT , Operator.NOT , Operator.NOT ,
+				tracker.getNewVariable( "y" ) , Operator.OR
+			);		
+		exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		expected = Arrays.asList( 
+				tracker.getVariableByName( "x" ) , Operator.NOT , 
+				tracker.getVariableByName( "y" ) , Operator.OR 
+			);
+		found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		System.out.println( found );
+		Assert.assertTrue( expected.equals( found ) );
+		
 		
 		//test distributing nots on "x NOT NOT NOT NOT NOT NOT"  <=> "x"
 		tracker = new SymbolTracker();

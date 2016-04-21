@@ -21,6 +21,28 @@ import mjchao.mazenav.logic.structures.SymbolTracker;
 
 public class ProcessorTokenizeTest {
 
+	public void tokenize( Processor p ) {
+		Class<?> c = Processor.class;
+			Method f;
+			try {
+				f = c.getDeclaredMethod( "tokenize" );
+				f.setAccessible( true );
+				f.invoke( p );
+			} catch (InvocationTargetException e) {
+				if ( e.getTargetException() instanceof IllegalArgumentException ) {
+					throw (IllegalArgumentException) e.getTargetException();
+				}
+				else {
+					throw new RuntimeException( "Could not apply tokenize() to Processor object." );
+				}
+			} catch ( NoSuchMethodException | SecurityException e ) {
+				throw new RuntimeException( "Could not apply tokenize() to Processor object." );
+			} catch ( IllegalAccessException | IllegalArgumentException e ) {
+				throw new RuntimeException( "Could not apply tokenize() to Processor object." );
+			}
+		
+	}
+	
 	/**
 	 * Accessor to the private tokens field of the Processor
 	 * class.
@@ -145,7 +167,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "FORALL x, x==1";
 		tracker = new SymbolTracker();
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , 
 				Symbol.COMMA , tracker.getVariableByName( "x" ) , 
@@ -156,7 +178,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "FORALL(x, y), EXISTS z S.T. z == x AND EXISTS u S.T. u == y";
 		tracker = new SymbolTracker();
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) , 
 				Symbol.COMMA , tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN , 
@@ -171,7 +193,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "(!x OR y) && (x != y)";
 		tracker = new SymbolTracker();
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Symbol.LEFT_PAREN , Operator.NOT , tracker.getVariableByName( "x" ) , 
 							Operator.OR , tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN ,
@@ -183,7 +205,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "   && || ! != IMPLICATION BICONDITIONAL , AND OR NEQUALS EQUALS";
 		tracker = new SymbolTracker();
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Operator.AND , Operator.OR , Operator.NOT , 
 				Operator.NOT_EQUALS , Operator.IMPLICATION , Operator.BICONDITIONAL , 
@@ -194,7 +216,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "   )   (   , S.T. ";
 		tracker = new SymbolTracker();
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Symbol.RIGHT_PAREN , Symbol.LEFT_PAREN , Symbol.COMMA , Symbol.SUCH_THAT );
 		Assert.assertTrue( tokens.equals( expected ) );
@@ -203,7 +225,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "FORALL FORALL EXISTS    ";
 		tracker = new SymbolTracker();
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , Quantifier.FORALL , Quantifier.EXISTS );
 		Assert.assertTrue( tokens.equals( expected ) );
@@ -212,7 +234,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "Xxx___28473 a1b2_c3d4 _";
 		tracker = new SymbolTracker();
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( tracker.getVariableByName( "Xxx___28473" ) , 
 				tracker.getVariableByName( "a1b2_c3d4" ) ,
@@ -223,7 +245,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "FORALL x, x == 12345 OR x == 000.001";
 		tracker = new SymbolTracker();
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , 
 				Symbol.COMMA , tracker.getVariableByName( "x" ) ,
@@ -244,7 +266,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "---bad_variable_name---";
 		tracker = new SymbolTracker();
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
@@ -258,7 +280,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "12345a";
 		tracker = new SymbolTracker();
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
@@ -272,7 +294,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "_12345a^";
 		tracker = new SymbolTracker();
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 	}
 	
 	@Test
@@ -289,7 +311,7 @@ public class ProcessorTokenizeTest {
 		def = new IntegerWorld();
 		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , def );
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , Symbol.LEFT_PAREN , 
 				tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN ,
@@ -303,7 +325,7 @@ public class ProcessorTokenizeTest {
 		def = new IntegerWorld();
 		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , def );
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , Symbol.LEFT_PAREN , 
 				tracker.getVariableByName( "x" ) , Symbol.COMMA ,
@@ -324,7 +346,7 @@ public class ProcessorTokenizeTest {
 		def = new IntegerWorld();
 		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , def );
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , Symbol.LEFT_PAREN , 
 				tracker.getVariableByName( "x" ) , Symbol.COMMA ,
@@ -345,7 +367,7 @@ public class ProcessorTokenizeTest {
 		def = new GeometryWorld();
 		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/geometryworld.txt" , def );
 		test = new Processor( logicStatement , tracker );
-		test.tokenize();
+		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( tracker.getRelation( "AngleEquals" ) , Symbol.LEFT_PAREN ,
 					tracker.getConstant( "RightAngle" ) , Symbol.COMMA ,

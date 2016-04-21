@@ -7,6 +7,7 @@ import mjchao.mazenav.logic.structures.SymbolTracker;
 
 public class StatementCNFTest {
 
+	//BAT = Basic Acceptance Test
 	@Test
 	public void BAT1() {
 		String infix = "(A OR B) AND (A OR C)";

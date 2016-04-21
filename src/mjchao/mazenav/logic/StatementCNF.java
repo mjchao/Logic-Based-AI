@@ -93,6 +93,13 @@ public class StatementCNF {
 			}
 		}
 		
+		//we could have an extra expression left over
+		//that was never added to the list of completed
+		//disjunctions if we ended with an OR operator
+		if ( evalStack.size() == 1 ) {
+			disjunctions.add( evalStack.pop() );
+		}
+		
 		return new StatementCNF( disjunctions );
 	}
 

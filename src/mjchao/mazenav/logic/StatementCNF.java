@@ -10,6 +10,7 @@ import mjchao.mazenav.logic.structures.SymbolTracker;
 
 /**
  * Represents a statement in conjunctive normal form.
+ * 
  * @author mjchao
  *
  */

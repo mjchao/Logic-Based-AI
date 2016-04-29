@@ -80,4 +80,12 @@ public class StatementCNFTest {
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
 		Assert.assertEquals( "!?0 OR ?1" , cnf.toString() );
 	}
+	
+	@Test
+	public void BAT10() {
+		String infix = "A";
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
+		Assert.assertEquals( "?0" , cnf.toString() );
+	}
 }

@@ -531,14 +531,23 @@ public class ExpressionTreeTest {
 		testBuildTree( tracker , input );
 	}
 	
-	public void testDistributeNotsAndEliminateArrows( SymbolTracker tracker , List< Symbol > input , List< Symbol > expected ) {
+	/**
+	 * Verifies that the ExpressionTree correctly distributed NOT
+	 * operators and eliminated arrows
+	 * 
+	 * @param tracker			keeps track of variables. Currently unused, but may be
+	 * 							used later if we need to check for more specific Variable equality
+	 * @param inputPostfix		the input expression in postfix
+	 * @param expectedPostfix	the expected postfix expression after distributing NOTs and eliminating arrows
+	 */
+	public void testDistributeNotsAndEliminateArrows( SymbolTracker tracker , List< Symbol > inputPostfix , List< Symbol > expectedPostfix ) {
 		ExpressionTree exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
+		setPostfix( exprTree , inputPostfix );
 		buildTree( exprTree );
 		eliminateArrowsAndDistributeNots( exprTree );
 		List< Symbol > found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );
+		Assert.assertTrue( expectedPostfix.equals( found ) );
 	}
 	
 	@Test

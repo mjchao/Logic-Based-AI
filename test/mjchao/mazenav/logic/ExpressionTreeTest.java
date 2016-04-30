@@ -444,10 +444,9 @@ public class ExpressionTreeTest {
 	 * the postfix generated from the built ExpressionTree is identical
 	 * to the inputed postfix
 	 * 
-	 * @param tracker			keeps track of variables
 	 * @param inputPostfix		an expression in postfix
 	 */
-	public void testBuildTree( SymbolTracker tracker , List< Symbol > inputPostfix ) {
+	public void testBuildTree( List< Symbol > inputPostfix ) {
 		ExpressionTree exprTree = new ExpressionTree();
 		setPostfix( exprTree , inputPostfix );
 		buildTree( exprTree );
@@ -465,7 +464,7 @@ public class ExpressionTreeTest {
 		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , Operator.OR
 			);
-		testBuildTree( tracker , input );
+		testBuildTree( input );
 	}
 	
 	@Test
@@ -479,7 +478,7 @@ public class ExpressionTreeTest {
 				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , Operator.AND ,
 				tracker.getNewVariable( "z" ) , Operator.OR
 			);
-		testBuildTree( tracker , input );
+		testBuildTree( input );
 	}
 	
 	@Test
@@ -495,7 +494,7 @@ public class ExpressionTreeTest {
 				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "z" ) ) , Operator.IMPLICATION ,
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "w" ) , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
 			);
-		testBuildTree( tracker , input );
+		testBuildTree( input );
 	}
 	
 	@Test
@@ -511,7 +510,7 @@ public class ExpressionTreeTest {
 				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "z" ) ) ,
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
 			);
-		testBuildTree( tracker , input );
+		testBuildTree( input );
 	}
 	
 	@Test
@@ -528,19 +527,17 @@ public class ExpressionTreeTest {
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) ,
 					tracker.getVariableByName( "y" ) , tracker.getVariableByName( "z" ) )
 			);
-		testBuildTree( tracker , input );
+		testBuildTree( input );
 	}
 	
 	/**
 	 * Verifies that the ExpressionTree correctly distributed NOT
 	 * operators and eliminated arrows
 	 * 
-	 * @param tracker			keeps track of variables. Currently unused, but may be
-	 * 							used later if we need to check for more specific Variable equality
 	 * @param inputPostfix		the input expression in postfix
 	 * @param expectedPostfix	the expected postfix expression after distributing NOTs and eliminating arrows
 	 */
-	public void testDistributeNotsAndEliminateArrows( SymbolTracker tracker , List< Symbol > inputPostfix , List< Symbol > expectedPostfix ) {
+	public void testDistributeNotsAndEliminateArrows( List< Symbol > inputPostfix , List< Symbol > expectedPostfix ) {
 		ExpressionTree exprTree = new ExpressionTree();
 		setPostfix( exprTree , inputPostfix );
 		buildTree( exprTree );
@@ -561,7 +558,7 @@ public class ExpressionTreeTest {
 				tracker.getNewVariable( "x" ) , Operator.NOT , Operator.NOT
 			);
 		List< Symbol > expected = Arrays.asList( tracker.getVariableByName( "x" ) );
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	@Test
@@ -577,7 +574,7 @@ public class ExpressionTreeTest {
 		List< Symbol > expected = Arrays.asList( 
 				tracker.getVariableByName( "x" ) , Operator.NOT 
 			);
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	@Test
@@ -595,7 +592,7 @@ public class ExpressionTreeTest {
 		List< Symbol > expected = Arrays.asList( 
 				tracker.getVariableByName( "x" )
 			);
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	@Test
@@ -613,7 +610,7 @@ public class ExpressionTreeTest {
 				tracker.getVariableByName( "x" ) , Operator.NOT , 
 				tracker.getVariableByName( "y" ) , Operator.NOT , Operator.AND
 			);
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	@Test
@@ -631,7 +628,7 @@ public class ExpressionTreeTest {
 				tracker.getVariableByName( "x" ) , Operator.NOT , 
 				tracker.getVariableByName( "y" ) , Operator.NOT , Operator.AND
 			);
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	
@@ -651,7 +648,7 @@ public class ExpressionTreeTest {
 				tracker.getVariableByName( "x" ) , Operator.NOT , 
 				tracker.getVariableByName( "y" ) , Operator.OR 
 			);
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	@Test
@@ -669,7 +666,7 @@ public class ExpressionTreeTest {
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , Operator.NOT , 
 				tracker.getVariableByName( "y" ) , Operator.NOT , Operator.AND , Operator.AND
 			);
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	@Test
@@ -687,7 +684,7 @@ public class ExpressionTreeTest {
 				tracker.getVariableByName( "x" ) , Operator.NOT ,
 				tracker.getVariableByName( "y" ) , Operator.OR
 			);
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	@Test
@@ -707,7 +704,7 @@ public class ExpressionTreeTest {
 				tracker.getVariableByName( "y" ) , Operator.NOT ,
 				tracker.getVariableByName( "x" ) , Operator.OR , Operator.AND
 			);
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	@Test
@@ -725,7 +722,7 @@ public class ExpressionTreeTest {
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
 				Operator.NOT , Operator.AND
 			);
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	@Test
@@ -750,7 +747,7 @@ public class ExpressionTreeTest {
 				tracker.getVariableByName( "y" ) , tracker.getVariableByName( "x" ) ,
 				Operator.NOT , Operator.AND , Operator.OR 
 			);
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	@Test
@@ -775,7 +772,7 @@ public class ExpressionTreeTest {
 				tracker.getVariableByName( "y" ) , Operator.NOT , Operator.AND ,
 				tracker.getVariableByName( "z" ) , Operator.OR
 			);
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	@Test
@@ -803,7 +800,7 @@ public class ExpressionTreeTest {
 				Operator.NOT , Operator.AND ,
 				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
 			);
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	@Test
@@ -847,7 +844,7 @@ public class ExpressionTreeTest {
 				Operator.AND , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "w" ) , tracker.getVariableByName( "z" ) ) ,
 				Operator.AND
 			);
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	@Test
@@ -875,7 +872,7 @@ public class ExpressionTreeTest {
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) ) ,
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "y" ) )				
 			);
-		testDistributeNotsAndEliminateArrows( tracker , input , expected );
+		testDistributeNotsAndEliminateArrows( input , expected );
 	}
 	
 	/**

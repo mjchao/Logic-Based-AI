@@ -8,9 +8,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.junit.Assert;
-import org.junit.Test;
-
 import mjchao.mazenav.logic.ExpressionTree.ExpressionNode;
 import mjchao.mazenav.logic.structures.BooleanFOL;
 import mjchao.mazenav.logic.structures.Function;
@@ -23,6 +20,9 @@ import mjchao.mazenav.logic.structures.SkolemFunction;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
 import mjchao.mazenav.logic.structures.Variable;
+
+import org.junit.Assert;
+import org.junit.Test;
 
 public class ExpressionTreeTest {
 
@@ -852,16 +852,6 @@ public class ExpressionTreeTest {
 	
 	@Test
 	public void testDistributeNotsFunctions() throws IOException {
-
-		// FORALL(y), !EXISTS(x) GreaterThan(SumInt(y,y), DiffInt(x,x))
-		//in postfix this is equivalent to
-		// y y SumInt x x DiffInt GreaterThan EXISTS(x) ! FORALL(y)
-		
-		//after distributing NOTs, we should have
-		// FORALL(y) !EXISTS(x) GreaterThan(SumInt(y,y), DiffInt(x,x))		<=>
-		// FORALL(y) FORALL(x) !GreaterThan(SumInt(y,y), DiffInt(x,x))	
-		//in postfix this is equivalent to
-		// y y SumInt x x DiffInt GreaterThan ! FORALL(x) FORALL(y)
 		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
 		
 		//test distributing nots with functions
@@ -888,119 +878,122 @@ public class ExpressionTreeTest {
 		testDistributeNotsAndEliminateArrows( tracker , input , expected );
 	}
 	
+	/**
+	 * Verifies that the ExpressionTree correctly standardized
+	 * and expression. Assumes that the buildTree and eliminateArrowsAndDistributeNots()
+	 * functions have been implemented correctly.
+	 * 
+	 * @param tracker			keeps track of variable names. currently unused, but may be
+	 * 							necessary in the future for more specific equality checking
+	 * @param inputPostfix		the expression in postfix to standardize 
+	 * @param expectedPostfix	the expected standardized result in postfix
+	 */
+	public void testStandardize( SymbolTracker tracker , List< Symbol > inputPostfix , List< Symbol > expectedPostfix ) {
+		ExpressionTree exprTree = new ExpressionTree();
+		setPostfix( exprTree , inputPostfix );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		standardize( exprTree , tracker );
+		List< Symbol > found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expectedPostfix.equals( found ) );
+	}
+	
+	private Variable getMockSystemVariableById( int id ) {
+		return new Variable( "?" + id , id );
+	}
+	
 	@Test
-	public void testStandardize() throws IOException {
-		SymbolTracker tracker;
-		List< Symbol > input;
-		ExpressionTree exprTree;
-		List< Symbol > expected;
-		List< Symbol > found;	
+	public void testStandardizeBAT1() {
+		SymbolTracker tracker = new SymbolTracker();
 		
-		//test standardizing "x"
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
+		//test that a variable gets standardized to a system variable
+		//[in infix]		"x"		<=>		"?0"
+		//[in postfix]		"x"		<=>		"?0"
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" )
 			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		expected = Arrays.asList( tracker.getSystemVariableById( 0 ) );
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );
+		List< Symbol > expected = Arrays.asList( getMockSystemVariableById( 0 ) );
+		testStandardize( tracker , input , expected );
+	}
+	
+	@Test
+	public void testStandardizeBAT2() {
+		SymbolTracker tracker = new SymbolTracker();
 		
-		//test standardizing "x AND y"		<=> "x y AND"
-		//which should give "?0 ?1 AND"
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
+		//test that two variables get standardized
+		//[in infix]	"x AND y"	<=>		"?0 AND ?1"
+		//[in postfix]	"x y AND"	<=>		"?0 ?1 AND"
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) ,  Operator.AND
 			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND );
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );
-		
+		List< Symbol > expected = Arrays.asList( 
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) , Operator.AND );
+		testStandardize( tracker , input , expected );
+	}
+	
+	@Test
+	public void testStandardizeBAT3() {
 		//test standardizing "x AND y AND z"	<=> "x y AND z AND"
 		//which should yield "?0 ?1 AND ?2 AND
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
+		SymbolTracker tracker = new SymbolTracker();
+		
+		//test standardizing 3 variables where
+		//[in infix]		"x AND y AND z"		<=>		"?0 AND ?1 AND ?2"
+		//[in postfix]		"x y AND z AND"		<=>		"?0 ?1 AND ?2"
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) ,  Operator.AND , 
 				tracker.getNewVariable( "z" ) , Operator.AND 
 			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
-				tracker.getSystemVariableById( 2 ) , Operator.AND );
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );		
-
-		//test standardizing "x AND y AND x" 	<=> "x y AND x AND"
-		//which should give "?0 ?1 AND ?0 AND"
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
-				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) ,  Operator.AND ,
-				tracker.getVariableByName( "x" ) , Operator.AND
-			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
-				tracker.getSystemVariableById( 0 ) , Operator.AND 
-				);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );
+		List< Symbol > expected = Arrays.asList( 
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) , Operator.AND ,
+				getMockSystemVariableById( 2 ) , Operator.AND );
+		testStandardize( tracker , input , expected );
+	}
+	
+	@Test
+	public void testStandardizeQuantifiers() {
+		SymbolTracker tracker = new SymbolTracker();
 		
-		//test standardizing "FORALL x x => FORALL y y => FORALL x x" 		<=> 
+		//test that single variable quantifiers get standardized
+		//and variables shadow each other appropriately.
+		//[in infix]		"FORALL x x => FORALL y y => FORALL x x" 		<=> 
 		//					"!(FORALL x x => FORALL y y) OR FORALL x x"		<=>
 		//					"!(EXISTS x !x OR FORALL y y) OR FORALL x x"	<=>
 		//					"FORALL x x AND EXISTS y !y OR FORALL x x"		<=>
-		//					"?0 FORALL(?0) ?1 ! EXISTS(?1) AND ?2 FORALL(?2) OR"
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
+		//					FORALL ?0 ?0 AND EXISTS ?1 !?1 OR FORALL ?2 ?2
+		//
+		//[in postfix]		"x FORALL(x) y FORALL(y) => x FORALL(x)"		<=>
+		//					"?0 FORALL(?0) ?1 ! EXISTS(?1) AND ?2 FORALL(?2) OR
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) ) ,
 				tracker.getNewVariable( "y" ) , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "y" ) ) ,
 				Operator.IMPLICATION , 
 				tracker.getVariableByName( "x" ) , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) ) ,
 				Operator.IMPLICATION
 			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 0 ) ) ,
-				tracker.getSystemVariableById( 1 ) , Operator.NOT , newQuantifierList( Quantifier.EXISTS , tracker.getSystemVariableById( 1 ) ) ,
+		List< Symbol > expected = Arrays.asList( 
+				getMockSystemVariableById( 0 ) , newQuantifierList( Quantifier.FORALL , getMockSystemVariableById( 0 ) ) ,
+				getMockSystemVariableById( 1 ) , Operator.NOT , newQuantifierList( Quantifier.EXISTS , getMockSystemVariableById( 1 ) ) ,
 				Operator.AND , 
-				tracker.getSystemVariableById( 2 ) , newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 2 ) ) ,
+				getMockSystemVariableById( 2 ) , newQuantifierList( Quantifier.FORALL , getMockSystemVariableById( 2 ) ) ,
 				Operator.OR
 				);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );
+		testStandardize( tracker , input , expected );
+	}
+	
+	@Test
+	public void testStandardizeQuantifiers2() {
+		SymbolTracker tracker = new SymbolTracker();
 		
-		//test standardizing "FORALL(x,y,z) x AND y AND z AND FORALL(x,y) x AND y AND z" 	<=>
-		//					"x y AND z AND x y AND z AND FORALL(x,y) AND FORALL(x,y,z)"	<=>
-		//					"?0 ?1 AND ?2 AND ?3 ?4 AND ?2 AND FORALL(?3,?4) AND FORALL(?0,?1,?2)"
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
+		//check that multi-variable quantifiers get standardized
+		//and variables that shadow others get standardized appropriately
+		//[in infix]	"FORALL(x,y,z) x AND y AND z AND FORALL(x,y) x AND y AND z" 	<=>
+		//				"FORALL(?0,?1,?2) ?0 AND ?1 AND ?2 AND FORALL(?3,?4) ?3 AND ?4 AND ?5
+		//
+		//[in postfix]	"x y AND z AND x y AND z AND FORALL(x,y) AND FORALL(x,y,z)"	<=>
+		//				"?0 ?1 AND ?2 AND ?3 ?4 AND ?2 AND FORALL(?3,?4) AND FORALL(?0,?1,?2)"
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , Operator.AND ,
 				tracker.getNewVariable( "z" ) , Operator.AND , 
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) , Operator.AND , 
@@ -1009,28 +1002,28 @@ public class ExpressionTreeTest {
 				Operator.AND ,
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) , tracker.getVariableByName( "z" ) )
 			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
-				tracker.getSystemVariableById( 2 ) , Operator.AND ,
-				tracker.getSystemVariableById( 3 ) , tracker.getSystemVariableById( 4 ) , Operator.AND ,
-				tracker.getSystemVariableById( 2 ) , Operator.AND ,
-				newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 3 ) , tracker.getSystemVariableById( 4 ) ) ,
-				Operator.AND , newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 2 ) )
+		List< Symbol > expected = Arrays.asList( 
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) , Operator.AND ,
+				getMockSystemVariableById( 2 ) , Operator.AND ,
+				getMockSystemVariableById( 3 ) , getMockSystemVariableById( 4 ) , Operator.AND ,
+				getMockSystemVariableById( 2 ) , Operator.AND ,
+				newQuantifierList( Quantifier.FORALL , getMockSystemVariableById( 3 ) , getMockSystemVariableById( 4 ) ) ,
+				Operator.AND , newQuantifierList( Quantifier.FORALL , getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) , getMockSystemVariableById( 2 ) )
 				);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );
+		testStandardize( tracker , input , expected );
+	}
+	
+	@Test
+	public void testStandardizeQuantifiers3() {
+		SymbolTracker tracker = new SymbolTracker();
 		
-		//test standardizing "FORALL(x,y) x AND y AND EXISTS(x,y,z) x OR y OR z"
-		//which in postfix is "x y AND x y OR z OR EXISTS(x,y,z) AND FORALL(x,y)"
-		//should yield "?0 ?1 AND ?2 ?3 OR ?4 OR EXISTS(?2,?3,?4) AND FORALL(?0,?1)"
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
+		//test standardizing with two different quantifiers. Should not be much
+		//of a difference from using two of the same quantifier.
+		//[in infix]	"FORALL(x,y) x AND y AND EXISTS(x,y,z) x OR y OR z"		<=>
+		//				"FORALL(?0,?1) ?0 AND ?1 AND EXISTS(?2,?3,?4) ?2 OR ?3 OR ?4
+		//[in postfix]	"x y AND x y OR z OR EXISTS(x,y,z) AND FORALL(x,y)"		<=>
+		//				"?0 ?1 AND ?2 ?3 OR ?4 OR EXISTS(?2,?3,?4) AND FORALL(?0,?1)"
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , Operator.AND ,
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) , Operator.OR ,
 				tracker.getNewVariable( "z" ) , Operator.OR ,
@@ -1038,31 +1031,34 @@ public class ExpressionTreeTest {
 				Operator.AND , 
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
 			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
-				tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 3 ) , Operator.OR ,
-				tracker.getSystemVariableById( 4 ) , Operator.OR ,
-				newQuantifierList( Quantifier.EXISTS , tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 3 ) , tracker.getSystemVariableById( 4 ) ) ,
+		List< Symbol > expected = Arrays.asList( 
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) , Operator.AND ,
+				getMockSystemVariableById( 2 ) , getMockSystemVariableById( 3 ) , Operator.OR ,
+				getMockSystemVariableById( 4 ) , Operator.OR ,
+				newQuantifierList( Quantifier.EXISTS , getMockSystemVariableById( 2 ) , getMockSystemVariableById( 3 ) , getMockSystemVariableById( 4 ) ) ,
 				Operator.AND ,
-				newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) )
+				newQuantifierList( Quantifier.FORALL , getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) )
 				);		
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );
-		
+		testStandardize( tracker , input , expected );
+	}
+	
+	@Test
+	public void testStandardizeFunctionArguments() throws IOException {
 		//test standardizing arguments to functions
 		// FORALL(x) GreaterThan(x,x) AND FORALL(x) GreaterThan(x,x) OR EXISTS(x) GreaterThan(SumInt(x,x), DiffInt(x,x))
 		//in postfix this is equivalent to
 		// x x GreaterThan x x SumInt x x DiffInt GreaterThan EXISTS(x) x x GreaterThan FORALL(x) OR AND FORALL(x)
 		//and this standardizes to
 		// ?0 ?0 GreaterThan ?1 ?1 SumInt ?1 ?1 DiffInt GreaterThan EXISTS(?1) ?2 ?2 GreaterThan FORALL(?2) OR AND FORALL(?0) 
-		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
-		input = Arrays.asList(
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		
+		//test standardizing arguments to functions
+		//[in infix]	"FORALL(x) GreaterThan(x,x) AND (EXISTS(x) GreaterThan(SumInt(x,x), DiffInt(x,x)) OR FORALL(x) GreaterThan(x,x))"		<=>
+		//				"FORALL(?0) GreaterThan(?0,?0) AND (EXISTS(?1) GreaterThan(SumInt(?1,?1), DiffInt(?1,?1)) OR FORALL(?2) GreaterThan(?2,?2))"
+		//
+		//[in postfix]	"x x GreaterThan x x SumInt x x DiffInt GreaterThan EXISTS(x) x x GreaterThan FORALL(x) OR AND FORALL(x)"				<=>
+		//				"?0 ?0 GreaterThan ?1 ?1 SumInt ?1 ?1 DiffInt GreaterThan EXISTS(?1) ?2 ?2 GreaterThan FORALL(?2) OR AND FORALL (?0)
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , tracker.getVariableByName( "x" ) , tracker.getRelation( "GreaterThan" ) ,
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , tracker.getFunction( "SumInt" ) ,
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , tracker.getFunction( "DiffInt" ) ,
@@ -1071,49 +1067,51 @@ public class ExpressionTreeTest {
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) ) , Operator.OR , Operator.AND ,
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) )
 			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 0 ) , tracker.getRelation( "GreaterThan" ) ,
-				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 1 ) , tracker.getFunction( "SumInt" ) ,
-				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 1 ) , tracker.getFunction( "DiffInt" ) ,
-				tracker.getRelation( "GreaterThan" ) , newQuantifierList( Quantifier.EXISTS , tracker.getSystemVariableById( 1 ) ) ,
-				tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 2 ) , tracker.getRelation( "GreaterThan" ) ,
-				newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 2 ) ) , Operator.OR , Operator.AND ,
-				newQuantifierList( Quantifier.FORALL , tracker.getSystemVariableById( 0 ) )
-			);		
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );
-		
+		List< Symbol > expected = Arrays.asList( 
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 0 ) , tracker.getRelation( "GreaterThan" ) ,
+				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 1 ) , tracker.getFunction( "SumInt" ) ,
+				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 1 ) , tracker.getFunction( "DiffInt" ) ,
+				tracker.getRelation( "GreaterThan" ) , newQuantifierList( Quantifier.EXISTS , getMockSystemVariableById( 1 ) ) ,
+				getMockSystemVariableById( 2 ) , getMockSystemVariableById( 2 ) , tracker.getRelation( "GreaterThan" ) ,
+				newQuantifierList( Quantifier.FORALL , getMockSystemVariableById( 2 ) ) , Operator.OR , Operator.AND ,
+				newQuantifierList( Quantifier.FORALL , getMockSystemVariableById( 0 ) )
+			);
+		testStandardize( tracker , input , expected );
+	}
+	
+	@Test
+	public void testStandardizeScopeErrors() throws IOException {
 		//test for potential scope errors:
 		//EXISTS(x) (EXISTS(x) x) AND x
 		//in postfix, this is equivalent to
 		// x EXISTS(x) x AND EXISTS(x)
 		//which should yield the following when standardized:
 		// ?1 EXISTS(?1) ?0 AND EXISTS(?0)
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
+		SymbolTracker tracker = new SymbolTracker();
+		
+		//test for potential scope errors where a mapping of a user variable
+		//to a system variable needs to be "undone"
+		//		[EXISTS x]
+		//	  /  	      \
+		//  [EXISTS x]	  [x]
+		//	...
+		
+		//[in infix]	"EXISTS(x) (EXISTS(x) x) AND x"			<=>
+		//				"EXISTS(?0) (EXISTS(?1) ?1) AND ?0"
+		//[in postfix]	"x EXISTS(x) x AND EXISTS(x)			<=>
+		//				"?1 EXISTS(?1) ?0 AND EXISTS(?0)"
+		//
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
 				tracker.getVariableByName( "x" ) , Operator.AND ,
 				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) )
 			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 1 ) , newQuantifierList( Quantifier.EXISTS , tracker.getSystemVariableById( 1 ) ) ,
-				tracker.getSystemVariableById( 0 ) , Operator.AND ,
-				newQuantifierList( Quantifier.EXISTS , tracker.getSystemVariableById( 0 ) )
-			);		
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );
+		List< Symbol > expected = Arrays.asList( 
+				getMockSystemVariableById( 1 ) , newQuantifierList( Quantifier.EXISTS , getMockSystemVariableById( 1 ) ) ,
+				getMockSystemVariableById( 0 ) , Operator.AND ,
+				newQuantifierList( Quantifier.EXISTS , getMockSystemVariableById( 0 ) )
+			);	
+		testStandardize( tracker , input , expected );
 	}
 	
 	@Test
@@ -1138,8 +1136,8 @@ public class ExpressionTreeTest {
 		skolemize( exprTree , tracker );
 		dropQuantifiers( exprTree );
 		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
-				tracker.getSystemVariableById( 2 ) , Operator.AND
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) , Operator.AND ,
+				getMockSystemVariableById( 2 ) , Operator.AND
 				);
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
@@ -1205,7 +1203,7 @@ public class ExpressionTreeTest {
 		skolemize( exprTree , tracker );
 		dropQuantifiers( exprTree );
 		expected = Arrays.asList( 
-				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) ) , Operator.AND
+				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) , new SkolemFunction( 1 , getMockSystemVariableById( 0 ) ) , Operator.AND
 				);
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
@@ -1229,7 +1227,7 @@ public class ExpressionTreeTest {
 		skolemize( exprTree , tracker );
 		dropQuantifiers( exprTree );
 		expected = Arrays.asList( 
-				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , tracker.getSystemVariableById( 0 ) , Operator.AND , new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) ) , Operator.AND
+				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) , getMockSystemVariableById( 0 ) , Operator.AND , new SkolemFunction( 1 , getMockSystemVariableById( 0 ) ) , Operator.AND
 				);
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
@@ -1255,10 +1253,10 @@ public class ExpressionTreeTest {
 		skolemize( exprTree , tracker );
 		dropQuantifiers( exprTree );
 		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.AND ,
-				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) ) , 
-				new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) ) ,
-				Operator.OR , new SkolemFunction( 2 , tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) ) , 
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) , Operator.AND ,
+				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) ) , 
+				new SkolemFunction( 1 , getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) ) ,
+				Operator.OR , new SkolemFunction( 2 , getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) ) , 
 				Operator.OR , Operator.AND
 				);
 		found = new ArrayList< Symbol >();
@@ -1286,8 +1284,8 @@ public class ExpressionTreeTest {
 		skolemize( exprTree , tracker );
 		dropQuantifiers( exprTree );
 		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) ,
-				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) ,
+				getMockSystemVariableById( 0 ) , new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) ,
+				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) , new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) ,
 				tracker.getFunction( "DiffInt" ) , tracker.getRelation( "GreaterThan" ) ,
 				Operator.AND
 				);
@@ -1323,8 +1321,8 @@ public class ExpressionTreeTest {
 		dropQuantifiers( exprTree );
 		distributeOrOverAnd( exprTree );
 		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , Operator.OR ,
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 2 ) , Operator.OR ,
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) , Operator.OR ,
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 2 ) , Operator.OR ,
 				Operator.AND
 			);
 		found = new ArrayList< Symbol >();
@@ -1350,8 +1348,8 @@ public class ExpressionTreeTest {
 		dropQuantifiers( exprTree );
 		distributeOrOverAnd( exprTree );
 		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 2 ) , Operator.OR ,
-				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 2 ) , Operator.OR ,
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 2 ) , Operator.OR ,
+				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 2 ) , Operator.OR ,
 				Operator.AND
 			);
 		found = new ArrayList< Symbol >();
@@ -1377,8 +1375,8 @@ public class ExpressionTreeTest {
 		dropQuantifiers( exprTree );
 		distributeOrOverAnd( exprTree );
 		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 2 ) , Operator.OR ,
-				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 2 ) , Operator.OR ,
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 2 ) , Operator.OR ,
+				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 2 ) , Operator.OR ,
 				Operator.AND
 			);
 		found = new ArrayList< Symbol >();
@@ -1405,10 +1403,10 @@ public class ExpressionTreeTest {
 		dropQuantifiers( exprTree );
 		distributeOrOverAnd( exprTree );
 		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 2 ) , Operator.OR ,
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 3 ) , Operator.OR , Operator.AND ,
-				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 2 ) , Operator.OR ,
-				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 3 ) , Operator.OR , Operator.AND ,
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 2 ) , Operator.OR ,
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 3 ) , Operator.OR , Operator.AND ,
+				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 2 ) , Operator.OR ,
+				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 3 ) , Operator.OR , Operator.AND ,
 				Operator.AND 
 			);
 		found = new ArrayList< Symbol >();
@@ -1437,15 +1435,15 @@ public class ExpressionTreeTest {
 		dropQuantifiers( exprTree );
 		distributeOrOverAnd( exprTree );
 		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 3 ) , Operator.OR , 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 4 ) , Operator.OR , Operator.AND ,
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 5 ) , Operator.OR , Operator.AND ,
-				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 3 ) , Operator.OR , 
-				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 4 ) , Operator.OR , Operator.AND ,
-				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 5 ) , Operator.OR , Operator.AND , Operator.AND ,
-				tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 3 ) , Operator.OR ,
-				tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 4 ) , Operator.OR , Operator.AND ,
-				tracker.getSystemVariableById( 2 ) , tracker.getSystemVariableById( 5 ) , Operator.OR , Operator.AND ,  Operator.AND 
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 3 ) , Operator.OR , 
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 4 ) , Operator.OR , Operator.AND ,
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 5 ) , Operator.OR , Operator.AND ,
+				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 3 ) , Operator.OR , 
+				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 4 ) , Operator.OR , Operator.AND ,
+				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 5 ) , Operator.OR , Operator.AND , Operator.AND ,
+				getMockSystemVariableById( 2 ) , getMockSystemVariableById( 3 ) , Operator.OR ,
+				getMockSystemVariableById( 2 ) , getMockSystemVariableById( 4 ) , Operator.OR , Operator.AND ,
+				getMockSystemVariableById( 2 ) , getMockSystemVariableById( 5 ) , Operator.OR , Operator.AND ,  Operator.AND 
 			);
 		found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
@@ -1477,9 +1475,9 @@ public class ExpressionTreeTest {
 		dropQuantifiers( exprTree );
 		distributeOrOverAnd( exprTree );
 		expected = Arrays.asList( 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) ,  tracker.getSystemVariableById( 2 ) , 
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) ,  getMockSystemVariableById( 2 ) , 
 				Operator.OR , Operator.OR , 
-				tracker.getSystemVariableById( 0 ) , tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 3 ) , 
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) , getMockSystemVariableById( 3 ) , 
 				Operator.OR , Operator.OR , Operator.AND
 			);
 		found = new ArrayList< Symbol >();
@@ -1546,12 +1544,12 @@ public class ExpressionTreeTest {
 		ExpressionTree exprTree = new ExpressionTree( input );
 		List< Symbol > output = exprTree.getCNFPostfix( tracker );
 		List< Symbol > expected = Arrays.asList(
-				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , Animal , 
-				new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) ) , tracker.getSystemVariableById( 0 ) ,
-				Loves , Operator.OR , tracker.getSystemVariableById( 0 ) ,
-				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , Loves ,
-				Operator.NOT , new SkolemFunction( 1 , tracker.getSystemVariableById( 0 ) ) ,
-				tracker.getSystemVariableById( 0 ) , Loves , Operator.OR , Operator.AND
+				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) , Animal , 
+				new SkolemFunction( 1 , getMockSystemVariableById( 0 ) ) , getMockSystemVariableById( 0 ) ,
+				Loves , Operator.OR , getMockSystemVariableById( 0 ) ,
+				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) , Loves ,
+				Operator.NOT , new SkolemFunction( 1 , getMockSystemVariableById( 0 ) ) ,
+				getMockSystemVariableById( 0 ) , Loves , Operator.OR , Operator.AND
 			);
 		Assert.assertTrue( expected.equals( output ) );	
 	}
@@ -1626,11 +1624,11 @@ public class ExpressionTreeTest {
 		
 		//Expected = ?0 Person NOT $0(?0) Heart OR ?0 Person NOT ?0 $0(?0) HAS OR AND
 		List< Symbol > expected = Arrays.asList(
-				tracker.getSystemVariableById( 0 ) , Person , Operator.NOT , 
-				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) , 
-				Heart , Operator.OR , tracker.getSystemVariableById( 0 ) , 
-				Person , Operator.NOT , tracker.getSystemVariableById( 0 ) ,
-				new SkolemFunction( 0 , tracker.getSystemVariableById( 0 ) ) ,
+				getMockSystemVariableById( 0 ) , Person , Operator.NOT , 
+				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) , 
+				Heart , Operator.OR , getMockSystemVariableById( 0 ) , 
+				Person , Operator.NOT , getMockSystemVariableById( 0 ) ,
+				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) ,
 				Has , Operator.OR , Operator.AND 
 			);
 		Assert.assertTrue( expected.equals( output ) );	
@@ -1715,8 +1713,8 @@ public class ExpressionTreeTest {
 		ExpressionTree exprTree = new ExpressionTree( input );
 		List< Symbol > output = exprTree.getCNFPostfix( tracker );
 		
-		Variable v0 = tracker.getSystemVariableById( 0 );
-		Variable v1 = tracker.getSystemVariableById( 1 );
+		Variable v0 = getMockSystemVariableById( 0 );
+		Variable v1 = getMockSystemVariableById( 1 );
 		SkolemFunction s0 = new SkolemFunction( 0 , v0 , v1 );
 		//Expected = ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR $0(?0,?1) Book OR ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR ?0 $0(?0,?1) Write OR AND ?0 Philosopher NOT ?1 ?0 StudentOf NOT OR ?1, $0(?0,?1) READ OR AND
 		List< Symbol > expected = Arrays.asList(
@@ -1854,10 +1852,10 @@ public class ExpressionTreeTest {
 		//expected = $0() Person $0() ?1 Likes ! ?1 ?2 == OR $0() ?2 Likes ! OR AND
 		List< Symbol > expected = Arrays.asList( 
 				new SkolemFunction( 0 ) , Person , new SkolemFunction( 0 ) , 
-				tracker.getSystemVariableById( 1 ) , Likes , Operator.NOT ,
-				tracker.getSystemVariableById( 1 ) , tracker.getSystemVariableById( 2 ) ,
+				getMockSystemVariableById( 1 ) , Likes , Operator.NOT ,
+				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 2 ) ,
 				Operator.EQUALS , Operator.OR , new SkolemFunction( 0 ) , 
-				tracker.getSystemVariableById( 2 ) , Likes , Operator.NOT , Operator.OR ,
+				getMockSystemVariableById( 2 ) , Likes , Operator.NOT , Operator.OR ,
 				Operator.AND
 			);
 		Assert.assertTrue( output.equals( expected ) );
@@ -1924,8 +1922,8 @@ public class ExpressionTreeTest {
 		ExpressionTree exprTree = new ExpressionTree( input );
 		List< Symbol > output = exprTree.getCNFPostfix( tracker );
 		
-		Variable v0 = tracker.getSystemVariableById( 0 );
-		Variable v1 = tracker.getSystemVariableById( 1 );
+		Variable v0 = getMockSystemVariableById( 0 );
+		Variable v1 = getMockSystemVariableById( 1 );
 		SkolemFunction s0 = new SkolemFunction( 0 , v0 , v1 );
 		Symbol NOT = Operator.NOT;
 		Symbol OR = Operator.OR;
@@ -1969,9 +1967,9 @@ public class ExpressionTreeTest {
 		ExpressionTree exprTree = new ExpressionTree( input );
 		List< Symbol > output = exprTree.getCNFPostfix( tracker );
 		
-		Variable v0 = tracker.getSystemVariableById( 0 );
-		Variable v1 = tracker.getSystemVariableById( 1 );
-		Variable v2 = tracker.getSystemVariableById( 2 );
+		Variable v0 = getMockSystemVariableById( 0 );
+		Variable v1 = getMockSystemVariableById( 1 );
+		Variable v2 = getMockSystemVariableById( 2 );
 		Operator NOT = Operator.NOT;
 		Operator AND = Operator.AND;
 		Operator OR = Operator.OR;

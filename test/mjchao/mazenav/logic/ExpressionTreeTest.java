@@ -1111,130 +1111,114 @@ public class ExpressionTreeTest {
 		testStandardize( tracker , input , expected );
 	}
 	
+	public void testSkolemizeAndDropQuantifiers( SymbolTracker tracker , List< Symbol > input , List< Symbol > expected ) {
+		ExpressionTree exprTree = new ExpressionTree();
+		setPostfix( exprTree , input );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		List< Symbol > found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expected.equals( found ) );
+	}
+	
 	@Test
-	public void testSkolemizeAndDropQuantifiers() throws IOException {
-		SymbolTracker tracker;
-		List< Symbol > input;
-		ExpressionTree exprTree;
-		List< Symbol > expected;
-		List< Symbol > found;	
+	public void testSkolemizeAndDropQuantifiersBAT1() {
+		SymbolTracker tracker = new SymbolTracker();
 		
 		//test no skolemization necessary: "x AND y AND z"
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
+		//[in infix]			"x AND y AND z"			<=>		"?0 AND ?1 AND ?2"
+		//[in postfix]			"x y AND z AND"			<=>		"?0 ?1 AND ?2 AND"
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , Operator.AND ,
 				tracker.getNewVariable( "z" ) , Operator.AND
 			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
-		expected = Arrays.asList( 
+		List< Symbol > expected = Arrays.asList( 
 				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) , Operator.AND ,
 				getMockSystemVariableById( 2 ) , Operator.AND
 				);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );			
-		
+		testSkolemizeAndDropQuantifiers( tracker , input , expected );
+	}
+	
+	@Test
+	public void testSkolemizeAndDropQuantifiersBAT2() {
 		//test skolemizing "EXISTS(x) x"
 		//should yield "$0" after skolemizing and dropping quantifiers
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
+		SymbolTracker tracker = new SymbolTracker();
+		
+		//test skolemizing a single existential quantifier
+		//[in infix]		"EXISTS(x) x"		<=>		"$0()"
+		//[in postfix]		"x EXISTS(x)"		<=>		"$0()"
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) )
 			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
-		expected = Arrays.asList( 
+		List< Symbol > expected = Arrays.asList( 
 				new SkolemFunction( 0 )
 				);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );	
+		testSkolemizeAndDropQuantifiers( tracker , input , expected );
+	}
+	
+	@Test
+	public void testSkolemizeAndDropQuantifiersBAT3() {
+		SymbolTracker tracker = new SymbolTracker();
 		
-		//test skolemizing "EXISTS(x) x AND EXISTS(x) x"
-		//should yield "$0 $1 AND" in postfix after skolemizing
-		//and dropping quantifiers
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
+		//test skolemizing two existential quantifiers
+		//[in infix]	"EXISTS(x) x AND EXISTS(x) x"		<=>		"$0() AND $1()"
+		//[in postfix]	"x EXISTS(x) x EXISTS(x) AND"		<=>		"$0() $1() AND"
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
 				tracker.getVariableByName( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
 				Operator.AND 
 			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
-		expected = Arrays.asList( 
+		List< Symbol > expected = Arrays.asList( 
 				new SkolemFunction( 0 ) , new SkolemFunction( 1 ) , Operator.AND
 				);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );	
-		
+		testSkolemizeAndDropQuantifiers( tracker , input , expected );
+	}
+	
+	@Test
+	public void testSkolemizeAndDropQuantifiersBAT4() {
 		//test skolemizing "FORALL(x) EXISTS(x) x AND EXISTS(x) x"
 		//should yield "$0(?0) $1(?0) AND" in postfix after skolemizing
 		//and dropping quantifiers
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
+		SymbolTracker tracker = new SymbolTracker();
+		
+		//test skolemizing existential quantifiers in the scope of a universal
+		//quantifier
+		//[in infix]	"FORALL(x) EXISTS(x) x AND EXISTS(x) x"			<=>
+		//				"FORALL(?0) EXISTS(?1) ?1 AND EXISTS(?2) ?2"	<=>
+		//				"$0(?0) AND $1(?0)"
+		//[in postfix]	"x EXISTS(x) x EXISTS(x) AND FORALL(x)"			<=>
+		//				"$0(?0) $1(?0) AND"
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
 				tracker.getVariableByName( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
 				Operator.AND , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) )
 			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
-		expected = Arrays.asList( 
+		List< Symbol > expected = Arrays.asList( 
 				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) , new SkolemFunction( 1 , getMockSystemVariableById( 0 ) ) , Operator.AND
 				);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );
-		
-		//test skolemizing "FORALL(y) EXISTS(x) x AND y AND EXISTS(x) x"
-		//should yield "$0(?0) y AND $1(?0) AND" in postfix after skolemizing
-		//and dropping quantifiers
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
-				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
-				tracker.getNewVariable( "y" ) , Operator.AND ,
-				tracker.getVariableByName( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
-				Operator.AND , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "y" ) )
-			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
-		expected = Arrays.asList( 
-				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) , getMockSystemVariableById( 0 ) , Operator.AND , new SkolemFunction( 1 , getMockSystemVariableById( 0 ) ) , Operator.AND
-				);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );	
-		
+		testSkolemizeAndDropQuantifiers( tracker , input , expected );
+	}
+	
+	@Test
+	public void testSkolemizeAndDropQuantifiersUniversalWithExistential1() {
 		//test skolemizing "FORALL(x,y) x AND y AND EXISTS(x,y,z) x OR y OR z"
 		//which in postfix is "x y AND x y OR z OR EXISTS(x,y,z) AND FORALL(x,y)"
 		//should yield "?0 ?1 AND $0(?0,?1) $1(?0,?1) OR $2(?0,?1) OR AND
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
+		SymbolTracker tracker = new SymbolTracker();
+		
+		//test skolemizing existentially quantifier variables mixed in with
+		//universally quantified variables
+		//[in infix]	"FORALL(x,y) x AND y AND EXISTS(x,y,z) x OR y OR z"				<=>	
+		//				"FORALL(?0,?1) ?0 AND ?1 AND EXISTS(?2,?3,?4) ?2 OR ?3 OR ?4"	<=>
+		//				"?0 AND ?1 AND $0(?0,?1) OR $1(?0,?1) OR $2(?0,?1)
+		//[in postfix]  "x y AND x y OR z OR EXISTS(x,y,z) AND FORALL(x,y)"		<=>
+		//				"?0 ?1 AND $0(?0,?1) $1(?0,?1) OR $2(?0,?1) OR AND"
+		
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , tracker.getNewVariable( "y" ) , Operator.AND ,
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) , Operator.OR ,
 				tracker.getNewVariable( "z" ) , Operator.OR ,
@@ -1242,53 +1226,70 @@ public class ExpressionTreeTest {
 				Operator.AND , 
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
 			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
-		expected = Arrays.asList( 
+		List< Symbol > expected = Arrays.asList( 
 				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) , Operator.AND ,
 				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) ) , 
 				new SkolemFunction( 1 , getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) ) ,
 				Operator.OR , new SkolemFunction( 2 , getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) ) , 
 				Operator.OR , Operator.AND
 				);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );	
+		testSkolemizeAndDropQuantifiers( tracker , input , expected );
+	}
+	
+	@Test
+	public void testSkolemizeAndDropQuantifiersUniversalWithExistential2() {
+		SymbolTracker tracker = new SymbolTracker();
 		
+		//test skolemizing existentially quantified variables mixed in with
+		//universally quantifier variables. this time, though, an existentially
+		//quantifier variable has the same name as another one, but is in a
+		//different scope.
+		//[in infix]	"FORALL(y) EXISTS(x) x AND y AND EXISTS(x) x"		<=>
+		//				"FORALL(?0) EXISTS(?1) ?1 AND ?0 AND EXISTS(?2) ?2"	<=>
+		//				"$0(?0) AND ?0 AND $1(?0)"
+		//[in postfix]	"x EXISTS(x) y AND x EXISTS(x) AND FORALL(y)"		<=>
+		//				"$0(?0) ?0 AND $1(?0)"
+		List< Symbol > input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
+				tracker.getNewVariable( "y" ) , Operator.AND ,
+				tracker.getVariableByName( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
+				Operator.AND , newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "y" ) )
+			);		
+		List< Symbol > expected = Arrays.asList( 
+				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) , getMockSystemVariableById( 0 ) , Operator.AND , new SkolemFunction( 1 , getMockSystemVariableById( 0 ) ) , Operator.AND
+				);
+		testSkolemizeAndDropQuantifiers( tracker , input , expected );
+	}
+	
+	@Test
+	public void testSkolemizeAndDropQuantifiersFunctionArguments() throws IOException {
 		//test skolemizing variables inside functions
 		//FORALL(x) x AND EXISTS(x) GreaterThan(x, DiffInt(x,x))
 		//in postfix this is
 		//x x x x DiffInt GreaterThan EXISTS(x) AND FORALL(x)
 		//which standardizes and skolemizes to
 		//?0 $0(?0) $0(?0) $0(?0) DiffInt GreaterThan AND
-		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
-		input = Arrays.asList(
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		
+		//test skolemizing variables inside functions
+		//[in infix]		"FORALL(x) x AND EXISTS(x) GreaterThan(x, DiffInt(x,x))"		<=>
+		//					"FORALL(?0) ?0 AND EXISTS(?1) GreaterThan(?1, DiffInt(?1,?1))"	<=>
+		//					"?0 AND GreaterThan($0(?0), DiffInt($0(?0),$0(?0)))"
+		//[in postfix]		"x x x x DiffInt GreaterThan EXISTS(x) AND FORALL(x)"			<=>
+		//					"?0 $0(?0) $0?(?0) $0(?0) DiffInt GreaterThan AND"
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) ,
 				tracker.getVariableByName( "x" ) , tracker.getFunction( "DiffInt" ) , tracker.getRelation( "GreaterThan" ) ,
 				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) , Operator.AND ,
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) )
 			);		
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
-		expected = Arrays.asList( 
+		List< Symbol > expected = Arrays.asList( 
 				getMockSystemVariableById( 0 ) , new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) ,
 				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) , new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) ,
 				tracker.getFunction( "DiffInt" ) , tracker.getRelation( "GreaterThan" ) ,
 				Operator.AND
 				);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );	
+		testSkolemizeAndDropQuantifiers( tracker , input , expected );
 	}
 	
 	@Test

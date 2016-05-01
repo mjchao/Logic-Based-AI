@@ -1111,9 +1111,20 @@ public class ExpressionTreeTest {
 		testStandardize( tracker , input , expected );
 	}
 	
-	public void testSkolemizeAndDropQuantifiers( SymbolTracker tracker , List< Symbol > input , List< Symbol > expected ) {
+	/**
+	 * Verifies that the ExpressionTree correctly skolemized existential
+	 * quantifiers and dropped quantifiers. Assumes that buildTree(),
+	 * eliminateArrowsAndDistribtueNots() and standardize() have been
+	 * implemented correctly.
+	 * 
+	 * @param tracker			keeps track of system variables and skolem functions
+	 * @param inputPostfix		an expression in postfix to skolemize and drop quantifiers			
+	 * @param expectedPostfix	the expression in postfix after skolemizing and
+	 * 							dropping quantifiers
+	 */
+	public void testSkolemizeAndDropQuantifiers( SymbolTracker tracker , List< Symbol > inputPostfix , List< Symbol > expectedPostfix ) {
 		ExpressionTree exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
+		setPostfix( exprTree , inputPostfix );
 		buildTree( exprTree );
 		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
@@ -1121,7 +1132,7 @@ public class ExpressionTreeTest {
 		dropQuantifiers( exprTree );
 		List< Symbol > found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );
+		Assert.assertTrue( expectedPostfix.equals( found ) );
 	}
 	
 	@Test
@@ -1292,147 +1303,124 @@ public class ExpressionTreeTest {
 		testSkolemizeAndDropQuantifiers( tracker , input , expected );
 	}
 	
+	/**
+	 * Verifies that the ExpressionTree correctly distributed ORs over ANDs.
+	 * Assumes that buildTree(), eliminateArrowsAndDistributeNots(), 
+	 * standardize(), skolemize(), and dropQuantifiers() have been
+	 * implemented correctly.
+	 * 
+	 * @param tracker			keeps track of system variables and skolem functions
+	 * @param inputPostfix		an expression in postfix to distribtue ORs over ANDs
+	 * @param expectedPostfix	the expression in postfix after distributing ORs
+	 * 							over ANDs
+	 */
+	public void testDistributeOrOverAnd( SymbolTracker tracker , List< Symbol > inputPostfix , List< Symbol > expectedPostfix ) {
+		ExpressionTree exprTree = new ExpressionTree();
+		setPostfix( exprTree , inputPostfix );
+		buildTree( exprTree );
+		eliminateArrowsAndDistributeNots( exprTree );
+		standardize( exprTree , tracker );
+		skolemize( exprTree , tracker );
+		dropQuantifiers( exprTree );
+		distributeOrOverAnd( exprTree );
+		List< Symbol > found = new ArrayList< Symbol >();
+		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
+		Assert.assertTrue( expectedPostfix.equals( found ) );
+	}
+	
 	@Test
-	public void testDistributeOrOverAnd() {
-		SymbolTracker tracker;
-		List< Symbol > input;
-		ExpressionTree exprTree;
-		List< Symbol > expected;
-		List< Symbol > found;
+	public void testDistributeOrOverAndBAT1() {
 		
 		//test straightforward P OR (Q AND R)
 		//which is "P Q R AND OR" in postfix
 		//this should yield (P OR Q) AND (P OR R) 
 		//when standardized, this should be
 		//?0 ?1 OR ?0 ?2 OR AND
-		tracker = new SymbolTracker();
-		input = Arrays.asList( 
+		SymbolTracker tracker = new SymbolTracker();
+		
+		//test straightforward distribution of one OR over one AND
+		//[in infix]		"P OR (Q AND R)"		<=>		"(P OR Q) AND (P OR R)"		<=>
+		//					"(?0 OR ?1) AND (?0 AND ?2)"
+		//[in postfix]		"P Q R AND OR"			<=>		"?0 ?1 OR ?0 ?2 OR AND"
+		List< Symbol > input = Arrays.asList( 
 				tracker.getNewVariable( "P" ) , tracker.getNewVariable( "Q" ) , 
 				tracker.getNewVariable( "R" ) , Operator.AND , Operator.OR 
 			);
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
-		distributeOrOverAnd( exprTree );
-		expected = Arrays.asList( 
+		List< Symbol > expected = Arrays.asList( 
 				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) , Operator.OR ,
 				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 2 ) , Operator.OR ,
 				Operator.AND
-			);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );	
-		
+			);	
+		testDistributeOrOverAnd( tracker , input , expected );
+	}
+	
+	@Test
+	public void testDistributeOrOverAndBAT2() {
 		//test straightforward (P AND Q) OR R
 		//which is "P Q AND R OR" in postfix
 		//this should yield (P OR R) AND (Q OR R) 
 		//when standardized, this should be
 		//?0 ?2 OR ?1 ?2 OR AND
-		tracker = new SymbolTracker();
-		input = Arrays.asList( 
+		SymbolTracker tracker = new SymbolTracker();
+		
+		//test distributing an OR over an AND again, except this time, 
+		//the AND comes before the OR.
+		//[in infix]	"(P AND Q) OR R"	<=>		"(P OR R) AND (Q OR R)"
+		//[in postfix]	"P Q AND R OR"		<=>		"?0 ?2 OR ?1 ?2 OR AND"
+		List< Symbol > input = Arrays.asList( 
 				tracker.getNewVariable( "P" ) , tracker.getNewVariable( "Q" ) , Operator.AND , 
 				tracker.getNewVariable( "R" ) , Operator.OR 
 			);
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
-		distributeOrOverAnd( exprTree );
-		expected = Arrays.asList( 
+		List< Symbol > expected = Arrays.asList( 
 				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 2 ) , Operator.OR ,
 				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 2 ) , Operator.OR ,
 				Operator.AND
 			);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );	
+		testDistributeOrOverAnd( tracker , input , expected );
+	}
+	
+	@Test
+	public void testDistributeOrOverAndConjunctionsOf2() {
+		SymbolTracker tracker = new SymbolTracker();
 		
-		//test straightforward (P AND Q) OR R
-		//which is "P Q AND R OR" in postfix
-		//this should yield (P OR R) AND (Q OR R) 
-		//when standardized, this should be
-		//?0 ?2 OR ?1 ?2 OR AND
-		tracker = new SymbolTracker();
-		input = Arrays.asList( 
-				tracker.getNewVariable( "P" ) , tracker.getNewVariable( "Q" ) , Operator.AND , 
-				tracker.getNewVariable( "R" ) , Operator.OR 
-			);
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
-		distributeOrOverAnd( exprTree );
-		expected = Arrays.asList( 
-				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 2 ) , Operator.OR ,
-				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 2 ) , Operator.OR ,
-				Operator.AND
-			);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );	
-		
-		//test (P AND Q) OR (R AND S)
-		//which is "P Q AND R S AND OR" in postfix
-		//this should yield (P OR R) AND (Q OR R) AND (P OR S) AND (Q OR S) 
-		//when standardized, this should be
-		//?0 ?2 OR ?0 ?3 OR AND ?1 ?2 OR ?1 ?3 OR AND AND
-		tracker = new SymbolTracker();
-		input = Arrays.asList( 
+		//test distributing an OR over two conjunctions of 2 terms
+		//[in infix]	"(P AND Q) OR (R AND S)"	<=>		"((P OR (R AND S) AND (Q OR (R AND S))"		<=>
+		//				"(P OR R) AND (P OR S) AND (Q OR R) AND (Q OR S)"
+		//[in postfix]	"P Q AND R S AND OR"		<=>		"?0 ?2 OR ?0 ?3 AND ?1 ?2 OR ?1 ?3 OR AND AND"
+		List< Symbol > input = Arrays.asList( 
 				tracker.getNewVariable( "P" ) , tracker.getNewVariable( "Q" ) , Operator.AND , 
 				tracker.getNewVariable( "R" ) , tracker.getNewVariable( "S" ) , Operator.AND ,
 				Operator.OR 
 			);
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
-		distributeOrOverAnd( exprTree );
-		expected = Arrays.asList( 
+		List< Symbol > expected = Arrays.asList( 
 				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 2 ) , Operator.OR ,
 				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 3 ) , Operator.OR , Operator.AND ,
 				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 2 ) , Operator.OR ,
 				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 3 ) , Operator.OR , Operator.AND ,
 				Operator.AND 
 			);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );	
+		testDistributeOrOverAnd( tracker , input , expected );
+	}
+	
+	@Test
+	public void testDistrbuteOrOverAndConjunctionsOf3() {  
+		SymbolTracker tracker = new SymbolTracker();
 		
-		//test (P AND Q AND R) OR (S AND T AND U)
-		//which is "P Q AND R AND S T AND U AND OR" in postfix
-		//this should yield
-		//(P OR S) AND (P OR T) AND (P OR U) AND (Q OR S) AND (Q OR T) AND (Q OR U) AND (R OR S) AND (R OR T) AND (R OR U)
-		//when standardized, this should be
-		//?0 ?3 OR ?0 ?4 OR AND ?0 ?5 OR AND ?1 ?3 OR ?1 ?4 OR AND ?1 ?5 OR AND AND ?2 ?3 OR ?2 ?4 OR AND ?2 ?5 OR AND AND  
-		tracker = new SymbolTracker();
-		input = Arrays.asList( 
+		//test distributing an OR over two conjunctions of three terms
+		//[in infix]	"(P AND Q AND R) OR (S AND T AND U)"		<=>
+		//				"(P OR (S AND T AND U)) AND (Q OR (S AND T AND U)) AND (R OR (S AND T AND U))"	<=>
+		//				"(P OR S) AND (P OR (T AND U)) AND (Q OR S) AND (Q OR (T AND U)) AND (R OR S) AND (R OR (T AND U))"		<=>
+		//				"(P OR S) AND (P OR T) AND (P OR U) AND (Q OR S) AND (Q OR T) AND (Q OR U) AND (R OR S) AND (R OR T) AND (R OR U)"	<=>
+		//
+		//[in postfix]	"P Q AND R AND S T AND U AND OR"		<=>
+		//				?0 ?3 OR ?0 ?4 OR AND ?0 ?5 OR AND ?1 ?3 OR ?1 ?4 OR AND ?1 ?5 OR AND AND ?2 ?3 OR ?2 ?4 OR AND ?2 ?5 OR AND AND"
+		List< Symbol > input = Arrays.asList( 
 				tracker.getNewVariable( "P" ) , tracker.getNewVariable( "Q" ) , Operator.AND ,
 				tracker.getNewVariable( "R" ) , Operator.AND , 
 				tracker.getNewVariable( "S" ) , tracker.getNewVariable( "T" ) , Operator.AND ,
 				tracker.getNewVariable( "U" ) , Operator.AND , Operator.OR
 			);
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
-		distributeOrOverAnd( exprTree );
-		expected = Arrays.asList( 
+		List< Symbol > expected = Arrays.asList( 
 				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 3 ) , Operator.OR , 
 				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 4 ) , Operator.OR , Operator.AND ,
 				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 5 ) , Operator.OR , Operator.AND ,
@@ -1443,11 +1431,11 @@ public class ExpressionTreeTest {
 				getMockSystemVariableById( 2 ) , getMockSystemVariableById( 4 ) , Operator.OR , Operator.AND ,
 				getMockSystemVariableById( 2 ) , getMockSystemVariableById( 5 ) , Operator.OR , Operator.AND ,  Operator.AND 
 			);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );	
-		
-
+		testDistributeOrOverAnd( tracker , input , expected );
+	}
+	
+	@Test
+	public void testDistributeOrOverAndTwice() {
 		//test requiring two ORs be distributed over ANDs
 		//P OR (Q OR (R AND S))
 		//which is "P Q R S AND OR OR"  in postfix.
@@ -1458,29 +1446,24 @@ public class ExpressionTreeTest {
 		//P Q R OR OR P Q S OR OR AND
 		//when standardized, we get
 		//?0 ?1 ?2 OR OR ?0 ?1 ?3 OR OR AND
-		tracker = new SymbolTracker();
-		input = Arrays.asList(
+		SymbolTracker tracker = new SymbolTracker();
+		
+		//test requiring two ORS be distribtued over ANDs
+		//[in infix]	"P OR (Q OR (R AND S))"		<=>		"P OR ((Q OR R) AND (Q OR S))"	<=>
+		//				"(P OR Q OR R) AND (P OR Q OR S)"
+		//[in postfix]	"P Q R S AND OR OR"			<=>		"?0 ?1 ?2 OR OR ?0 ?1 ?3 OR OR AND"
+		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "P" ) , tracker.getNewVariable( "Q" ) , 
 				tracker.getNewVariable( "R" ) , tracker.getNewVariable( "S" ) , 
 				Operator.AND , Operator.OR , Operator.OR 
 			);
-		exprTree = new ExpressionTree();
-		setPostfix( exprTree , input );
-		buildTree( exprTree );
-		eliminateArrowsAndDistributeNots( exprTree );
-		standardize( exprTree , tracker );
-		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
-		distributeOrOverAnd( exprTree );
-		expected = Arrays.asList( 
+		List< Symbol > expected = Arrays.asList( 
 				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) ,  getMockSystemVariableById( 2 ) , 
 				Operator.OR , Operator.OR , 
 				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) , getMockSystemVariableById( 3 ) , 
 				Operator.OR , Operator.OR , Operator.AND
-			);
-		found = new ArrayList< Symbol >();
-		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
-		Assert.assertTrue( expected.equals( found ) );	
+			);	
+		testDistributeOrOverAnd( tracker , input , expected );
 	}
 	
 	/**

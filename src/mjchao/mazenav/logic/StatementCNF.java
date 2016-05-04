@@ -1,9 +1,7 @@
 package mjchao.mazenav.logic;
 
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
 import java.util.Stack;
 
 import mjchao.mazenav.logic.structures.Function;
@@ -29,7 +27,7 @@ public class StatementCNF {
 	 */
 	public static StatementCNF fromInfixString( String infix , SymbolTracker tracker ) {
 		Processor p = new Processor( infix , tracker );
-		Queue< Symbol > postfix = new LinkedList< Symbol >( p.process() );
+		List< Symbol > postfix = p.process();
 		return fromPostfix( postfix , tracker );
 	}
 	
@@ -43,14 +41,13 @@ public class StatementCNF {
 	 * @return				a StatementCNF object representing the postfix
 	 * 						conjunctive normal form expression.
 	 */
-	private static StatementCNF fromPostfix( Queue< Symbol > postfix , SymbolTracker tracker ) {
+	private static StatementCNF fromPostfix( List< Symbol > postfix , SymbolTracker tracker ) {
 		Stack< Disjunction > evalStack = new Stack< Disjunction >();
 		ArrayList< Disjunction > disjunctions = new ArrayList< Disjunction >();
 
 		//apply an algorithm to evaluate postfix:
 		
-		while( !postfix.isEmpty() ) {
-			Symbol s = postfix.poll();
+		for ( Symbol s : postfix ) {
 			if ( s.equals( Operator.OR ) ) {
 				
 				//OR the next 2 disjunctions on the stack together
@@ -100,7 +97,13 @@ public class StatementCNF {
 					//arguments to the function are read off the stack
 					//in reverse order, so we fill the arguments list
 					//starting from the back
-					args[ f.getNumArgs()-1-i ] = evalStack.pop().toSingleTerm();
+					Disjunction arg = evalStack.pop();
+					if ( arg.size() == 1 ) {
+						args[ f.getNumArgs()-1-i ] = arg.toSingleTerm();
+					}
+					else {
+						throw new IllegalArgumentException( "Cannot have compound statements as function arguments." );
+					}
 				}
 				evalStack.push( new Disjunction( f , args ) );
 			}
@@ -131,42 +134,97 @@ public class StatementCNF {
 	 */
 	public static class Disjunction {
 		
-		static void resolve( Disjunction d1 , Disjunction d2 ) {
-			//TODO
-		}
-		
 		/**
 		 * Represents a single term in a disjunction.
 		 * This structure contains the value of the term
 		 * and whether or not it is negated.
 		 *
 		 */
-		private static class Term {
+		 public static class Term {
+
+			/**
+			 * the symbol this term represents
+			 */
+			private final Symbol value;
 			
-			static void unify( Term t1 , Term t2 ) {
-				//TODO
-				
-			}
+			/**
+			 * arguments to a function this term represents. 
+			 * this variable is only used if this term represents a function.
+			 * otherwise, it is an empty array of size 0.
+			 */
+			private final Term[] args;
 			
-			public Symbol value;
-			public Term[] args;
-			public boolean negated;
+			/**
+			 * if this term has been negated.
+			 */
+			private boolean negated;
 			
-			public Term( Function function , boolean negated , Term... args ) {
+			/**
+			 * Creates a term to represent the a function with the given
+			 * arguments. Also, optionally specify if this term has been
+			 * negated. 
+			 * 	
+			 * @param function		the function this term represents
+			 * @param negated		if the function has been negated
+			 * @param args			the arguments to the function
+			 */
+			Term( Function function , boolean negated , Term... args ) {
 				this.value = function;
 				this.negated = negated;
 				this.args = args;
 			}
 			
-			public Term( Symbol value , boolean negated ) {
+			/**
+			 * Creates a term to represent a non-function symbol.
+			 * Also, optionally specify if this term has been negated.
+			 * 
+			 * @param value			the symbol this term represents
+			 * @param negated		if the symbol has been negated
+			 */
+			Term( Symbol value , boolean negated ) {
 				this.value = value;
 				this.negated = negated;
+				this.args = new Term[0];
 			}
 			
-			public Term( Symbol value ) {
+			/**
+			 * Creates a term to represent a non-function symbol
+			 * that has not been negated.
+			 * 
+			 * @param value			the symbol this term represents.
+			 */
+			Term( Symbol value ) {
 				this( value , false );
 			}
 			
+			/**
+			 * @return		the symbol that is part of this term
+			 */
+			public Symbol getValue() {
+				return this.value;
+			}
+			
+			/**
+			 * @return		arguments to this term, if this term
+			 * 				represents a function. If this term is
+			 * 				not a function, an empty array of size 0
+			 * 				 is returned.
+			 */
+			public Term[] getArgs() {
+				return this.args;
+			}
+			
+			/**
+			 * @return		if this term has been negated
+			 */
+			public boolean negated() {
+				return this.negated;
+			}
+			
+			/**
+			 * @return		a string that represents the arguments
+			 *				to the function this term represents
+			 */
 			private String buildArgList() {
 				if ( this.args.length == 0 ) {
 					return "()";

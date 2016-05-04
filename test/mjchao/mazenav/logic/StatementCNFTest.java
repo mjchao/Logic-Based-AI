@@ -155,4 +155,18 @@ public class StatementCNFTest {
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
 		Assert.assertEquals( "!GreaterThan(SumInt(?0, $0(?0)), !SumInt(?0, $1(?0)))" , cnf.toString() );
 	}
+	
+	@Test(expected = IllegalArgumentException.class)
+	public void testBuildWithFunctionsCompoundStatements() throws IOException {
+		//not allowed to have compound statements such as x OR y as
+		//function arguments. This would make unification impossible.
+		//for example, we might have to predict that "x OR y" could potentially
+		//unify to become "z". SAT basically reduces to this problem, so
+		//this kind of unification is NP-Complete, so we will not attempt to
+		//deal with it.
+		String infix = "FORALL(x) EXISTS(y,z) GreaterThan(SumInt(x OR y,y OR z),!SumInt(x,z))";
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
+		cnf.toString();
+	}
 }

@@ -103,10 +103,30 @@ public class StatementCNF {
 		
 		return new StatementCNF( disjunctions );
 	}
-
+	
+	/**
+	 * Represents a grouping of terms that have been ORed together.
+	 * For example, "A OR B OR C" is a disjunction of length 3.
+	 *
+	 */
 	public static class Disjunction {
 		
+		static void resolve( Disjunction d1 , Disjunction d2 ) {
+			//TODO
+		}
+		
+		/**
+		 * Represents a single term in a disjunction.
+		 * This structure contains the value of the term
+		 * and whether or not it is negated.
+		 *
+		 */
 		private static class Term {
+			
+			static void unify( Term t1 , Term t2 ) {
+				//TODO
+			}
+			
 			public Symbol value;
 			public boolean negated;
 			
@@ -130,8 +150,18 @@ public class StatementCNF {
 			}
 		}
 	
+		/**
+		 * the terms in this disjunction that are all ORed together.
+		 */
 		private List< Term > terms;
 		
+		/**
+		 * Converts a list of Symbol objects into Term objects
+		 * and creates a Disjunction object that represents those terms
+		 * ORed together.
+		 * 
+		 * @param terms		the terms that are part of this disjunction
+		 */
 		Disjunction( List< Symbol > terms ) {
 			this.terms = new ArrayList< Term >();
 			for ( Symbol term : terms ) {
@@ -139,6 +169,12 @@ public class StatementCNF {
 			}
 		}
 		
+		/**
+		 * Creates a Disjunction object that represents the given
+		 * terms ORed together.
+		 * 
+		 * @param terms		the terms that are part of this disjunction
+		 */
 		Disjunction( Symbol... terms ) {
 			this.terms = new ArrayList< Term >();
 			for ( Symbol term : terms ) {
@@ -146,14 +182,28 @@ public class StatementCNF {
 			}
 		}
 		
+		/**
+		 * Creates an empty disjunction with no terms.
+		 */
 		Disjunction() {
 			this( new ArrayList< Symbol >() );
 		}
 		
+		/**
+		 * Creates a Term representation of the given symbol 
+		 * and adds it to the end of this disjunction
+		 * 
+		 * @param s		the symbol to add
+		 */
 		void addTerm( Symbol s ) {
 			this.terms.add( new Term(s) );
 		}
 		
+		/**
+		 * Adds the given term to the end of this disjunction.
+		 * 
+		 * @param t		the term to add
+		 */
 		void addTerm( Term t ) {
 			this.terms.add( t );
 		}
@@ -174,7 +224,7 @@ public class StatementCNF {
 		/**
 		 * Merges this disjunction's terms into another one.
 		 * For example, merging (A OR B) into (C OR D) gives
-		 * (C OR D OR A OR B) in the other disjuncion.
+		 * (C OR D OR A OR B) in the other disjunction.
 		 * 
 		 * @param other		the other disjunction to be merged into
 		 */
@@ -184,6 +234,16 @@ public class StatementCNF {
 			}
 		}
 		
+		/**
+		 * Negates this disjunction when it has exactly one term in it.
+		 * This throws an exception if the disjunction has more than
+		 * one term in it.
+		 * 
+		 * This is used by the StatementCNF builder when it processes
+		 * a NOT operator that is used to negate a single variable
+		 * (e.g. when we have the expression "(!x OR !y)" we need 
+		 * the x and y terms to indicate they are negated.
+		 */
 		void negate() {
 			if ( size() != 1 ) {
 				throw new IllegalStateException( "Input is not in CNF. Should not negate a multi-term disjunction." );
@@ -191,6 +251,10 @@ public class StatementCNF {
 			terms.get( 0 ).negated = !terms.get( 0 ).negated;
 		}
 		
+		/**
+		 * @return		the number of terms in this disjunction. For example,
+		 * 				(x OR y OR z) has three terms so its size is 3.
+		 */
 		public int size() {
 			return this.terms.size();
 		}
@@ -215,8 +279,19 @@ public class StatementCNF {
 		}
 	}
 	
+	/**
+	 * the disjunctions that have been ANDed together
+	 * in this statement in CNF.
+	 */
 	private List< Disjunction > disjunctions;
 	
+	/**
+	 * Creates a StatementCNF object that represents the
+	 * given list of disjunctions ANDed together.
+	 * 
+	 * @param disjunctions		a list of disjunctions that should
+	 * 							be ANDed together.
+	 */
 	StatementCNF( List< Disjunction > disjunctions ) {
 		this.disjunctions = disjunctions;
 	}

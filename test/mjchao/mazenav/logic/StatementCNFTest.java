@@ -9,7 +9,7 @@ public class StatementCNFTest {
 
 	//BAT = Basic Acceptance Test
 	@Test
-	public void BAT1() {
+	public void testBuildBAT1() {
 		String infix = "(A OR B) AND (A OR C)";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -17,7 +17,7 @@ public class StatementCNFTest {
 	}
 	
 	@Test
-	public void BAT2() {
+	public void testBuildBAT2() {
 		//note: cannot use capital f (F) because F = False
 		String infix = "(A OR B OR C) AND (D OR E OR f)";
 		SymbolTracker tracker = new SymbolTracker();
@@ -26,7 +26,7 @@ public class StatementCNFTest {
 	}
 	
 	@Test
-	public void BAT3() {
+	public void testBuildBAT3() {
 		String infix = "(A) AND (B) AND (C) AND (D)";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -34,7 +34,7 @@ public class StatementCNFTest {
 	}
 	
 	@Test
-	public void BAT4() {
+	public void testBuildBAT4() {
 		String infix = "(A) AND (B OR C) AND (D)";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -42,7 +42,7 @@ public class StatementCNFTest {
 	}
 	
 	@Test
-	public void BAT5() {
+	public void testBuildBAT5() {
 		String infix = "(A OR B) AND (C) AND (D)";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -50,7 +50,7 @@ public class StatementCNFTest {
 	}
 	
 	@Test
-	public void BAT6() {
+	public void testBuildBAT6() {
 		String infix = "(!A OR B) AND (A OR B)";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -58,7 +58,7 @@ public class StatementCNFTest {
 	}
 	
 	@Test
-	public void BAT7() {
+	public void testBuildBAT7() {
 		String infix = "(!A OR !B) AND (!A OR !B)";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -66,7 +66,7 @@ public class StatementCNFTest {
 	}
 	
 	@Test
-	public void BAT8() {
+	public void testBuildBAT8() {
 		String infix = "(!!!A OR !B) AND (!A OR !B)";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -74,7 +74,7 @@ public class StatementCNFTest {
 	}
 	
 	@Test
-	public void BAT9() {
+	public void testBuildBAT9() {
 		String infix = "!!!A OR B";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -82,7 +82,7 @@ public class StatementCNFTest {
 	}
 	
 	@Test
-	public void BAT10() {
+	public void testBuildBAT10() {
 		String infix = "A";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );

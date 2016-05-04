@@ -1,9 +1,12 @@
 package mjchao.mazenav.logic;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.Stack;
 
+import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.Operator;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
@@ -26,7 +29,7 @@ public class StatementCNF {
 	 */
 	public static StatementCNF fromInfixString( String infix , SymbolTracker tracker ) {
 		Processor p = new Processor( infix , tracker );
-		List< Symbol > postfix = p.process();
+		Queue< Symbol > postfix = new LinkedList< Symbol >( p.process() );
 		return fromPostfix( postfix , tracker );
 	}
 	
@@ -40,12 +43,14 @@ public class StatementCNF {
 	 * @return				a StatementCNF object representing the postfix
 	 * 						conjunctive normal form expression.
 	 */
-	private static StatementCNF fromPostfix( List< Symbol > postfix , SymbolTracker tracker ) {
+	private static StatementCNF fromPostfix( Queue< Symbol > postfix , SymbolTracker tracker ) {
 		Stack< Disjunction > evalStack = new Stack< Disjunction >();
 		ArrayList< Disjunction > disjunctions = new ArrayList< Disjunction >();
 
 		//apply an algorithm to evaluate postfix:
-		for ( Symbol s : postfix ) {
+		
+		while( !postfix.isEmpty() ) {
+			Symbol s = postfix.poll();
 			if ( s.equals( Operator.OR ) ) {
 				
 				//OR the next 2 disjunctions on the stack together
@@ -85,7 +90,22 @@ public class StatementCNF {
 				evalStack.peek().negate();
 			}
 			
-			//if it's not an AND or OR operator, it must be
+			//if we read in a function, we need to keep popping off
+			//its arguments into a single term
+			else if ( s instanceof Function ) {
+				Function f = (Function) s;
+				Disjunction.Term[] args = new Disjunction.Term[ f.getNumArgs() ];
+				for ( int i=0 ; i<f.getNumArgs() ; ++i ) {
+					
+					//arguments to the function are read off the stack
+					//in reverse order, so we fill the arguments list
+					//starting from the back
+					args[ f.getNumArgs()-1-i ] = evalStack.pop().toSingleTerm();
+				}
+				evalStack.push( new Disjunction( f , args ) );
+			}
+			
+			//if it's not an AND or OR operator or function, it must be
 			//some kind of variable, skolem function or unit
 			//that cannot be decomposed further (i.e. operands
 			//to AND and OR operators)
@@ -93,7 +113,7 @@ public class StatementCNF {
 				evalStack.push( new Disjunction( s ) );
 			}
 		}
-		
+
 		//we could have an extra expression left over
 		//that was never added to the list of completed
 		//disjunctions if we ended with an OR operator
@@ -125,10 +145,18 @@ public class StatementCNF {
 			
 			static void unify( Term t1 , Term t2 ) {
 				//TODO
+				
 			}
 			
 			public Symbol value;
+			public Term[] args;
 			public boolean negated;
+			
+			public Term( Function function , boolean negated , Term... args ) {
+				this.value = function;
+				this.negated = negated;
+				this.args = args;
+			}
 			
 			public Term( Symbol value , boolean negated ) {
 				this.value = value;
@@ -139,13 +167,31 @@ public class StatementCNF {
 				this( value , false );
 			}
 			
-			@Override
-			public String toString() {
-				if ( this.negated ) {
-					return "!" + value.toString();
+			private String buildArgList() {
+				if ( this.args.length == 0 ) {
+					return "()";
 				}
 				else {
-					return value.toString();
+					StringBuilder rtn = new StringBuilder( "(" );
+					rtn.append( args[ 0 ].toString() );
+					for ( int i=1 ; i<args.length ; ++i ) {
+						rtn.append( ", " );
+						rtn.append( args[ i ].toString() );
+					}
+					rtn.append( ")" );
+					return rtn.toString();
+				}
+			}
+			
+			@Override
+			public String toString() {
+				String rtn = (value instanceof Function) ? 
+						value.toString() + buildArgList() : value.toString();
+				if ( this.negated ) {
+					return "!" + rtn;
+				}
+				else {
+					return rtn;
 				}
 			}
 		}
@@ -183,6 +229,18 @@ public class StatementCNF {
 		}
 		
 		/**
+		 * Creates a Disjunction object that represents the given
+		 * function with specified arguments
+		 * 
+		 * @param f			a function in this disjunction
+		 * @param args		the arguments to the function
+		 */	
+		Disjunction( Function f , Term[] args ) {
+			this();
+			addTerm( f , args );
+		}
+		
+		/**
 		 * Creates an empty disjunction with no terms.
 		 */
 		Disjunction() {
@@ -206,6 +264,17 @@ public class StatementCNF {
 		 */
 		void addTerm( Term t ) {
 			this.terms.add( t );
+		}
+		
+		/**
+		 * Creates a Term representation of the given function
+		 * and adds it to the end of this disjunction
+		 * 
+		 * @param f		the function to add
+		 * @param args	the arguments to the function
+		 */
+		void addTerm( Function f , Term[] args ) {
+			this.terms.add( new Term( f , false , args ) );
 		}
 		
 		/**
@@ -246,7 +315,8 @@ public class StatementCNF {
 		 */
 		void negate() {
 			if ( size() != 1 ) {
-				throw new IllegalStateException( "Input is not in CNF. Should not negate a multi-term disjunction." );
+				throw new IllegalStateException( "Input is not in CNF. " + 
+							" Should not negate a multi-term disjunction." );
 			}
 			terms.get( 0 ).negated = !terms.get( 0 ).negated;
 		}
@@ -259,6 +329,24 @@ public class StatementCNF {
 			return this.terms.size();
 		}
 		
+		/**
+		 * Attempts to convert this disjunction to a single term. This
+		 * process only succeeds when this disjunction has only one term
+		 * in it.
+		 * 
+		 * @return							the sole term in this disjunction as 
+		 * 									a Term object
+		 * @throws IllegalStateException	if this disjunction has multiple terms
+		 */
+		Term toSingleTerm() {
+			if ( size() == 1 ) {
+				return this.terms.get( 0 );
+			}
+			else {
+				throw new IllegalStateException( "Cannot convert multi-term disjunction to a single term." );
+			}
+		}
+
 		@Override
 		public String toString() {
 			if ( size() == 0 ) {

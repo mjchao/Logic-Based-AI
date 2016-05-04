@@ -1,9 +1,12 @@
 package mjchao.mazenav.logic;
 
+import java.io.IOException;
+
+import mjchao.mazenav.logic.structures.IntegerWorld;
+import mjchao.mazenav.logic.structures.SymbolTracker;
+
 import org.junit.Assert;
 import org.junit.Test;
-
-import mjchao.mazenav.logic.structures.SymbolTracker;
 
 public class StatementCNFTest {
 
@@ -87,5 +90,13 @@ public class StatementCNFTest {
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
 		Assert.assertEquals( "?0" , cnf.toString() );
+	}
+	
+	@Test
+	public void testBuildFunction() throws IOException {
+		String infix = "EXISTS(x,y,z) GreaterThan(SumInt(x,y),SumInt(y,z))";
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
+		Assert.assertEquals( "GreaterThan(SumInt($0(), $1()), SumInt($1(), $2()))" , cnf.toString() );
 	}
 }

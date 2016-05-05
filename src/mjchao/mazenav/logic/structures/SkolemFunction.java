@@ -1,9 +1,5 @@
 package mjchao.mazenav.logic.structures;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
 /**
  * Represents a Skolem Function to be used when
  * converting to conjunctive normal form
@@ -39,13 +35,11 @@ public class SkolemFunction extends Symbol {
 		rtn.append( ")" );
 		return rtn.toString();
 	}
+	
 	/**
-	 * Stores all the values with which this
-	 * skolem function has been unified. Each different
-	 * setting of this function's parameters allows for
-	 * a different unification.  
+	 * a unique identifier for this skolem function
 	 */
-	private HashMap< List<ObjectFOL> , ObjectFOL > unifications = new HashMap< List<ObjectFOL> , ObjectFOL >();
+	private int id;
 	
 	/**
 	 * The arguments to this skolem function
@@ -57,41 +51,30 @@ public class SkolemFunction extends Symbol {
 	 * and arguments.
 	 * 
 	 * @param id		a unique ID to be assigned to this skolem
-	 * 					function (for printing purposes)
+	 * 					function
 	 * @param args		arguments to this SkolemFunction
 	 */
 	public SkolemFunction( int id , Variable... args ) {
 		super( "$" + id + buildArgList( args ) );
+		this.id = id;
 		this.args = args;
 	}
 	
 	/**
-	 * Creates a SkolemFunction with the given 
-	 * arguments. The ID is set to 0. Use this
-	 * constructor if you do not care about
-	 * printing this function for debugging.
-	 * 
-	 * @param args		arguments to this SkolemFunction
+	 * @return			the unique ID of this skolem function
 	 */
-	public SkolemFunction( Variable... args ) {
-		this( 0 , args );
+	public int getID() {
+		return this.id;
 	}
-	
+
 	/**
-	 * Unifies this SkolemFunction with the given
-	 * value. This assumes the variable parameters
-	 * have already been unified appropriately
-	 * 
-	 * @param val
+	 * @return		a copy of the list of arguments to this skolem function
 	 */
-	public void unify( ObjectFOL val ) {
-		ArrayList< ObjectFOL > parameterSettings = new ArrayList< ObjectFOL >();
-		for ( Variable v : args ) {
-			if ( v.getValue() == null ) {
-				throw new IllegalStateException( "Cannot unify Skolem Function before unifying parameter." );
-			}
-			parameterSettings.add( v.getValue() );
+	public Variable[] getArgs() {
+		Variable[] rtn = new Variable[ this.args.length ];
+		for ( int i=0 ; i<args.length ; ++i ) {
+			rtn[ i ] = args[ i ];
 		}
-		this.unifications.put( parameterSettings , val );
+		return rtn;
 	}
 }

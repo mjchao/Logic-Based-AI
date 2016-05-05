@@ -7,8 +7,10 @@ import java.util.Stack;
 
 import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.Operator;
+import mjchao.mazenav.logic.structures.SkolemFunction;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
+import mjchao.mazenav.logic.structures.Variable;
 
 /**
  * Represents a statement in conjunctive normal form.
@@ -132,10 +134,20 @@ public class StatementCNF {
 				evalStack.push( new Disjunction( f , args ) );
 			}
 			
+			//if we read in a skolem function, convert it into a function-like
+			//Term object
+			else if ( s instanceof SkolemFunction ) {
+				SkolemFunction f = (SkolemFunction) s;
+				Variable[] functionArgs = f.getArgs();
+				Disjunction.Term[] args = new Disjunction.Term[ functionArgs.length ];
+				for ( int i=0 ; i<functionArgs.length ; ++i ) {
+					args[ i ] = new Disjunction.Term( functionArgs[ i ] );
+				}
+				evalStack.push( new Disjunction( f , args ) );
+			}
+			
 			//if it's not an AND or OR operator or function, it must be
-			//some kind of variable, skolem function or unit
-			//that cannot be decomposed further (i.e. operands
-			//to AND and OR operators)
+			//some kind of variable
 			else {
 				evalStack.push( new Disjunction( s ) );
 			}
@@ -173,7 +185,8 @@ public class StatementCNF {
 			
 			/**
 			 * arguments to a function this term represents. 
-			 * this variable is only used if this term represents a function.
+			 * this variable is only used if this term represents a function
+			 * or skolem function.
 			 * otherwise, it is an empty array of size 0.
 			 */
 			private final Term[] args;
@@ -194,6 +207,21 @@ public class StatementCNF {
 			 */
 			Term( Function function , boolean negated , Term... args ) {
 				this.value = function;
+				this.negated = negated;
+				this.args = args;
+			}
+			
+			/**
+			 * Creates a term to represent the a skolem function with the given
+			 * arguments. Also, optionally specify if this term has been
+			 * negated. 
+			 * 	
+			 * @param skolem		the function this term represents
+			 * @param negated		if the function has been negated
+			 * @param args			the arguments to the function
+			 */
+			Term( SkolemFunction skolem , boolean negated , Term... args ) {
+				this.value = skolem;
 				this.negated = negated;
 				this.args = args;
 			}
@@ -239,6 +267,27 @@ public class StatementCNF {
 			}
 			
 			/**
+			 * Binds the given variable to the specified value only if
+			 * this term is a skolem function. if this term is not
+			 * a skolem function, an IllegalStateException is thrown
+			 * 
+			 * @param var
+			 * @param val
+			 * @param IllegalStateException		if this term does not represent
+			 * 									a skolem function
+			 */
+			public void bindVariableArg( Variable var , Term val ) {
+				if ( !(this.value instanceof SkolemFunction) ) {
+					throw new IllegalStateException( "Cannot bind arguments to a non-SkolemFunction object." );
+				}
+				for ( int i=0 ; i<args.length ; ++i ) {
+					if ( args[ i ].getValue().equals( var ) ) {
+						args[ i ] = val;
+					}
+				}
+			}
+			
+			/**
 			 * @return		if this term has been negated
 			 */
 			public boolean negated() {
@@ -267,8 +316,11 @@ public class StatementCNF {
 			
 			@Override
 			public String toString() {
-				String rtn = (value instanceof Function) ? 
+				String rtn = (value instanceof Function ) ? 
 						value.toString() + buildArgList() : value.toString();
+				//note: SkolemFunction already has its argument list built
+				//in to SkolemFunction.toString() so we treat it like a
+				//non-function object and don't build its arguments list again
 				if ( this.negated ) {
 					return "!" + rtn;
 				}
@@ -311,6 +363,21 @@ public class StatementCNF {
 			@Override
 			public int hashCode() {
 				return this.value.hashCode();
+			}
+			
+			@Override
+			public Term clone() {
+				if ( value instanceof Function || value instanceof SkolemFunction ) {
+					Function f = (Function) this.value;
+					Term[] argCopy = new Term[ this.args.length ];
+					for ( int i=0 ; i<argCopy.length ; ++i ) {
+						argCopy[ i ] = this.args[ i ].clone();
+					}
+					return new Term( f , this.negated , argCopy );
+				}
+				else {
+					return new Term( this.value , this.negated );
+				}
 			}
 		}
 	
@@ -359,6 +426,18 @@ public class StatementCNF {
 		}
 		
 		/**
+		 * Creates a Disjunction object that represents the given
+		 * skolem function with specified arguments
+		 * 
+		 * @param f			a skolem function in this disjunction
+		 * @param args		the arguments to the skolem function
+		 */	
+		Disjunction( SkolemFunction f , Term[] args ) {
+			this();
+			addTerm( f , args );
+		}
+		
+		/**
 		 * Creates an empty disjunction with no terms.
 		 */
 		Disjunction() {
@@ -393,6 +472,25 @@ public class StatementCNF {
 		 */
 		void addTerm( Function f , Term[] args ) {
 			this.terms.add( new Term( f , false , args ) );
+		}
+		
+		/**
+		 * Creates a Term representation of the given skolem function
+		 * and adds it to the end of this disjunction
+		 * 
+		 * @param f		the skolem function to add
+		 * @param args	the arguments to the skolem function
+		 */
+		void addTerm( SkolemFunction f , Term[] args ) {
+			this.terms.add( new Term( f , false , args ) );
+		}
+		
+		/**
+		 * @param idx
+		 * @return		the term at the given index in this disjunction
+		 */
+		Term getTerm( int idx ) {
+			return this.terms.get( idx );
 		}
 		
 		/**
@@ -523,6 +621,15 @@ public class StatementCNF {
 			System.err.println( "Warning: no good hash found for Disjunction yet. " + 
 								"It is advised you do not hash Disjunction objects." );
 			return 1;
+		}
+		
+		@Override
+		public Disjunction clone() {
+			Disjunction rtn = new Disjunction();
+			for ( Term t : this.terms ) {
+				rtn.addTerm( t.clone() );
+			}
+			return rtn;
 		}
 	}
 	

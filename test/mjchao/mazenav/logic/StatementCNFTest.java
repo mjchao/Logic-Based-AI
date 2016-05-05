@@ -194,7 +194,7 @@ public class StatementCNFTest {
 	 * 									that is not a term. for example, "(<TERM 1> OR <TERM 2>) AND <TERM 3>"
 	 * 									would contain a disjunction of size 2 that is not a valid term
 	 */
-	public List< Term > termsListFromInfix( String infix , SymbolTracker tracker ) throws IllegalArgumentException {
+	public static List< Term > termsListFromInfix( String infix , SymbolTracker tracker ) throws IllegalArgumentException {
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
 		List< Term > rtn = new ArrayList< Term >();
 		for ( Disjunction d : cnf.getDisjunctions() ) {
@@ -307,7 +307,7 @@ public class StatementCNFTest {
 	 * @param tracker
 	 * @return
 	 */
-	public List< Disjunction > disjunctionsFromInfix( String infix , SymbolTracker tracker ) {
+	public static List< Disjunction > disjunctionsFromInfix( String infix , SymbolTracker tracker ) {
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
 		List< Disjunction > rtn = new ArrayList< Disjunction >( cnf.getDisjunctions() );
 		return rtn;

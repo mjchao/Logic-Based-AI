@@ -1,7 +1,11 @@
 package mjchao.mazenav.logic;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
+import mjchao.mazenav.logic.StatementCNF.Disjunction;
+import mjchao.mazenav.logic.StatementCNF.Disjunction.Term;
 import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.IntegerWorld;
 import mjchao.mazenav.logic.structures.ObjectFOL;
@@ -15,6 +19,7 @@ public class StatementCNFTest {
 	//BAT = Basic Acceptance Test
 	@Test
 	public void testBuildBAT1() {
+		//test simple conjunction of two OR clauses of size 2
 		String infix = "(A OR B) AND (A OR C)";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -32,6 +37,7 @@ public class StatementCNFTest {
 	
 	@Test
 	public void testBuildBAT3() {
+		//test conjunction of single variables
 		String infix = "(A) AND (B) AND (C) AND (D)";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -40,6 +46,7 @@ public class StatementCNFTest {
 	
 	@Test
 	public void testBuildBAT4() {
+		//test conjunction with single variables and longer disjunctions
 		String infix = "(A) AND (B OR C) AND (D)";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -48,6 +55,7 @@ public class StatementCNFTest {
 	
 	@Test
 	public void testBuildBAT5() {
+		//test conjunction with disjunction first, then followed by single variables
 		String infix = "(A OR B) AND (C) AND (D)";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -56,6 +64,7 @@ public class StatementCNFTest {
 	
 	@Test
 	public void testBuildBAT6() {
+		//test conjunction with negated terms in disjunctions
 		String infix = "(!A OR B) AND (A OR B)";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -64,6 +73,7 @@ public class StatementCNFTest {
 	
 	@Test
 	public void testBuildBAT7() {
+		//test conjunction with multiple negated terms in disjunctions
 		String infix = "(!A OR !B) AND (!A OR !B)";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -72,6 +82,7 @@ public class StatementCNFTest {
 	
 	@Test
 	public void testBuildBAT8() {
+		//test conjunction with multiple negated signs in disjunctions
 		String infix = "(!!!A OR !B) AND (!A OR !B)";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -80,6 +91,7 @@ public class StatementCNFTest {
 	
 	@Test
 	public void testBuildBAT9() {
+		//test a single disjunction with no ANDs"
 		String infix = "!!!A OR B";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -88,6 +100,7 @@ public class StatementCNFTest {
 	
 	@Test
 	public void testBuildBAT10() {
+		//test a single variable
 		String infix = "A";
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
@@ -168,5 +181,272 @@ public class StatementCNFTest {
 		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
 		cnf.toString();
+	}
+	
+	/**
+	 * Converts an infix string of the form "<TERM 1> AND <TERM 2> AND ... AND <TERM N>"
+	 * into a list of terms for testing term equality.
+	 * 
+	 * @param infix						an infix string that is a list of terms ANDed together
+	 * @param tracker					keeps track of variable names
+	 * @return							a list of terms parsed form the input infix
+	 * @throws IllegalArgumentException if the input infix contains an element
+	 * 									that is not a term. for example, "(<TERM 1> OR <TERM 2>) AND <TERM 3>"
+	 * 									would contain a disjunction of size 2 that is not a valid term
+	 */
+	public List< Term > termsListFromInfix( String infix , SymbolTracker tracker ) throws IllegalArgumentException {
+		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
+		List< Term > rtn = new ArrayList< Term >();
+		for ( Disjunction d : cnf.getDisjunctions() ) {
+			if ( d.size() == 1 ) {
+				rtn.add( d.toSingleTerm() );
+			}
+			else {
+				throw new IllegalArgumentException( "Not a list of terms in infix." );
+			}
+		}
+		return rtn;
+	}
+
+	@Test
+	public void testTermEqualsBAT1() {
+		//check that a term equals itself
+		SymbolTracker tracker = new SymbolTracker();
+		String list = "A AND A";
+		List< Term > terms = termsListFromInfix( list , tracker );
+		Assert.assertTrue( terms.get( 0 ).equals( terms.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testTermEqualsBAT2() {
+		//check that a term does not equal a term with a different name
+		SymbolTracker tracker = new SymbolTracker();
+		String list = "A AND B";
+		List< Term > terms = termsListFromInfix( list , tracker );
+		Assert.assertFalse( terms.get( 0 ).equals( terms.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testTermEqualsBAT3() {
+		//check that negations are handled appropriately
+		SymbolTracker tracker = new SymbolTracker();
+		String list = "!A AND !A";
+		List< Term > terms = termsListFromInfix( list , tracker );
+		Assert.assertTrue( terms.get( 0 ).equals( terms.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testTermEqualsBAT4() {
+		//check that negations are handled appropriately
+		SymbolTracker tracker = new SymbolTracker();
+		String list = "!A AND !B";
+		List< Term > terms = termsListFromInfix( list , tracker );
+		Assert.assertFalse( terms.get( 0 ).equals( terms.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testTermEqualsFunction1() throws IOException {
+		//check that functions arguments are compared correctly
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		String list = "GreaterThan(x,x) AND GreaterThan(x,x)";
+		List< Term > terms = termsListFromInfix( list , tracker );
+		Assert.assertTrue( terms.get( 0 ).equals( terms.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testTermEqualsFunction2() throws IOException {
+		//check that function arguments are compared correctly
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		String list = "GreaterThan(x,x) AND GreaterThan(x,y)";
+		List< Term > terms = termsListFromInfix( list , tracker );
+		Assert.assertFalse( terms.get( 0 ).equals( terms.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testTermEqualsFunction3() throws IOException {
+		//check that function arguments are explored recursively
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		String list = "GreaterThan(SumInt(SumInt(x,x),SumInt(x,x)),x) AND GreaterThan(SumInt(SumInt(x,x),SumInt(x,x)),x)";
+		List< Term > terms = termsListFromInfix( list , tracker );
+		Assert.assertTrue( terms.get( 0 ).equals( terms.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testTermEqualsFunction4() throws IOException {
+		//check that function arguments are explored recursively
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		String list = "GreaterThan(SumInt(SumInt(x,x),SumInt(x,x)),x) AND GreaterThan(SumInt(SumInt(x,x),SumInt(x,y)),x)";
+		List< Term > terms = termsListFromInfix( list , tracker );
+		Assert.assertFalse( terms.get( 0 ).equals( terms.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testTermEqualsFunction5() throws IOException {
+		//check that function arguments are explored recursively
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		String list = "GreaterThan(SumInt(SumInt(x,x),SumInt(x,x)),x) AND GreaterThan(x,y)";
+		List< Term > terms = termsListFromInfix( list , tracker );
+		Assert.assertFalse( terms.get( 0 ).equals( terms.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testTermEqualsFunction6() throws IOException {
+		//check that function arguments are explored recursively
+		//and an inner negation is noticed
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		String list = "GreaterThan(SumInt(SumInt(x,x),SumInt(x,x)),x) AND GreaterThan(SumInt(SumInt(x,x),SumInt(x,!x)),x)";
+		List< Term > terms = termsListFromInfix( list , tracker );
+		Assert.assertFalse( terms.get( 0 ).equals( terms.get( 1 ) ) );
+	}
+	
+	/**
+	 * Converts the expression in infix to CNF and 
+	 * returns the disjunctions in the CNF form.
+	 * 
+	 * @param infix
+	 * @param tracker
+	 * @return
+	 */
+	public List< Disjunction > disjunctionsFromInfix( String infix , SymbolTracker tracker ) {
+		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
+		List< Disjunction > rtn = new ArrayList< Disjunction >( cnf.getDisjunctions() );
+		return rtn;
+	}
+
+	@Test
+	public void testDisjunctionEqualsBAT1() {
+		//check that a disjunction is equal to itself
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "(A OR B) AND (A OR B)";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertTrue( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testDisjunctionEqualsBAT2() {
+		//check that a disjunction is not equal to a slightly different disjunction
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "(A OR B) AND (A OR C)";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertFalse( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testDisjunctionEqualsBAT3() {
+		//test disjunctions with many terms
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "(A OR B OR C OR D OR E) AND (A OR B OR C OR D OR E)";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertTrue( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testDisjunctionEqualsBAT4() {
+		//test disjunctions with many terms
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "(A OR B OR C OR D OR E) AND (A OR B OR C OR D OR F)";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertFalse( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testDisjunctionEqualsBAT5() {
+		//test disjunctions with many terms
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "(A OR B OR C OR D OR E) AND (A)";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertFalse( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testDisjunctionEqualsBAT6() {
+		//test disjunctions with many terms
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "(A) AND (A OR B OR C OR D OR E)";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertFalse( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testDisjunctionEqualsReordered1() {
+		//test disjunctions with reordered terms
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "(A OR B) AND (B OR A)";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertTrue( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testDisjunctionEqualsReordered2() {
+		//test disjunctions with many reordered terms
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "(A OR B OR C OR D) AND (B OR A OR D OR C)";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertTrue( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testDisjunctionEqualsReordered3() {
+		//test disjunctions with many reordered terms
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "(A OR B OR C OR D) AND (B OR A OR E OR C)";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertFalse( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testDisjunctionEqualsReordered4() {
+		//test disjunctions with many reordered terms
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "(A OR B OR C OR D) AND (B OR A OR C OR G)";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertFalse( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testDisjunctionEqualsRepeated1() {
+		//test disjunctions with repeated terms
+		//note: A OR A <=> A so repeated terms should not make any difference
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "(A OR A) AND (A)";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertTrue( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testDisjunctionEqualsRepeated2() {
+		//test disjunctions with many repeated terms
+		//note: A OR A <=> A so repeated terms should not make any difference
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "(A OR A OR A OR B OR B OR B OR C OR F OR G) AND (G OR F OR A OR B OR C)";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertTrue( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testDisjunctionEqualsFunction1() throws IOException {
+		//test disjunctions with two functions each
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		String infix = "(GreaterThan(x,x) OR GreaterThan(x,x)) AND (GreaterThan(x,x) OR GreaterThan(x,x))";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertTrue( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testDisjunctionEqualsFunction2() throws IOException {
+		//test disjunctions with two functions each
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		String infix = "(GreaterThan(x,x) OR GreaterThan(x,x)) AND (GreaterThan(x,x) OR GreaterThan(x,y))";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertFalse( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
+	}
+	
+	@Test
+	public void testDisjunctionEqualsFunction3() throws IOException {
+		//test disjunctions with multiple functions
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		String infix = "(GreaterThan(x,x) OR GreaterThan(y,y) OR GreaterThan(SumInt(z,z),SumInt(u,u))) AND (GreaterThan(x,x) OR GreaterThan(SumInt(z,z),SumInt(u,u)) OR GreaterThan(y,y))";
+		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
+		Assert.assertTrue( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
 	}
 }

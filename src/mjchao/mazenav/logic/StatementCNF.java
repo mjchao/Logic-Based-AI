@@ -1,6 +1,7 @@
 package mjchao.mazenav.logic;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Stack;
 
@@ -17,6 +18,29 @@ import mjchao.mazenav.logic.structures.SymbolTracker;
  */
 public class StatementCNF {
 	
+	/**
+	 * ANDs a list of StatementCNF objects together
+	 * 
+	 * @param statements		a list of statements in CNF to AND together
+	 * @return					a single statement representing all the inputed
+	 * 							statements ANDed together
+	 */
+	public static StatementCNF andTogether( List< StatementCNF > statements ) {
+		List< Disjunction > disjunctions = new ArrayList< Disjunction >();
+		for ( StatementCNF statement : statements ) {
+			disjunctions.addAll( statement.disjunctions );
+		}
+		return new StatementCNF( disjunctions );
+	}
+	
+	/**
+	 * @param statement			a statement in CNF to negate
+	 * @param tracker			tracker for recognizing variables and names
+	 * @return					the negated inputed statement
+	 */
+	public static StatementCNF negate( StatementCNF statement , SymbolTracker tracker ) {
+		return fromInfixString( "!(" + statement.toString() + ")" , tracker );
+	}
 	/**
 	 * Builds a Statement CNF object from an infix logic expression.
 	 * 
@@ -252,6 +276,42 @@ public class StatementCNF {
 					return rtn;
 				}
 			}
+			
+			/**
+			 * @param other
+			 * @return				if the arguments stored in this term
+			 *						are equal to the arguments stored in
+			 *						the other term
+			 */
+			private boolean argsEqual( Term other ) {
+				if ( this.args.length != other.args.length ) {
+					return false;
+				}
+				for ( int i=0 ; i<this.args.length ; ++i ) {
+					if ( !this.args[ i ].equals( other.args [ i ] ) ) {
+						return false;
+					}
+				}
+				return true;
+			}
+			
+			@Override
+			public boolean equals( Object o ) {
+				if ( o instanceof Term ) {
+					Term t = (Term) o;
+					return this.negated == t.negated &&
+							this.value.equals( t.value ) &&
+							this.argsEqual( t );
+				}
+				else {
+					return false;
+				}
+			}
+			
+			@Override
+			public int hashCode() {
+				return this.value.hashCode();
+			}
 		}
 	
 		/**
@@ -423,6 +483,47 @@ public class StatementCNF {
 				return rtn.toString();
 			}
 		}
+		
+		@Override
+		public boolean equals( Object o ) {
+			if ( o instanceof Disjunction ) {
+				Disjunction d = (Disjunction) o;
+				
+				//two disjunctions are equal if they contain
+				//the exact same terms up to reordering.
+				//so, we put them all the terms of one disjunction
+				//into an unordered set and check that the other
+				//disjunction has the exact same terms
+				HashSet< Term > otherTerms = new HashSet< Term >();
+				for ( Term t : d.terms ) {
+					otherTerms.add( t );
+				}
+				
+				HashSet< Term > thisTerms = new HashSet< Term >();
+				for ( Term t : this.terms ) {
+					thisTerms.add( t );
+				}
+			
+				for ( Term t : thisTerms ) {
+					if ( !otherTerms.contains( t ) ) {
+						return false;
+					}
+					otherTerms.remove( t );
+				}
+
+				return otherTerms.size() == 0;
+			}
+			else {
+				return false;
+			}
+		}
+		
+		@Override
+		public int hashCode() {
+			System.err.println( "Warning: no good hash found for Disjunction yet. " + 
+								"It is advised you do not hash Disjunction objects." );
+			return 1;
+		}
 	}
 	
 	/**
@@ -440,6 +541,17 @@ public class StatementCNF {
 	 */
 	StatementCNF( List< Disjunction > disjunctions ) {
 		this.disjunctions = disjunctions;
+	}
+	
+	/**
+	 * Gets a shallow copy of the list of disjunctions in this StatementCNF.
+	 * The list should not be modified and is only used by the Resolver
+	 * in performing the resolution algorithm.
+	 * 
+	 * @return		a shallow copy of the disjunctions in this StatementCNF.
+	 */
+	List< Disjunction > getDisjunctions() {
+		return this.disjunctions;
 	}
 	
 	@Override

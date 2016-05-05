@@ -120,6 +120,11 @@ public class Symbol {
 	}
 	
 	@Override
+	public int hashCode() {
+		return this.name.hashCode();
+	}
+	
+	@Override
 	public String toString() {
 		return getShorthand();
 	}

@@ -490,7 +490,7 @@ public class StatementCNF {
 				Disjunction d = (Disjunction) o;
 				
 				//two disjunctions are equal if they contain
-				//the exact same terms up to reordering.
+				//the exact same terms up to reordering and duplication.
 				//so, we put them all the terms of one disjunction
 				//into an unordered set and check that the other
 				//disjunction has the exact same terms

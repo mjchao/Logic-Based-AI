@@ -162,6 +162,7 @@ class Resolver {
 						return null;
 					}
 				}
+				return substitutions;
 			}
 			else {
 				

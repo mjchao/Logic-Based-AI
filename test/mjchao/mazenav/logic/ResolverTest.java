@@ -162,7 +162,7 @@ public class ResolverTest {
 	
 	@Test
 	public void testUnifyFunctions4() {
-		//test unifying with doubly-nested functions
+		//test unifying with multiply-nested functions
 		SymbolTracker tracker = UnifyFunctionTests.buildTracker();
 		String infixTerms = "Func3(Func3(Func1(a),Func1(b),Func1(c)),Func1(d),Func2(Func1(e),f)) AND Func3(Func3(u,v,Func1(w)),x,y)";
 		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
@@ -192,5 +192,100 @@ public class ResolverTest {
 		List< Substitution > subs = Resolver.unify( terms.get( 0 ) , terms.get( 1 ) , new ArrayList< Substitution >() );
 		Assert.assertTrue( subs == null );
 	}
+	
+	//-----test cases for unify with functions and previous substitutions-----//
+	
+	@Test
+	public void testUnifyFunctions7() {
+		//test unification for functions with previous substitutions
+		//here, we substitute f/a and then we check if the substitution
+		//b/f propagates to the substitution b/a
+		SymbolTracker tracker = UnifyFunctionTests.buildTracker();
+		String infixTerms = "Func3(Func1(a),Func1(b),Func1(c)) AND Func3(d,e,Func1(f))";
+		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
+		
+		Term Func1b = terms.get( 0 ).getArgs()[ 1 ];
+		Term b = Func1b.getArgs()[ 0 ];
+		Term d = terms.get( 1 ).getArgs()[ 0 ];
+		Term e = terms.get( 1 ).getArgs()[ 1 ];
+		Term f = terms.get( 1 ).getArgs()[ 2 ].getArgs()[ 0 ];
+		
+		List<Substitution> prevSubs = new ArrayList< Substitution >();
+		Substitution prevSub1 = new Substitution( f , b );
+		prevSubs.add( prevSub1 );
+		
+		List< Substitution > subs = Resolver.unify( terms.get( 0 ) , terms.get( 1 ) , prevSubs );
+		Assert.assertTrue( subs.toString().equals( "[?5/?1, ?3/Func1(?0), ?4/Func1(?1), ?2/?1]" ) );
+	}
+	
+	@Test
+	public void testUnifyFunctions8() {
+		//test unification for functions with previous substitutions
+		//here, we substitute c/Func1(b) and then we check if the 
+		//substitution f/c resolves to f/Func1(b), which resolves to
+		//c/Func1(Func1(b))
+		SymbolTracker tracker = UnifyFunctionTests.buildTracker();
+		String infixTerms = "Func3(Func1(a),Func1(b),c) AND Func3(d,e,f)";
+		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
+		
+		Term Func1b = terms.get( 0 ).getArgs()[ 1 ];
+		Term c = terms.get( 0 ).getArgs()[ 2 ];
+		
+		List<Substitution> prevSubs = new ArrayList< Substitution >();
+		Substitution prevSub1 = new Substitution( c , Func1b );
+		prevSubs.add( prevSub1 );
+		
+		List< Substitution > subs = Resolver.unify( terms.get( 0 ) , terms.get( 1 ) , prevSubs );
+		Assert.assertTrue( subs.toString().equals( "[?2/Func1(?1), ?3/Func1(?0), ?4/Func1(?1), ?5/Func1(?1)]" ) );
+	}
+	
+	//--------------test cases for unify with skolem functions----------------//
+	
+	@Test
+	public void testUnifySkolemBAT1() {
+		//test simple unification of a variable with a skolem function
+		//that takes no arguments
+		SymbolTracker tracker = new SymbolTracker();
+		String infixTerms = "EXISTS(x) x AND y";
+		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
+		
+		List< Substitution > subs = Resolver.unify( terms.get( 0 ) , terms.get( 1 ) , new ArrayList< Substitution >() );
+		Assert.assertTrue( subs.toString().equals( "[?1/$0()]" ) );
+	}
+	
+	@Test
+	public void testUnifySkolemBAT2() {
+		//test simple unification of a variable with a skolem function
+		//that takes some arguments
+		SymbolTracker tracker = new SymbolTracker();
+		String infixTerms = "FORALL(x,y,z) EXISTS(x) x AND y";
+		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
+		
+		List< Substitution > subs = Resolver.unify( terms.get( 0 ) , terms.get( 1 ) , new ArrayList< Substitution >() );
+		Assert.assertTrue( subs.toString().equals( "[?1/$0(?0, ?1, ?2)]" ) );
+	}
+	
+	@Test
+	public void testUnifySkolemBAT3() {
+		//test simple unification of two skolem functions
+		SymbolTracker tracker = new SymbolTracker();
+		String infixTerms = "EXISTS(x) x AND EXISTS(y) y";
+		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
+		
+		List< Substitution > subs = Resolver.unify( terms.get( 0 ) , terms.get( 1 ) , new ArrayList< Substitution >() );
+		Assert.assertTrue( subs.toString().equals( "[$0()/$1()]" ) );
+	}
+	
+	@Test
+	public void testUnifySkolemWithArgs() {
+		//test simple unification of two skolem functions and their arguments
+		SymbolTracker tracker = new SymbolTracker();
+		String infixTerms = "(FORALL(a,b,c) EXISTS(x) x) AND (FORALL(d,e,f) EXISTS(y) y)";
+		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
+		List< Substitution > subs = Resolver.unify( terms.get( 0 ) , terms.get( 1 ) , new ArrayList< Substitution >() );
+		Assert.assertTrue( subs.toString().equals( "[$0(?0, ?1, ?2)/$1(?4, ?5, ?6)]" ) );
+	}
+	
+	//TODO test cases for unify with skolem functions and previous substitutions
 	
 }

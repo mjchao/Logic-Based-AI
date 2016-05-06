@@ -108,6 +108,24 @@ public class StatementCNFTest {
 	}
 	
 	@Test
+	public void testBuildWithQuantifier1() {
+		//test building with consecutive quantifiers
+		String infix = "(FORALL(x) FORALL(y) x AND y)";
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
+		Assert.assertEquals( "(?0) AND (?1)" , cnf.toString() );
+	}
+	
+	@Test
+	public void testBuildWithQuantifier2() {
+		//test building with quantifiers whose scopes end
+		String infix = "(FORALL(a,b,c) EXISTS(x) x) AND (FORALL(d,e,f) EXISTS(y) y)";
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
+		Assert.assertEquals( "($0(?0, ?1, ?2)) AND ($1(?4, ?5, ?6))" , cnf.toString() );
+	}
+	
+	@Test
 	public void testBuildWithFunction1() throws IOException {
 		//test using an existential quantifier on function arguments
 		String infix = "EXISTS(x,y,z) GreaterThan(SumInt(x,y),SumInt(y,z))";

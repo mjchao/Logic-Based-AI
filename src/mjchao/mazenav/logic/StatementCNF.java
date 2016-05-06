@@ -159,7 +159,6 @@ public class StatementCNF {
 		if ( evalStack.size() == 1 ) {
 			disjunctions.add( evalStack.pop() );
 		}
-		
 		return new StatementCNF( disjunctions );
 	}
 	
@@ -367,8 +366,16 @@ public class StatementCNF {
 			
 			@Override
 			public Term clone() {
-				if ( value instanceof Function || value instanceof SkolemFunction ) {
+				if ( value instanceof Function ) {
 					Function f = (Function) this.value;
+					Term[] argCopy = new Term[ this.args.length ];
+					for ( int i=0 ; i<argCopy.length ; ++i ) {
+						argCopy[ i ] = this.args[ i ].clone();
+					}
+					return new Term( f , this.negated , argCopy );
+				}
+				else if ( value instanceof SkolemFunction ) {
+					SkolemFunction f = (SkolemFunction) this.value;
 					Term[] argCopy = new Term[ this.args.length ];
 					for ( int i=0 ; i<argCopy.length ; ++i ) {
 						argCopy[ i ] = this.args[ i ].clone();

@@ -849,11 +849,13 @@ class ExpressionTree {
 		 * Removes all quantifiers that are descendants of this node
 		 */
 		public void dropQuantifiers() {
+			boolean droppedChildren = false;
 			for ( int childIdx = 0 ; childIdx < this.children.size() ; ++childIdx ) {
 				if ( children.get( childIdx ).getValue() instanceof QuantifierList ) {
 					ArrayList< ExpressionNode > quantifierChildren = children.get( childIdx ).getChildren();
 					if ( quantifierChildren.size() == 1 ) {
 						children.set( childIdx ,  quantifierChildren.get( 0 ) );
+						droppedChildren = true;
 					}
 					else {
 						
@@ -864,8 +866,17 @@ class ExpressionTree {
 					}
 				}
 			}
-			for ( ExpressionNode child : this.children ) {
-				child.dropQuantifiers();
+			
+			//if we dropped some children that were quantifiers, 
+			//we need to repeat the process for this node again because
+			//the children of those children could be quantifiers
+			if ( droppedChildren ) {
+				this.dropQuantifiers();
+			}
+			else {
+				for ( ExpressionNode child : this.children ) {
+					child.dropQuantifiers();
+				}
 			}
 		}
 		

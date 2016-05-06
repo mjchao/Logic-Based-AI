@@ -437,6 +437,25 @@ public class ExpressionTreeTest {
 			);
 		found = convertToPostfix( input );
 		Assert.assertTrue( expected.equals( found ) );
+			
+		//test that scope of quantifiers can end
+		//"(FORALL(a) EXISTS(x) x) AND (FORALL(b) EXISTS(y) y)		<=> 	[to postfix]
+		//x EXISTS(x) FORALL(a) y EXISTS(y) FORALL(b) AND
+		tracker = new SymbolTracker();
+		input = Arrays.asList(
+			Symbol.LEFT_PAREN , Quantifier.FORALL , Symbol.LEFT_PAREN , tracker.getNewVariable( "a" ) , Symbol.RIGHT_PAREN ,
+			Quantifier.EXISTS , Symbol.LEFT_PAREN , tracker.getNewVariable( "x" ) , Symbol.RIGHT_PAREN , tracker.getVariableByName( "x" ) , Symbol.RIGHT_PAREN ,
+			Operator.AND , Symbol.LEFT_PAREN , Quantifier.FORALL , Symbol.LEFT_PAREN , tracker.getNewVariable( "b" ) , Symbol.RIGHT_PAREN ,
+			Quantifier.EXISTS , Symbol.LEFT_PAREN , tracker.getNewVariable( "y" ) , Symbol.RIGHT_PAREN , tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN
+			);
+		expected = Arrays.asList(
+			tracker.getVariableByName( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
+			newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "a" ) ) ,
+			tracker.getVariableByName( "y" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "y" ) ) ,
+			newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "b" ) ) , Operator.AND
+			);
+		found = convertToPostfix( input );
+		Assert.assertTrue( expected.equals( found ) );
 	}
 	
 	/**
@@ -509,6 +528,22 @@ public class ExpressionTreeTest {
 				Operator.AND , tracker.getNewVariable( "z" ) , Operator.IMPLICATION ,
 				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "z" ) ) ,
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
+			);
+		testBuildTree( input );
+	}
+	
+	@Test
+	public void testBuildTreeQuantifiers3() {
+		SymbolTracker tracker = new SymbolTracker();
+		
+		//test that scope of quantifiers can end
+		//"(FORALL(a,b) EXISTS(x) x) AND (FORALL(c,d) EXISTS(y) y)		<=> 	[to postfix]
+		//x EXISTS(x) FORALL(a,b) y EXISTS(y) FORALL(c,d) AND
+		List< Symbol > input = Arrays.asList(
+				tracker.getNewVariable( "x" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "a" ) , tracker.getVariableByName( "b" ) ) ,
+				tracker.getNewVariable( "y" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "y" ) ) ,
+				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "c" ) , tracker.getVariableByName( "d" ) ) , Operator.AND
 			);
 		testBuildTree( input );
 	}
@@ -1298,6 +1333,38 @@ public class ExpressionTreeTest {
 				getMockSystemVariableById( 0 ) , new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) ,
 				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) , new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) ,
 				tracker.getFunction( "DiffInt" ) , tracker.getRelation( "GreaterThan" ) ,
+				Operator.AND
+				);
+		testSkolemizeAndDropQuantifiers( tracker , input , expected );
+	}
+	
+	@Test
+	public void testSkolemizeAndDropQuantifiersTwoClauses() {
+		//test skolemizing two clauses:
+		//[in infix]	"(FORALL(a,b,c) EXISTS(x) x) AND (FORALL(d,e,f) EXISTS(y) y)"				<=>
+		//				"(FORALL(?0,?1,?2) EXISTS(?3) ?3) AND (FORALL(?4,?5,?6) EXISTS(?7),?7)"		<=>
+		//				"$0(?0,?1,?2) AND $1(?4,?5,?6)"
+		//[in postfix]	"x EXISTS(x), FORALL(a,b,c) y EXISTS(y) FORALL(d,e,f) AND"		<=>
+		//				"$0(?0,?1,?2) $1(?4,?5,?6) AND"
+		SymbolTracker tracker = new SymbolTracker();
+		Variable a = tracker.getNewVariable( "a" );
+		Variable b = tracker.getNewVariable( "b" );
+		Variable c = tracker.getNewVariable( "c" );
+		Variable x = tracker.getNewVariable( "x" );
+		Variable d = tracker.getNewVariable( "d" );
+		Variable e = tracker.getNewVariable( "e" );
+		Variable f = tracker.getNewVariable( "f" );
+		Variable y = tracker.getNewVariable( "y" );
+		List< Symbol > input = Arrays.asList(
+				x , newQuantifierList( Quantifier.EXISTS , x ) , 
+				newQuantifierList( Quantifier.FORALL , a , b , c ) ,
+				y , newQuantifierList( Quantifier.EXISTS , y ) ,
+				newQuantifierList( Quantifier.FORALL , d , e , f ) ,
+				Operator.AND
+			);		
+		List< Symbol > expected = Arrays.asList( 
+				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) , getMockSystemVariableById( 1 ) , getMockSystemVariableById( 2 ) ) ,
+				new SkolemFunction( 1 , getMockSystemVariableById( 4 ) , getMockSystemVariableById( 5 ) , getMockSystemVariableById( 6 ) ) ,
 				Operator.AND
 				);
 		testSkolemizeAndDropQuantifiers( tracker , input , expected );

@@ -206,8 +206,6 @@ public class ResolverTest {
 		
 		Term Func1b = terms.get( 0 ).getArgs()[ 1 ];
 		Term b = Func1b.getArgs()[ 0 ];
-		Term d = terms.get( 1 ).getArgs()[ 0 ];
-		Term e = terms.get( 1 ).getArgs()[ 1 ];
 		Term f = terms.get( 1 ).getArgs()[ 2 ].getArgs()[ 0 ];
 		
 		List<Substitution> prevSubs = new ArrayList< Substitution >();
@@ -278,7 +276,7 @@ public class ResolverTest {
 	
 	@Test
 	public void testUnifySkolemWithArgs() {
-		//test simple unification of two skolem functions and their arguments
+		//test simple unification of two skolem functions
 		SymbolTracker tracker = new SymbolTracker();
 		String infixTerms = "(FORALL(a,b,c) EXISTS(x) x) AND (FORALL(d,e,f) EXISTS(y) y)";
 		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
@@ -286,6 +284,30 @@ public class ResolverTest {
 		Assert.assertTrue( subs.toString().equals( "[$0(?0, ?1, ?2)/$1(?4, ?5, ?6)]" ) );
 	}
 	
-	//TODO test cases for unify with skolem functions and previous substitutions
-	
+	//-----test cases for unify with skolem functions and previous substitutions-----//
+	@Test
+	public void testUnifySkolemPrevSubs1() {
+		//test simple unification of two skolem functions with previous substitutions
+		//previous substitutions should not really have an effect although the
+		//variables appear as skolem function arguments because we don't propagate
+		//variable substitutions for arguments to skolem functions at this stage yet.
+		SymbolTracker tracker = new SymbolTracker();
+		String infixTerms = "(FORALL(a,b,c) EXISTS(x) x) AND (FORALL(d,e,f) EXISTS(y) y) AND k AND m AND n";
+		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
+		Term a = new Term( tracker.getSystemVariableById( 0 ) , false );
+		Term b = new Term( tracker.getSystemVariableById( 1 ) , false );
+		Term c = new Term( tracker.getSystemVariableById( 2 ), false );
+		Term k = terms.get( 2 );
+		Term m = terms.get( 3 );
+		Term n = terms.get( 4 );
+		List< Substitution > prevSubs = new ArrayList< Substitution >();
+		Substitution prevSub1 = new Substitution( a ,k );
+		prevSubs.add( prevSub1 );
+		Substitution prevSub2 = new Substitution( b , m );
+		prevSubs.add( prevSub2 );
+		Substitution prevSub3 = new Substitution( c , n );
+		prevSubs.add( prevSub3 );
+		List< Substitution > subs = Resolver.unify( terms.get( 0 ) , terms.get( 1 ) , prevSubs );
+		Assert.assertTrue( subs.toString().equals( "[?0/?8, ?1/?9, ?2/?10, $0(?0, ?1, ?2)/$1(?4, ?5, ?6)]" ) );
+	}
 }

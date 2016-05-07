@@ -135,25 +135,21 @@ class Resolver {
 			return unifyVar( t2 , t1 , substitutions );
 		}
 		else if ( t1.getValue() instanceof SkolemFunction ) {
-			Term termWithVarBindings = t1.clone();
-			for ( Substitution sub : substitutions ) {
-				if ( sub.original.getValue() instanceof Variable ) {
-					termWithVarBindings.bindVariableArg( (Variable) sub.original.getValue() , sub.substitution );
-				}
-			}
 			
-			//a skolem function with bound variables can be treated as a
-			//normal variable
-			return unifyVar( termWithVarBindings , t2 , substitutions );
+			//a skolem function can be treated as a
+			//normal variable.
+			
+			//the difference between a skolem function and a variable is that
+			//a skolem function can have different values for
+			//different settings of its function arguments.
+			
+			//However, unification should still work the same
+			//because we can a skolem function with a specific
+			//setting of its function arguments as a variable
+			return unifyVar( t1 , t2 , substitutions );
 		}
 		else if ( t2.getValue() instanceof SkolemFunction ) {
-			Term termWithVarBindings = t2.clone();
-			for ( Substitution sub : substitutions ) {
-				if ( sub.original.getValue() instanceof Variable ) {
-					termWithVarBindings.bindVariableArg( (Variable) sub.original.getValue() , sub.substitution );
-				}
-			}
-			return unifyVar( termWithVarBindings , t1 , substitutions );
+			return unifyVar( t2 , t1 , substitutions );
 		}
 		else if ( t1.getValue() instanceof Function && t2.getValue() instanceof Function ) {
 			if ( t1.getValue().equals( t2.getValue() ) ) {

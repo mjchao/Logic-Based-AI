@@ -265,23 +265,19 @@ public class StatementCNF {
 				return this.args;
 			}
 			
-			/**
-			 * Binds the given variable to the specified value only if
-			 * this term is a skolem function. if this term is not
-			 * a skolem function, an IllegalStateException is thrown
-			 * 
-			 * @param var
-			 * @param val
-			 * @param IllegalStateException		if this term does not represent
-			 * 									a skolem function
-			 */
-			public void bindVariableArg( Variable var , Term val ) {
-				if ( !(this.value instanceof SkolemFunction) ) {
-					throw new IllegalStateException( "Cannot bind arguments to a non-SkolemFunction object." );
-				}
+			void substituteArg( Term original , Term substitute ) {
 				for ( int i=0 ; i<args.length ; ++i ) {
-					if ( args[ i ].getValue().equals( var ) ) {
-						args[ i ] = val;
+					if ( args[ i ].equalsIgnoringNegated( original ) ) {
+						if ( args[ i ].negated() == original.negated() ) {
+							args[ i ] = substitute;
+						}
+						else {
+							args[ i ] = substitute.clone();
+							args[ i ].negate();
+						}
+					}
+					else {
+						args[ i ].substituteArg( original , substitute );
 					}
 				}
 			}
@@ -291,6 +287,13 @@ public class StatementCNF {
 			 */
 			public boolean negated() {
 				return this.negated;
+			}
+			
+			/**
+			 * negates this term.
+			 */
+			void negate() {
+				this.negated = !this.negated;
 			}
 			
 			/**
@@ -357,6 +360,11 @@ public class StatementCNF {
 				else {
 					return false;
 				}
+			}
+			
+			public boolean equalsIgnoringNegated( Term t ) {
+				return this.value.equals( t.value ) &&
+						this.argsEqual( t );
 			}
 			
 			@Override

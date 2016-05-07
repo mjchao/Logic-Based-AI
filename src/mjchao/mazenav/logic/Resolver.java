@@ -70,7 +70,7 @@ class Resolver {
 		}
 	}
 	
-	private static boolean containsEmptyClause( List< Disjunction > clauses ) {
+	static boolean containsEmptyClause( List< Disjunction > clauses ) {
 		for ( Disjunction clause : clauses ) {
 			if ( clause.size() == 0 ) {
 				return true;
@@ -79,19 +79,74 @@ class Resolver {
 		return false;
 	}
 	
-	private static List< Disjunction > resolve( Disjunction clause1 , Disjunction clause2 ) {
+	/**
+	 * Determines all possible results from resolving the two
+	 * given clauses. Two clauses can be resolved if a term
+	 * in the first clause unifies with the negation of a term
+	 * in the second clause.
+	 * 
+	 * @param clause1
+	 * @param clause2
+	 * @return
+	 */
+	static List< Disjunction > resolve( Disjunction clause1 , Disjunction clause2 ) {
+		List< Disjunction > rtn = new ArrayList< Disjunction >();
 		for ( int i=0 ; i<clause1.size() ; ++i ) {
 			Term t1 = clause1.getTerm( i );
 			for ( int j=0 ; j<clause2.size() ; ++j ) {
-				Term t2 = clause2.getTerm( j );
-				
-				if ( t1.getValue().equals( t2.getValue() ) &&
-						t1.negated() != t2.negated() ) {
+				Term t2 = clause2.getTerm( j ).clone();
+				t2.negate();
 
+				List< Substitution > subs = unify( t1 , t2 , new ArrayList< Substitution >() );
+				if ( subs != null ) {
+					Disjunction newClause = new Disjunction();
+					for ( int k=0 ; k<clause1.size() ; ++k ) {
+						if ( k != i ) {
+							Term toAdd = clause1.getTerm( k );
+							for ( Substitution sub : subs ) {
+								if ( sub.original.equalsIgnoringNegated( toAdd ) ) {
+									if ( sub.original.negated() == toAdd.negated() ) {
+										toAdd = sub.substitution;
+									}
+									else {
+										toAdd = sub.substitution.clone();
+										toAdd.negate();
+									}
+								}
+								else {
+									toAdd = toAdd.clone();
+									toAdd.substituteArg( sub.original , sub.substitution );
+								}
+							}
+							newClause.addTerm( toAdd );
+						}
+					}
+					for ( int k=0 ; k<clause2.size() ; ++k ) {
+						if ( k != j ) {
+							Term toAdd = clause2.getTerm( k );
+							for ( Substitution sub : subs ) {
+								if ( sub.original.equalsIgnoringNegated( toAdd ) ) {
+									if ( sub.original.negated() == toAdd.negated() ) {
+										toAdd = sub.substitution.clone();
+									}
+									else {
+										toAdd = sub.substitution.clone();
+										toAdd.negate();
+									}
+								}
+								else {
+									toAdd = toAdd.clone();
+									toAdd.substituteArg( sub.original , sub.substitution );
+								}
+							}
+							newClause.addTerm( toAdd );
+						}
+					}
+					rtn.add( newClause );
 				}
 			}
 		}
-		return null;
+		return rtn;
 	}
 	
 	/**

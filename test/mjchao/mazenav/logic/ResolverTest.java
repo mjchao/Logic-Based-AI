@@ -1,9 +1,11 @@
 package mjchao.mazenav.logic;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import mjchao.mazenav.logic.Resolver.Substitution;
+import mjchao.mazenav.logic.StatementCNF.Disjunction;
 import mjchao.mazenav.logic.StatementCNF.Disjunction.Term;
 import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.ObjectFOL;
@@ -94,9 +96,9 @@ public class ResolverTest {
 	}
 	
 	/**
-	 * Mock class for testing unification with functions
+	 * Mock class for testing with functions
 	 */
-	static class UnifyFunctionTests {
+	static class FunctionTester {
 		
 		public ObjectFOL Func1( ObjectFOL arg1 ) {
 			return null;
@@ -112,7 +114,7 @@ public class ResolverTest {
 		
 		public static SymbolTracker buildTracker() {
 			SymbolTracker tracker = new SymbolTracker();
-			UnifyFunctionTests definingInstance = new UnifyFunctionTests();
+			FunctionTester definingInstance = new FunctionTester();
 			Function Func1 = new Function( "Func1" , definingInstance , "Object" );
 			tracker.addFunction( "Func1" , Func1 );
 			
@@ -129,7 +131,7 @@ public class ResolverTest {
 	@Test
 	public void testUnifyFunctions1() {
 		//test unifying variables within functions
-		SymbolTracker tracker = UnifyFunctionTests.buildTracker();
+		SymbolTracker tracker = FunctionTester.buildTracker();
 		String infixTerms = "Func3(u,v,w) AND Func3(x,y,z)";
 		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
 		
@@ -140,7 +142,7 @@ public class ResolverTest {
 	@Test
 	public void testUnifyFunctions2() {
 		//test unifying a variable in a function with another function
-		SymbolTracker tracker = UnifyFunctionTests.buildTracker();
+		SymbolTracker tracker = FunctionTester.buildTracker();
 		String infixTerms = "Func3(u,v,w) AND Func3(Func1(x),y,z)";
 		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
 		
@@ -152,7 +154,7 @@ public class ResolverTest {
 	public void testUnifyFunctions3() {
 		//test unifying a function with a variable (i.e. the algorithm needs
 		//to flip it around and unify the variable with the function)
-		SymbolTracker tracker = UnifyFunctionTests.buildTracker();
+		SymbolTracker tracker = FunctionTester.buildTracker();
 		String infixTerms = "Func3(Func1(u),v,w) AND Func3(x,y,z)";
 		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
 		
@@ -163,7 +165,7 @@ public class ResolverTest {
 	@Test
 	public void testUnifyFunctions4() {
 		//test unifying with multiply-nested functions
-		SymbolTracker tracker = UnifyFunctionTests.buildTracker();
+		SymbolTracker tracker = FunctionTester.buildTracker();
 		String infixTerms = "Func3(Func3(Func1(a),Func1(b),Func1(c)),Func1(d),Func2(Func1(e),f)) AND Func3(Func3(u,v,Func1(w)),x,y)";
 		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
 		
@@ -174,7 +176,7 @@ public class ResolverTest {
 	@Test
 	public void testUnifyFunctions5() {
 		//test failed unification
-		SymbolTracker tracker = UnifyFunctionTests.buildTracker();
+		SymbolTracker tracker = FunctionTester.buildTracker();
 		String infixTerms = "Func3(a,b,Func1(c)) AND Func3(u,v,Func2(w,x))";
 		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
 		
@@ -185,7 +187,7 @@ public class ResolverTest {
 	@Test
 	public void testUnifyFunctions6() {
 		//test failed unification
-		SymbolTracker tracker = UnifyFunctionTests.buildTracker();
+		SymbolTracker tracker = FunctionTester.buildTracker();
 		String infixTerms = "Func3(Func3(Func1(a),Func1(b),Func1(c)),Func1(d),Func2(Func1(e),f)) AND Func3(Func3(u,v,Func1(w)),Func2(x,y),z)";
 		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
 		
@@ -200,7 +202,7 @@ public class ResolverTest {
 		//test unification for functions with previous substitutions
 		//here, we substitute f/a and then we check if the substitution
 		//b/f propagates to the substitution b/a
-		SymbolTracker tracker = UnifyFunctionTests.buildTracker();
+		SymbolTracker tracker = FunctionTester.buildTracker();
 		String infixTerms = "Func3(Func1(a),Func1(b),Func1(c)) AND Func3(d,e,Func1(f))";
 		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
 		
@@ -222,7 +224,7 @@ public class ResolverTest {
 		//here, we substitute c/Func1(b) and then we check if the 
 		//substitution f/c resolves to f/Func1(b), which resolves to
 		//c/Func1(Func1(b))
-		SymbolTracker tracker = UnifyFunctionTests.buildTracker();
+		SymbolTracker tracker = FunctionTester.buildTracker();
 		String infixTerms = "Func3(Func1(a),Func1(b),c) AND Func3(d,e,f)";
 		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
 		
@@ -284,7 +286,6 @@ public class ResolverTest {
 		Assert.assertTrue( subs.toString().equals( "[$0(?0, ?1, ?2)/$1(?4, ?5, ?6)]" ) );
 	}
 	
-	//-----test cases for unify with skolem functions and previous substitutions-----//
 	@Test
 	public void testUnifySkolemPrevSubs1() {
 		//test simple unification of two skolem functions with previous substitutions
@@ -309,5 +310,100 @@ public class ResolverTest {
 		prevSubs.add( prevSub3 );
 		List< Substitution > subs = Resolver.unify( terms.get( 0 ) , terms.get( 1 ) , prevSubs );
 		Assert.assertTrue( subs.toString().equals( "[?0/?8, ?1/?9, ?2/?10, $0(?0, ?1, ?2)/$1(?4, ?5, ?6)]" ) );
+	}
+	
+	//-----------------end unification test cases-----------------------------//
+	
+	@Test
+	public void testResolveBAT1() {
+		//test resolving "A" with "!A", which should yield an empty disjunction
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "A AND !A";
+		List< Disjunction > disjunctions = StatementCNFTest.disjunctionsFromInfix( infix , tracker );
+		List< Disjunction > expected = Arrays.asList( new Disjunction() );
+		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
+		Assert.assertTrue( expected.equals( resolveClauses ) );
+	}
+	
+	@Test
+	public void testResolveBAT2() {
+		//test resolving "T" with "F" (true with false), which should not result in anything 
+		//resolvable
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "T AND F";
+		List< Disjunction > disjunctions = StatementCNFTest.disjunctionsFromInfix( infix , tracker );
+		List< Disjunction > expected = new ArrayList< Disjunction >();
+		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
+		Assert.assertEquals( expected , resolveClauses );
+	}
+	
+	@Test
+	public void testResolveBAT3() {
+		//test resolving "A" with "!B", which should result in an empty disjunction
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "A AND !B";
+		List< Disjunction > disjunctions = StatementCNFTest.disjunctionsFromInfix( infix , tracker );
+		List< Disjunction > expected = Arrays.asList( new Disjunction() );
+		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
+		Assert.assertEquals( expected , resolveClauses );
+	}
+	
+	@Test
+	public void testResolveBAT4() {
+		//test resolving "A" with "B", which should result in an empty disjunction
+		//because substitution "A/!B" should allow "A" and "B" to unify
+		SymbolTracker tracker = new SymbolTracker();
+		String infix = "A AND B";
+		List< Disjunction > disjunctions = StatementCNFTest.disjunctionsFromInfix( infix , tracker );
+		List< Disjunction > expected = Arrays.asList( new Disjunction() );
+		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
+		Assert.assertEquals( expected , resolveClauses );
+	}
+	
+	@Test
+	public void testResolveSkolemBAT1() {
+		//test resolving "EXISTS(x) x OR Func1(x)" with "y". When we substitute
+		//y/!x, we should get "Func1(x)". When we substitute y/!Func1(x)
+		//we should get "x"
+		SymbolTracker tracker = FunctionTester.buildTracker();
+		String infix = "(EXISTS(x) x OR Func1(x)) AND y";
+		List< Disjunction > disjunctions = StatementCNFTest.disjunctionsFromInfix( infix , tracker );
+		
+		List< Disjunction > expected = new ArrayList< Disjunction >();
+		Disjunction d1 = new Disjunction();
+		d1.addTerm( disjunctions.get( 0 ).getTerm( 1 ).clone() );
+		expected.add( d1 );
+		
+		Disjunction d2 = new Disjunction();
+		d2.addTerm( disjunctions.get( 0 ).getTerm( 0 ).clone() );
+		expected.add( d2 );
+		
+		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
+		Assert.assertEquals( expected , resolveClauses );
+	}
+	
+	@Test
+	public void testResolveSubstitutionPropagation2() {
+		//test resolving "x OR Func1(x)" with "EXISTS(y) y". When we substitute
+		//x/!y, we should get "Func1(!y)". When we substitute y/!Func1(x)
+		//we should get "x"
+		SymbolTracker tracker = FunctionTester.buildTracker();
+		String infix = "(x OR Func1(x)) AND (EXISTS(y) y)";
+		List< Disjunction > disjunctions = StatementCNFTest.disjunctionsFromInfix( infix , tracker );
+		
+		List< Disjunction > expected = new ArrayList< Disjunction >();
+		Disjunction res1 = new Disjunction();
+		Term t1 = new Term( tracker.getFunction( "Func1" ) , false , disjunctions.get( 1 ).getTerm( 0 ).clone() );
+		t1.getArgs()[ 0 ].negate();
+		res1.addTerm( t1 );
+		expected.add( res1 );
+		
+		Disjunction res2 = new Disjunction();
+		Term t2 = disjunctions.get( 0 ).getTerm( 0 );
+		res2.addTerm( t2 );
+		expected.add( res2 );
+		
+		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
+		Assert.assertEquals( expected , resolveClauses );
 	}
 }

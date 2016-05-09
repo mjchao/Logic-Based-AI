@@ -507,6 +507,72 @@ class ExpressionTree {
 		return toPostfix();
 	}
 	
+	/**
+	 * ANDs the expression in this ExpressionTree with the expression
+	 * in the other ExpressionTree. All the nodes are deep-copied.
+	 * 
+	 * @param other
+	 * @return
+	 */
+	public ExpressionTree andDeep( ExpressionTree other ) {
+		ExpressionTree rtn = new ExpressionTree();
+		ExpressionNode newRoot = new ExpressionNode( Operator.AND );
+		newRoot.addChildren( this.root.deepCopy() , other.root.deepCopy() );
+		rtn.root = newRoot;
+		return rtn;
+	}
+	
+	/**
+	 * ANDs the expression in this ExpressionTree with the expression
+	 * in the other ExpressionTree. All nodes in this tree are reused
+	 * and shallow-copied, but all nodes from the other tree are deep-copied.
+	 * 
+	 * @param other
+	 */
+	public void andWith( ExpressionTree other ) {
+		ExpressionNode newRoot = new ExpressionNode( Operator.AND );
+		newRoot.addChildren( this.root , other.root.deepCopy() );
+		this.root = newRoot;
+	}
+	
+	/**
+	 * Negates the expression contained by this ExpressionTree. This
+	 * ExpressionTree is directly modified. The CNF expression must be
+	 * rebuilt again.
+	 */
+	public void negate() {
+		ExpressionNode newRoot = new ExpressionNode( Operator.NOT );
+		newRoot.addChildren( this.root );
+		this.root = newRoot;
+		this.inCNF = false;
+		this.postfixExpression = null;
+	}
+	
+	/**
+	 * Negates the expression contained by this ExpressionTree. This
+	 * ExpressionTree is directly modified. The CNF expression is
+	 * automatically rebuilts.
+	 */
+	public void negate( SymbolTracker tracker ) {
+		ExpressionNode newRoot = new ExpressionNode( Operator.NOT );
+		newRoot.addChildren( this.root );
+		this.root = newRoot;
+		this.inCNF = false;
+		convertToCNF( tracker );
+	}
+	
+	/**
+	 * Creates a deep copy of this ExpressionTree
+	 */
+	@Override
+	public ExpressionTree clone() {
+		ExpressionTree rtn = new ExpressionTree();
+		rtn.root = this.root.deepCopy();
+		rtn.inCNF = this.inCNF;
+		rtn.postfixExpression = new ArrayList< Symbol >( this.postfixExpression );
+		return rtn;
+	}
+	
 	class ExpressionNode {
 
 		/**

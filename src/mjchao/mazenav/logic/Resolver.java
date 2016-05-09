@@ -2,7 +2,6 @@ package mjchao.mazenav.logic;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 
 import mjchao.mazenav.logic.StatementCNF.Disjunction;
@@ -20,7 +19,10 @@ import mjchao.mazenav.logic.structures.Variable;
 class Resolver {
 
 	public static boolean proveHypothesis( SymbolTracker tracker , StatementCNF hypothesis , StatementCNF... kb ) {
-		List< StatementCNF > statements = Arrays.asList( kb );
+		List< StatementCNF > statements = new ArrayList< StatementCNF >();
+		for ( StatementCNF s : kb ) {
+			statements.add( s );
+		}
 		statements.add( StatementCNF.negate( hypothesis , tracker ) );
 		return applyResolution( tracker , StatementCNF.andTogether( statements ) );
 	}

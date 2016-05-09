@@ -14,21 +14,19 @@ import mjchao.mazenav.logic.structures.Variable;
 import mjchao.mazenav.util.Utils;
 
 /**
- * Processes a logic statement by tokenizing and converting it
- * to conjunctive normal form.
+ * Tokenizes a logical expression
  * 
  * @author mjchao
  *
  */
-class Processor {
+class Tokenizer {
 
 	private String statement;
 	private List< Symbol > tokens;
-	private List< Symbol > cnfPostfix;
 	
 	private SymbolTracker tracker;
 	
-	public Processor( String logicalStatement , SymbolTracker tracker ) {
+	public Tokenizer( String logicalStatement , SymbolTracker tracker ) {
 		statement = logicalStatement;
 		this.tracker = tracker;
 	}
@@ -149,7 +147,11 @@ class Processor {
 		}
 	}
 
-	private void tokenize() {
+	public List< Symbol > tokenize() {
+		if ( tokens != null ) {
+			return tokens;
+		}
+		
 		tokens = new ArrayList< Symbol >();
 		
 		String toTokenize = statement;
@@ -224,28 +226,6 @@ class Processor {
 			tokens.add( var );
 			continue;
 		}
+		return tokens;
 	}
-	
-	private void convertToCnfPostfix() {
-		ExpressionTree exprTree = new ExpressionTree( this.tokens );
-		this.cnfPostfix = exprTree.getCNFPostfix( this.tracker );
-	}
-	
-	private List< Symbol > getCopyOfCnfPostfix() {
-		ArrayList< Symbol > rtn = new ArrayList< Symbol >( this.cnfPostfix );
-		return rtn;
-	}
-	
-	/**
-	 * Processes the inputed infix statement by tokenizing it and
-	 * converting it to conjunctive normal form in postfix. 
-	 * 
-	 * @return		the inputed infix statement in conjunctive normal form postfix
-	 */
-	public List< Symbol > process() {
-		tokenize();
-		convertToCnfPostfix();
-		return getCopyOfCnfPostfix();
-	}
-
 }

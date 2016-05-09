@@ -1,15 +1,10 @@
 package mjchao.mazenav.logic;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import org.junit.Assert;
-import org.junit.Test;
 
 import mjchao.mazenav.logic.structures.GeometryWorld;
 import mjchao.mazenav.logic.structures.IntegerWorld;
@@ -19,10 +14,13 @@ import mjchao.mazenav.logic.structures.Quantifier;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
 
-public class ProcessorTokenizeTest {
+import org.junit.Assert;
+import org.junit.Test;
 
-	public void tokenize( Processor p ) {
-		Class<?> c = Processor.class;
+public class TokenizerTest {
+
+	public void tokenize( Tokenizer p ) {
+		Class<?> c = Tokenizer.class;
 			Method f;
 			try {
 				f = c.getDeclaredMethod( "tokenize" );
@@ -50,21 +48,30 @@ public class ProcessorTokenizeTest {
 	 * @param p
 	 * @return
 	 */
-	public ArrayList< Symbol > getTokens( Processor p ) {
-		Class<?> c = Processor.class;
+	public List< Symbol > getTokens( Tokenizer p ) {
+		Class<?> c = Tokenizer.class;
+		Method f;
 		try {
-			Field f = c.getDeclaredField( "tokens" );
+			f = c.getDeclaredMethod( "tokenize" );
 			f.setAccessible( true );
-			return (ArrayList<Symbol>) f.get( p );
-		} catch (IllegalArgumentException | IllegalAccessException | NoSuchFieldException | SecurityException e) {
-			e.printStackTrace();
-			throw new RuntimeException( "Could not apply getTokens() method to Processor object." );
+			return (List<Symbol>) f.invoke( p );
+		} catch (InvocationTargetException e) {
+			if ( e.getTargetException() instanceof IllegalArgumentException ) {
+				throw (IllegalArgumentException) e.getTargetException();
+			}
+			else {
+				throw new RuntimeException( "Could not apply tokenize() to Processor object." );
+			}
+		} catch ( NoSuchMethodException | SecurityException e ) {
+			throw new RuntimeException( "Could not apply tokenize() to Processor object." );
+		} catch ( IllegalAccessException | IllegalArgumentException e ) {
+			throw new RuntimeException( "Could not apply tokenize() to Processor object." );
 		}
 	}
 	
 	@Test
 	public void tokenizeBySymbols() throws IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
-		Method preprocess = Processor.class.getDeclaredMethod( "tokenizeByReservedSymbols" , String.class );
+		Method preprocess = Tokenizer.class.getDeclaredMethod( "tokenizeByReservedSymbols" , String.class );
 		preprocess.setAccessible( true );
 		
 		//distinguishing between ! and !=
@@ -96,7 +103,7 @@ public class ProcessorTokenizeTest {
 		
 	@Test
 	public void tokenizeBySymbolsReservedKeywordsInVariableNames() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		Method preprocess = Processor.class.getDeclaredMethod( "tokenizeByReservedSymbols" , String.class );
+		Method preprocess = Tokenizer.class.getDeclaredMethod( "tokenizeByReservedSymbols" , String.class );
 		preprocess.setAccessible( true );
 		
 		String input;
@@ -123,7 +130,7 @@ public class ProcessorTokenizeTest {
 	
 	@Test
 	public void tokenizeBySymbolsEdgeCases() throws NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		Method preprocess = Processor.class.getDeclaredMethod( "tokenizeByReservedSymbols" , String.class );
+		Method preprocess = Tokenizer.class.getDeclaredMethod( "tokenizeByReservedSymbols" , String.class );
 		preprocess.setAccessible( true );
 		
 		String input;
@@ -157,7 +164,7 @@ public class ProcessorTokenizeTest {
 		//test without having to preload a SymbolTracker from
 		//some file
 		
-		Processor test;
+		Tokenizer test;
 		String logicStatement;
 		SymbolTracker tracker = new SymbolTracker();
 		List<Symbol> tokens;
@@ -166,7 +173,7 @@ public class ProcessorTokenizeTest {
 		//basic acceptance test:
 		logicStatement = "FORALL x, x==1";
 		tracker = new SymbolTracker();
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , 
@@ -177,7 +184,7 @@ public class ProcessorTokenizeTest {
 		//longer basic acceptance test:
 		logicStatement = "FORALL(x, y), EXISTS z S.T. z == x AND EXISTS u S.T. u == y";
 		tracker = new SymbolTracker();
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) , 
@@ -192,7 +199,7 @@ public class ProcessorTokenizeTest {
 		//test that != does not get mixed up with !
 		logicStatement = "(!x OR y) && (x != y)";
 		tracker = new SymbolTracker();
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Symbol.LEFT_PAREN , Operator.NOT , tracker.getVariableByName( "x" ) , 
@@ -204,7 +211,7 @@ public class ProcessorTokenizeTest {
 		//test various operators
 		logicStatement = "   && || ! != IMPLICATION BICONDITIONAL , AND OR NEQUALS EQUALS";
 		tracker = new SymbolTracker();
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Operator.AND , Operator.OR , Operator.NOT , 
@@ -215,7 +222,7 @@ public class ProcessorTokenizeTest {
 		//test various symbols
 		logicStatement = "   )   (   , S.T. ";
 		tracker = new SymbolTracker();
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Symbol.RIGHT_PAREN , Symbol.LEFT_PAREN , Symbol.COMMA , Symbol.SUCH_THAT );
@@ -224,7 +231,7 @@ public class ProcessorTokenizeTest {
 		//test various quantifiers
 		logicStatement = "FORALL FORALL EXISTS    ";
 		tracker = new SymbolTracker();
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , Quantifier.FORALL , Quantifier.EXISTS );
@@ -233,7 +240,7 @@ public class ProcessorTokenizeTest {
 		//test various variable names
 		logicStatement = "Xxx___28473 a1b2_c3d4 _";
 		tracker = new SymbolTracker();
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( tracker.getVariableByName( "Xxx___28473" ) , 
@@ -244,7 +251,7 @@ public class ProcessorTokenizeTest {
 		//test with numbers
 		logicStatement = "FORALL x, x == 12345 OR x == 000.001";
 		tracker = new SymbolTracker();
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , tracker.getVariableByName( "x" ) , 
@@ -257,7 +264,7 @@ public class ProcessorTokenizeTest {
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void tokenizeInvalidVariableName() {
-		Processor test;
+		Tokenizer test;
 		String logicStatement;
 		SymbolTracker tracker = new SymbolTracker();
 		List<Symbol> tokens;
@@ -265,13 +272,13 @@ public class ProcessorTokenizeTest {
 		
 		logicStatement = "---bad_variable_name---";
 		tracker = new SymbolTracker();
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void tokenizeInvalidVariableName2() {
-		Processor test;
+		Tokenizer test;
 		String logicStatement;
 		SymbolTracker tracker = new SymbolTracker();
 		List<Symbol> tokens;
@@ -279,13 +286,13 @@ public class ProcessorTokenizeTest {
 		
 		logicStatement = "12345a";
 		tracker = new SymbolTracker();
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 	}
 	
 	@Test(expected = IllegalArgumentException.class)
 	public void tokenizeInvalidVariableName3() {
-		Processor test;
+		Tokenizer test;
 		String logicStatement;
 		SymbolTracker tracker = new SymbolTracker();
 		List<Symbol> tokens;
@@ -293,13 +300,13 @@ public class ProcessorTokenizeTest {
 		
 		logicStatement = "_12345a^";
 		tracker = new SymbolTracker();
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 	}
 	
 	@Test
 	public void tokenizeWithStructures() throws IOException {
-		Processor test;
+		Tokenizer test;
 		String logicStatement;
 		Object def = new IntegerWorld();
 		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , def );
@@ -310,7 +317,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "FORALL(y) GreaterThan(y, 0)";
 		def = new IntegerWorld();
 		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , def );
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , Symbol.LEFT_PAREN , 
@@ -324,7 +331,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "FORALL(x, y) GreaterThan(y, 0) => GreaterThan(SumInt(x,y), x)";
 		def = new IntegerWorld();
 		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , def );
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , Symbol.LEFT_PAREN , 
@@ -345,7 +352,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "FORALL(x, y) GreaterThan(y, 0) => GreaterThn(SumInt(x,y), x)";
 		def = new IntegerWorld();
 		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , def );
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , Symbol.LEFT_PAREN , 
@@ -366,7 +373,7 @@ public class ProcessorTokenizeTest {
 		logicStatement = "AngleEquals( RightAngle , Angle(90) )";
 		def = new GeometryWorld();
 		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/geometryworld.txt" , def );
-		test = new Processor( logicStatement , tracker );
+		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( tracker.getRelation( "AngleEquals" ) , Symbol.LEFT_PAREN ,

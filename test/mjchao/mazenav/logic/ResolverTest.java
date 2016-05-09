@@ -406,4 +406,18 @@ public class ResolverTest {
 		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
 		Assert.assertEquals( expected , resolveClauses );
 	}
+	
+	@Test
+	public void testProveHypothesisBAT1() {
+		
+		//TODO debug resolution algorithm
+		//P => Q, P
+		//---------			should yield true
+		//	  Q
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF kb1 = StatementCNF.fromInfixString( "P => Q" , tracker );
+		StatementCNF kb2 = StatementCNF.fromInfixString( "P" , tracker );
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Q" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb1 , kb2 ) );
+	}
 }

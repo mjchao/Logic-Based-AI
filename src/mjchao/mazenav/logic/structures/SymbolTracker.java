@@ -332,6 +332,7 @@ public class SymbolTracker {
 	
 	public Variable getNewVariable( String name ) {
 		if ( !Variable.isValidVariableName( name ) ) {
+			System.out.println( name );
 			throw new IllegalArgumentException( "User-specified variable names must consist of {A-Z}, {a-z}, [0-9] " +
 												"or '_' and start with a letter." );
 		}

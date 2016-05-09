@@ -28,11 +28,15 @@ public class StatementCNF {
 	 * 							statements ANDed together
 	 */
 	public static StatementCNF andTogether( List< StatementCNF > statements ) {
-		List< Disjunction > disjunctions = new ArrayList< Disjunction >();
-		for ( StatementCNF statement : statements ) {
-			disjunctions.addAll( statement.disjunctions );
+		if ( statements.size() == 0 ) {
+			throw new IllegalArgumentException( "No statements to AND together." );
 		}
-		return new StatementCNF( disjunctions );
+		List< Disjunction > disjunctions = new ArrayList< Disjunction >();
+		ExpressionTree newExprTree = statements.get( 0 ).exprTree.clone();
+		for ( int i=1 ; i<statements.size() ; ++i ) {
+			newExprTree.andWith( statements.get( i ).exprTree.clone() );
+		}
+		return new StatementCNF( newExprTree , disjunctions );
 	}
 	
 	/**
@@ -41,7 +45,9 @@ public class StatementCNF {
 	 * @return					the negated inputed statement
 	 */
 	public static StatementCNF negate( StatementCNF statement , SymbolTracker tracker ) {
-		return fromInfixString( "!(" + statement.toString() + ")" , tracker );
+		StatementCNF rtn = statement.clone();
+		rtn.exprTree.negate( tracker );
+		return rtn;
 	}
 	/**
 	 * Builds a Statement CNF object from an infix logic expression.
@@ -52,9 +58,9 @@ public class StatementCNF {
 	 * 						logic expression in CNF
 	 */
 	public static StatementCNF fromInfixString( String infix , SymbolTracker tracker ) {
-		Processor p = new Processor( infix , tracker );
-		List< Symbol > postfix = p.process();
-		return fromPostfix( postfix , tracker );
+		Tokenizer p = new Tokenizer( infix , tracker );
+		ExpressionTree exprTree = new ExpressionTree( p.tokenize() );
+		return fromPostfix( exprTree , tracker );
 	}
 	
 	/**
@@ -62,12 +68,14 @@ public class StatementCNF {
 	 * postfix CNF expression. This method assumes the postfix expression 
 	 * MUST be valid.
 	 * 
-	 * @param postfix		a valid postfix expression
+	 * @param p				the processor object that contains the postfix
+	 * 						for this expression
 	 * @param tracker		tracker for recognizing variables and names
 	 * @return				a StatementCNF object representing the postfix
 	 * 						conjunctive normal form expression.
 	 */
-	private static StatementCNF fromPostfix( List< Symbol > postfix , SymbolTracker tracker ) {
+	private static StatementCNF fromPostfix( ExpressionTree exprTree , SymbolTracker tracker ) {
+		List< Symbol > postfix = exprTree.getCNFPostfix( tracker );
 		Stack< Disjunction > evalStack = new Stack< Disjunction >();
 		ArrayList< Disjunction > disjunctions = new ArrayList< Disjunction >();
 
@@ -159,7 +167,7 @@ public class StatementCNF {
 		if ( evalStack.size() == 1 ) {
 			disjunctions.add( evalStack.pop() );
 		}
-		return new StatementCNF( disjunctions );
+		return new StatementCNF( exprTree , disjunctions );
 	}
 	
 	/**
@@ -649,6 +657,12 @@ public class StatementCNF {
 	}
 	
 	/**
+	 * the Processor object that contains the ExpressionTree
+	 * used to build this StatementCNF
+	 */
+	private ExpressionTree exprTree;
+	
+	/**
 	 * the disjunctions that have been ANDed together
 	 * in this statement in CNF.
 	 */
@@ -658,10 +672,13 @@ public class StatementCNF {
 	 * Creates a StatementCNF object that represents the
 	 * given list of disjunctions ANDed together.
 	 * 
+	 * @param p 				the processor object for caching the
+	 * 							ExpressionTree used to build this StatementCNF
 	 * @param disjunctions		a list of disjunctions that should
 	 * 							be ANDed together.
 	 */
-	StatementCNF( List< Disjunction > disjunctions ) {
+	StatementCNF( ExpressionTree exprTree , List< Disjunction > disjunctions ) {
+		this.exprTree = exprTree;
 		this.disjunctions = disjunctions;
 	}
 	
@@ -697,5 +714,20 @@ public class StatementCNF {
 			}
 			return rtn.toString();
 		}
+	}
+	
+	/**
+	 * @return 			a deep copy of this StatementCNF. the underlying
+	 * 					expression tree and disjunctions are all deep-copied.
+	 */
+	@Override
+	public StatementCNF clone() {
+		ExpressionTree exprTreeCpy = this.exprTree.clone();
+		List< Disjunction > disjunctionsCpy = new ArrayList< Disjunction >();
+		for ( Disjunction d : this.disjunctions ) {
+			disjunctionsCpy.add( d.clone() );
+		}
+		StatementCNF rtn = new StatementCNF( exprTreeCpy , disjunctionsCpy );
+		return rtn;
 	}
 }

@@ -424,7 +424,7 @@ class ExpressionTree {
 	
 	private void standardize( SymbolTracker tracker ) {
 		if ( this.root != null ) {
-			this.root.standardize( new HashMap< Variable , Variable >() , tracker );
+			this.root.standardize( tracker.getSystemVariableMapping() , tracker );
 		}
 	}
 	

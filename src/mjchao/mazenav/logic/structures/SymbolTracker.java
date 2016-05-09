@@ -169,7 +169,6 @@ public class SymbolTracker {
 	public static final SymbolTracker fromDataFiles( String[] filenames , Object... definitionClassInstances ) throws IOException {
 		SymbolTracker rtn = new SymbolTracker();
 		for ( String filename : filenames ) {
-			@SuppressWarnings("resource")
 			BufferedReader f = new BufferedReader( new FileReader( filename ) );
 			
 			int lineNumber = 1;
@@ -234,6 +233,8 @@ public class SymbolTracker {
 	 * and can only have the form "?[number]", for example "?0", "?1", "?2", ...
 	 */
 	private ArrayList< Variable > systemVariables = new ArrayList< Variable >();
+	
+	private HashMap< Variable , Variable > systemVariableMapping = new HashMap< Variable , Variable >();
 	
 	/**
 	 * A list of system-defined skolem functions. Skolem functions can only
@@ -332,7 +333,6 @@ public class SymbolTracker {
 	
 	public Variable getNewVariable( String name ) {
 		if ( !Variable.isValidVariableName( name ) ) {
-			System.out.println( name );
 			throw new IllegalArgumentException( "User-specified variable names must consist of {A-Z}, {a-z}, [0-9] " +
 												"or '_' and start with a letter." );
 		}
@@ -390,6 +390,10 @@ public class SymbolTracker {
 		
 		//all system-defined variables start with "?"
 		return var.getSymbolName().startsWith( "?" );
+	}
+	
+	public HashMap< Variable , Variable > getSystemVariableMapping() {
+		return this.systemVariableMapping;
 	}
 	
 	/**

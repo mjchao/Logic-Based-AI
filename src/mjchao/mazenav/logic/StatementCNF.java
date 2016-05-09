@@ -24,19 +24,19 @@ public class StatementCNF {
 	 * ANDs a list of StatementCNF objects together
 	 * 
 	 * @param statements		a list of statements in CNF to AND together
+	 * @param tracker			keeps track of variable names
 	 * @return					a single statement representing all the inputed
 	 * 							statements ANDed together
 	 */
-	public static StatementCNF andTogether( List< StatementCNF > statements ) {
+	public static StatementCNF andTogether( List< StatementCNF > statements , SymbolTracker tracker ) {
 		if ( statements.size() == 0 ) {
 			throw new IllegalArgumentException( "No statements to AND together." );
 		}
-		List< Disjunction > disjunctions = new ArrayList< Disjunction >();
 		ExpressionTree newExprTree = statements.get( 0 ).exprTree.clone();
 		for ( int i=1 ; i<statements.size() ; ++i ) {
 			newExprTree.andWith( statements.get( i ).exprTree.clone() );
 		}
-		return new StatementCNF( newExprTree , disjunctions );
+		return fromPostfix( newExprTree , tracker );
 	}
 	
 	/**
@@ -302,6 +302,26 @@ public class StatementCNF {
 			 */
 			void negate() {
 				this.negated = !this.negated;
+			}
+			
+			/**
+			 * Determines if another term is contained inside this term. This
+			 * is used for an occur-check
+			 * 
+			 * @param t		another term
+			 * @return		if this term contains the given term as an argument or
+			 * 				value
+			 */
+			public boolean containsTerm( Term t ) {
+				if ( this.equalsIgnoringNegated( t ) ) {
+					return true;
+				}
+				for ( Term arg : args ) {
+					if ( arg.equals( t ) || arg.containsTerm( t ) ) {
+						return true;
+					}
+				}
+				return false;
 			}
 			
 			/**

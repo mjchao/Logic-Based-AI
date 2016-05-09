@@ -24,11 +24,11 @@ class Resolver {
 			statements.add( s );
 		}
 		statements.add( StatementCNF.negate( hypothesis , tracker ) );
-		return applyResolution( tracker , StatementCNF.andTogether( statements ) );
+		return applyResolution( tracker , StatementCNF.andTogether( statements , tracker ) );
 	}
 	
 	public static boolean applyResolution( SymbolTracker tracker , StatementCNF... statements ) {
-		return applyResolution( tracker , StatementCNF.andTogether( Arrays.asList( statements ) ) );
+		return applyResolution( tracker , StatementCNF.andTogether( Arrays.asList( statements ) , tracker ) );
 	}
 	
 	//TODO test resolution
@@ -49,6 +49,7 @@ class Resolver {
 					Disjunction c1 = clauses.get( i );
 					Disjunction c2 = clauses.get( j );
 					List< Disjunction > resolvents = resolve( c1 , c2 );
+					System.out.println( c1 + " RESOLVE " + c2 + ": " + resolvents );
 					if ( containsEmptyClause( resolvents ) ) {
 						return true;
 					}
@@ -258,7 +259,10 @@ class Resolver {
 			}
 		}
 		
-		//TODO: occur check?
+		//perform an occur check. For example, x cannot unify with f(x)
+		if ( var.containsTerm( x ) ) {
+			return null;
+		}
 		
 		//otherwise, we just directly substitute x for var
 		Substitution newSubstitution = new Substitution( var , x );

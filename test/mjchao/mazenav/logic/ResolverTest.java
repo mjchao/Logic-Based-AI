@@ -7,8 +7,10 @@ import java.util.List;
 import mjchao.mazenav.logic.Resolver.Substitution;
 import mjchao.mazenav.logic.StatementCNF.Disjunction;
 import mjchao.mazenav.logic.StatementCNF.Disjunction.Term;
+import mjchao.mazenav.logic.structures.BooleanFOL;
 import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.ObjectFOL;
+import mjchao.mazenav.logic.structures.Relation;
 import mjchao.mazenav.logic.structures.SymbolTracker;
 
 import org.junit.Assert;
@@ -377,52 +379,7 @@ public class ResolverTest {
 		Assert.assertEquals( expected , resolveClauses );
 	}
 	
-	@Test
-	public void testResolveSkolemBAT1() {
-		//test resolving "EXISTS(x) x OR Func1(x)" with "y". When we substitute
-		//y/!x, we should get "Func1(x)". When we substitute y/!Func1(x)
-		//we should get "x"
-		SymbolTracker tracker = FunctionTester.buildTracker();
-		String infix = "(EXISTS(x) x OR Func1(x)) AND y";
-		List< Disjunction > disjunctions = StatementCNFTest.disjunctionsFromInfix( infix , tracker );
-		
-		List< Disjunction > expected = new ArrayList< Disjunction >();
-		Disjunction d1 = new Disjunction();
-		d1.addTerm( disjunctions.get( 0 ).getTerm( 1 ).clone() );
-		expected.add( d1 );
-		
-		Disjunction d2 = new Disjunction();
-		d2.addTerm( disjunctions.get( 0 ).getTerm( 0 ).clone() );
-		expected.add( d2 );
-		
-		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
-		Assert.assertEquals( expected , resolveClauses );
-	}
-	
-	@Test
-	public void testResolveSubstitutionPropagation2() {
-		//test resolving "x OR Func1(x)" with "EXISTS(y) y". When we substitute
-		//x/!y, we should get "Func1(!y)". When we substitute y/!Func1(x)
-		//we should get "x"
-		SymbolTracker tracker = FunctionTester.buildTracker();
-		String infix = "(x OR Func1(x)) AND (EXISTS(y) y)";
-		List< Disjunction > disjunctions = StatementCNFTest.disjunctionsFromInfix( infix , tracker );
-		
-		List< Disjunction > expected = new ArrayList< Disjunction >();
-		Disjunction res1 = new Disjunction();
-		Term t1 = new Term( tracker.getFunction( "Func1" ) , false , disjunctions.get( 1 ).getTerm( 0 ).clone() );
-		t1.getArgs()[ 0 ].negate();
-		res1.addTerm( t1 );
-		expected.add( res1 );
-		
-		Disjunction res2 = new Disjunction();
-		Term t2 = disjunctions.get( 0 ).getTerm( 0 );
-		res2.addTerm( t2 );
-		expected.add( res2 );
-		
-		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
-		Assert.assertEquals( expected , resolveClauses );
-	}
+	//TODO test with skolem functions
 	
 	@Test
 	public void testProveHypothesisBAT1() {
@@ -539,5 +496,299 @@ public class ResolverTest {
 		StatementCNF kb8 = StatementCNF.fromInfixString( "P" , tracker );
 		StatementCNF hypothesis = StatementCNF.fromInfixString( "S" , tracker );
 		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb1 , kb2 , kb3 , kb4 , kb5 , kb6 , kb7 , kb8 ) );
+	}
+	
+	@Test
+	public void testProveHypothesisBAT9() {
+		//test chaining information from multiple sources
+		//A => B , B => C, 	-
+		//K => L , L => M,	 |--> C AND M AND R => Z
+		//P => Q , Q => R, 	-
+		//A, K, P
+		//----------------------------					should yield true
+		//	  		 Z
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "A => B" , tracker ) ,
+			StatementCNF.fromInfixString( "B => C" , tracker ) ,
+			StatementCNF.fromInfixString( "K => L" , tracker ) ,
+			StatementCNF.fromInfixString( "L => M" , tracker ) ,
+			StatementCNF.fromInfixString( "P => Q" , tracker ) ,
+			StatementCNF.fromInfixString( "Q => R" , tracker ) ,
+			StatementCNF.fromInfixString( "C AND M AND R => Z" , tracker ) ,
+			StatementCNF.fromInfixString( "A" , tracker ) ,
+			StatementCNF.fromInfixString( "K" , tracker ) ,
+			StatementCNF.fromInfixString( "P" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Z" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisBAT10() {
+		//test chaining information from multiple sources
+		//A => B , B => C, 	-
+		//K => L , L => M,	 |--> C AND M AND R => Z
+		//P => Q , Q => R, 	-
+		//A, K, P
+		//----------------------------					should yield true
+		//	  		 Z
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "A => B" , tracker ) ,
+			StatementCNF.fromInfixString( "B => C" , tracker ) ,
+			StatementCNF.fromInfixString( "K => L" , tracker ) ,
+			StatementCNF.fromInfixString( "L => M" , tracker ) ,
+			StatementCNF.fromInfixString( "P => Q" , tracker ) ,
+			StatementCNF.fromInfixString( "Q => R" , tracker ) ,
+			StatementCNF.fromInfixString( "C AND M AND R => Z" , tracker ) ,
+			StatementCNF.fromInfixString( "!A" , tracker ) ,
+			StatementCNF.fromInfixString( "!K" , tracker ) ,
+			StatementCNF.fromInfixString( "!P" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Z" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	/**
+	 * Mock class for testing with functions and relations
+	 */
+	static class FunctionRelationTester {
+		
+		final public static ObjectFOL obj1 = new ObjectFOL( "obj1" , null , "Object" );
+		public ObjectFOL obj1() {
+			return obj1;
+		}
+		
+		final public static ObjectFOL obj2 = new ObjectFOL( "obj2" , null , "Object" );
+		public ObjectFOL obj2() {
+			return obj2;
+		}
+		
+		final public static ObjectFOL obj3 = new ObjectFOL( "obj3" , null , "Object" );
+		public ObjectFOL obj3() {
+			return obj3;
+		}
+		
+		public ObjectFOL Func1( ObjectFOL arg1 ) {
+			return null;
+		}
+		
+		public ObjectFOL Func2( ObjectFOL arg1 , ObjectFOL arg2 ) {
+			return null;
+		}
+		
+		public ObjectFOL Func3( ObjectFOL arg1 , ObjectFOL arg2 , ObjectFOL arg3 ) {
+			return null;
+		}
+		
+		public BooleanFOL Rel1( ObjectFOL arg1 ){
+			return null;
+		}
+		
+		public BooleanFOL Rel2( ObjectFOL arg1 , ObjectFOL arg2 ) {
+			return null;
+		}
+		
+		public BooleanFOL Rel3( ObjectFOL arg1 , ObjectFOL arg2 , ObjectFOL arg3 ) {
+			return null;
+		}
+		
+		public static SymbolTracker buildTracker() {
+			SymbolTracker tracker = new SymbolTracker();
+			FunctionRelationTester definingInstance = new FunctionRelationTester();
+			Function Func1 = new Function( "Func1" , definingInstance , "Object" );
+			tracker.addFunction( "Func1" , Func1 );
+			
+			Function Func2 = new Function( "Func2" , definingInstance , "Object" , "Object" );
+			tracker.addFunction( "Func2" , Func2 );
+			
+			Function Func3 = new Function( "Func3" , definingInstance , "Object" , "Object" , "Object" );
+			tracker.addFunction( "Func3" , Func3 );
+			
+			Relation Rel1 = new Relation( "Rel1" , definingInstance , "Object" );
+			tracker.addRelation( "Rel1" , Rel1 );
+			
+			Relation Rel2 = new Relation( "Rel2" , definingInstance , "Object" , "Object" );
+			tracker.addRelation( "Rel2" , Rel2 );
+			
+			Relation Rel3 = new Relation( "Rel3" , definingInstance , "Object"  , "Object" , "Object" );
+			tracker.addRelation( "Rel3" , Rel3 );
+			
+			Function obj1 = new Function( "obj1" , definingInstance );
+			tracker.addConstant( "obj1" , obj1 );
+			
+			Function obj2 = new Function( "obj2" , definingInstance );
+			tracker.addConstant( "obj2" , obj2 );
+			
+			Function obj3 = new Function( "obj3" , definingInstance );
+			tracker.addConstant( "obj3" , obj3 );
+			
+			return tracker;
+		}
+	}
+	
+	@Test
+	public void testProveHypothesisFunctionsBAT1() {
+		//test basic modus ponens with functions and relations
+		//Rel1(obj1) => Rel1(obj2), Rel1(obj1)
+		//----------------------------			should yield true
+		//	  		 Rel1(obj2)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(obj1) => Rel1(obj2)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj1)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel1(obj2)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisFunctionsBAT2() {
+		//test basic modus ponens with functions and relations
+		//Rel1(obj1) => Rel1(obj2), Rel1(obj1)
+		//----------------------------			should yield false
+		//	  		 !Rel1(obj2)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(obj1) => Rel1(obj2)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj1)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "!Rel1(obj2)" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	
+	public static class Integration1 {
+		
+		final public static ObjectFOL Nono = new ObjectFOL( "Nono" , null , "Object" , "Nation" );
+		final public ObjectFOL Nono() {
+			return Nono;
+		}
+		
+		final public static ObjectFOL M1 = new ObjectFOL( "M1" , null , "Object" , "Missile" );
+		final public ObjectFOL M1() {
+			return M1;
+		}
+		
+		final public static ObjectFOL West = new ObjectFOL( "West" , null , "Object" , "American" );
+		final public ObjectFOL West() {
+			return West;
+		}
+		
+		public BooleanFOL American( ObjectFOL arg0 ) {
+			return null;
+		}
+		
+		public BooleanFOL Missile( ObjectFOL arg0 ) {
+			return null;
+		}
+		
+		//Functions and Relations that do not need to be defined:
+		public BooleanFOL Weapon( ObjectFOL arg0 ) {
+			return null;
+		}
+		
+		public BooleanFOL Sells( ObjectFOL arg0 , ObjectFOL arg1 , ObjectFOL arg2 ) {
+			return null;
+		}
+		
+		public BooleanFOL Hostile( ObjectFOL arg0 ) {
+			return null;
+		}
+		
+		public BooleanFOL Criminal( ObjectFOL arg0 ) {
+			return null;
+		}
+		
+		public BooleanFOL Owns( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return null;
+		}
+		
+		public BooleanFOL Enemy( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return null;
+		}
+		
+		public static SymbolTracker buildTracker() {
+			SymbolTracker rtn = new SymbolTracker();
+			Integration1 definingInstance = new Integration1();
+			
+			Function Nono = new Function( "Nono" , definingInstance );
+			rtn.addConstant( "Nono" , Nono );
+			
+			Function M1 = new Function( "M1" , definingInstance );
+			rtn.addConstant( "M1" , M1 );
+			
+			Function West = new Function( "West" , definingInstance );
+			rtn.addConstant( "West" , West );
+			
+			Relation American = new Relation( "American" , definingInstance , "Object" );
+			rtn.addRelation( "American" , American );
+			
+			Relation Missile = new Relation( "Missile" , definingInstance , "Object" );
+			rtn.addRelation( "Missile" , Missile );
+			
+			Relation Weapon = new Relation( "Weapon" , definingInstance , "Object" );
+			rtn.addRelation( "Weapon" , Weapon );
+			
+			Relation Sells = new Relation( "Sells" , definingInstance , "Object" , "Object" , "Object" );
+			rtn.addRelation( "Sells" , Sells );
+			
+			Relation Hostile = new Relation( "Hostile" , definingInstance , "Object" );
+			rtn.addRelation( "Hostile" , Hostile );
+			
+			Relation Criminal = new Relation( "Criminal" , definingInstance , "Object" );
+			rtn.addRelation( "Criminal" , Criminal );
+			
+			Relation Owns = new Relation( "Owns" , definingInstance , "Object" , "Object" );
+			rtn.addRelation( "Owns" , Owns );
+			
+			Relation Enemy = new Relation( "Enemy" , definingInstance , "Object" , "Object" );
+			rtn.addRelation( "Enemy" , Enemy );
+			
+			return rtn;
+		}
+	}
+	
+	@Test
+	public void integration1T() {
+		//apply the example used by Russell and Norvig on page 330-331
+		//(the resolution proof is on page 348)
+		SymbolTracker tracker = Integration1.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "American(x) AND Weapon(y) AND Sells(x,y,z) AND Hostile(z) => Criminal(x)" , tracker ) ,
+			StatementCNF.fromInfixString( "Owns(Nono,M1)" , tracker ) ,
+			StatementCNF.fromInfixString( "Missile(M1)" , tracker) ,
+			StatementCNF.fromInfixString( "Missile(x) AND Owns(Nono,x) => Sells(West,x,Nono)", tracker ) ,
+			StatementCNF.fromInfixString( "Missile(x) => Weapon(x)" , tracker ) ,
+			StatementCNF.fromInfixString( "Enemy(x, America) => Hostile(x)", tracker ) ,
+			StatementCNF.fromInfixString( "American(West)" , tracker ) ,
+			StatementCNF.fromInfixString( "Enemy(Nono, America)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Criminal(West)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void integration1F() {
+		//apply the example used by Russell and Norvig on page 330-331
+		//(the resolution proof is on page 348)
+		
+		//test for potential positive-bias:
+		//if we remove the fact that missiles are weapons, it should not longer
+		//be possible to prove that west is a criminal
+		SymbolTracker tracker = Integration1.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "American(x) AND Weapon(y) AND Sells(x,y,z) AND Hostile(z) => Criminal(x)" , tracker ) ,
+			StatementCNF.fromInfixString( "Owns(Nono,M1)" , tracker ) ,
+			StatementCNF.fromInfixString( "Missile(M1)" , tracker) ,
+			StatementCNF.fromInfixString( "Missile(x) AND Owns(Nono,x) => Sells(West,x,Nono)", tracker ) ,
+			//StatementCNF.fromInfixString( "Missile(x) => Weapon(x)" , tracker ) ,
+			StatementCNF.fromInfixString( "Enemy(x, America) => Hostile(x)", tracker ) ,
+			StatementCNF.fromInfixString( "American(West)" , tracker ) ,
+			StatementCNF.fromInfixString( "Enemy(Nono, America)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Criminal(West)" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
 }

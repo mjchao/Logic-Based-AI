@@ -280,7 +280,18 @@ public class SymbolTracker {
 		return null;
 	}
 	
+	/**
+	 * Adds the given constant to the list of known constants. Constant objects
+	 * are represented as Functions that take no arguments.
+	 * 
+	 * @param name		the name of the object
+	 * @param obj		a function that should return the ObjectFOL this
+	 * 					constant represents
+	 */
 	public void addConstant( String name , Function obj ) {
+		if ( obj.getNumArgs() != 0 ) {
+			throw new IllegalArgumentException( "Objects must be represented as Functions with 0 arguments." );
+		}
 		this.constants.put( name , obj );
 	}
 	

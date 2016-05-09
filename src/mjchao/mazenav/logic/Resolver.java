@@ -98,12 +98,25 @@ class Resolver {
 				Term t2 = clause2.getTerm( j ).clone();
 				t2.negate();
 
+				//we cannot unify different variables. Suppose we are presented with
+				//P AND Q. Obviously substituting P/!Q will result in the empty
+				//clause, but that's not valid, so we want to skip this type of
+				//unification
+				if ( t1.getValue() instanceof Variable && 
+						t2.getValue() instanceof Variable &&
+						!t1.getValue().equals( t2.getValue() ) ) {
+					continue;
+				}
+				
+				//we cannot unify two functions if one is negated and the other
+				//is not
+				if ( t1.getValue() instanceof Function &&
+						t2.getValue() instanceof Function &&
+						t1.negated() != t2.negated() ) {
+					continue;
+				}
 				List< Substitution > subs = unify( t1 , t2 , new ArrayList< Substitution >() );
 				if ( subs != null ) {
-					
-					if ( t1.getValue() instanceof Variable && t2.getValue() instanceof Variable && subs.size() > 0 ) {
-						continue;
-					}
 					
 					Disjunction newClause = new Disjunction();
 					for ( int k=0 ; k<clause1.size() ; ++k ) {

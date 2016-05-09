@@ -40,7 +40,6 @@ class Resolver {
 		List< Disjunction > newClauses = new ArrayList< Disjunction >();
 		
 		while( true ) {
-			
 			//attempt to resolve every pair of clauses
 			//if any of those pairs yields a contradiction (i.e. P AND !P)
 			//then the proof by contradiction succeeds (return true)
@@ -49,7 +48,6 @@ class Resolver {
 					Disjunction c1 = clauses.get( i );
 					Disjunction c2 = clauses.get( j );
 					List< Disjunction > resolvents = resolve( c1 , c2 );
-					System.out.println( c1 + " RESOLVE " + c2 + ": " + resolvents );
 					if ( containsEmptyClause( resolvents ) ) {
 						return true;
 					}
@@ -102,6 +100,11 @@ class Resolver {
 
 				List< Substitution > subs = unify( t1 , t2 , new ArrayList< Substitution >() );
 				if ( subs != null ) {
+					
+					if ( t1.getValue() instanceof Variable && t2.getValue() instanceof Variable && subs.size() > 0 ) {
+						continue;
+					}
+					
 					Disjunction newClause = new Disjunction();
 					for ( int k=0 ; k<clause1.size() ; ++k ) {
 						if ( k != i ) {

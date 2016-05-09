@@ -95,6 +95,20 @@ public class ResolverTest {
 		Assert.assertTrue( subs.toString().equals( "[?1/100, ?0/100]" ) );
 	}
 	
+	@Test
+	public void testUnifyVarOccurCheck1(){
+		//test unifying a variable with its own negation. This should fail.
+		//i.e. unifying x with !x should fail.
+		SymbolTracker tracker = new SymbolTracker();
+		String infixTerms = "x AND !x";
+		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
+		Term x = terms.get( 0 );
+		Term y = terms.get( 1 );
+		
+		List< Substitution > subs = Resolver.unifyVar( x , y , new ArrayList< Substitution >() );
+		Assert.assertTrue( subs == null );
+	}
+	
 	/**
 	 * Mock class for testing with functions
 	 */
@@ -339,11 +353,13 @@ public class ResolverTest {
 	
 	@Test
 	public void testResolveBAT3() {
-		//test resolving "A" with "!B", which should result in an empty disjunction
+		//test resolving "A" with "!B", which should result in failed
+		//unification because a variable cannot substitute for a different
+		//negated variable
 		SymbolTracker tracker = new SymbolTracker();
 		String infix = "A AND !B";
 		List< Disjunction > disjunctions = StatementCNFTest.disjunctionsFromInfix( infix , tracker );
-		List< Disjunction > expected = Arrays.asList( new Disjunction() );
+		List< Disjunction > expected = new ArrayList< Disjunction >();
 		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
 		Assert.assertEquals( expected , resolveClauses );
 	}
@@ -351,11 +367,12 @@ public class ResolverTest {
 	@Test
 	public void testResolveBAT4() {
 		//test resolving "A" with "B", which should result in an empty disjunction
-		//because substitution "A/!B" should allow "A" and "B" to unify
+		//because "A" and "B" are different variables and should not 
+		//resolve to anything
 		SymbolTracker tracker = new SymbolTracker();
 		String infix = "A AND B";
 		List< Disjunction > disjunctions = StatementCNFTest.disjunctionsFromInfix( infix , tracker );
-		List< Disjunction > expected = Arrays.asList( new Disjunction() );
+		List< Disjunction > expected = new ArrayList< Disjunction >();
 		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
 		Assert.assertEquals( expected , resolveClauses );
 	}
@@ -409,15 +426,30 @@ public class ResolverTest {
 	
 	@Test
 	public void testProveHypothesisBAT1() {
-		
-		//TODO debug resolution algorithm
 		//P => Q, P
 		//---------			should yield true
 		//	  Q
+		
+		//(!P OR Q) AND (P) AND (!Q)
+		//(!P OR Q) AND (P) AND (!Q) AND (Q)
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF kb1 = StatementCNF.fromInfixString( "P => Q" , tracker );
 		StatementCNF kb2 = StatementCNF.fromInfixString( "P" , tracker );
 		StatementCNF hypothesis = StatementCNF.fromInfixString( "Q" , tracker );
 		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb1 , kb2 ) );
+	}
+	
+	@Test
+	public void testProveHypothesisBAT2() {
+		//P => Q, P
+		//---------			should yield false
+		//	  !Q
+		//(!P OR Q) AND (P) AND (!Q)
+		//AND (Q) AND (!P) 
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF kb1 = StatementCNF.fromInfixString( "P => Q" , tracker );
+		StatementCNF kb2 = StatementCNF.fromInfixString( "P" , tracker );
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "!Q" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb1 , kb2 ) );
 	}
 }

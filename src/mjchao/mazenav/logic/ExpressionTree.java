@@ -537,28 +537,19 @@ class ExpressionTree {
 	
 	/**
 	 * Negates the expression contained by this ExpressionTree. This
-	 * ExpressionTree is directly modified. The CNF expression must be
-	 * rebuilt again.
-	 */
-	public void negate() {
-		ExpressionNode newRoot = new ExpressionNode( Operator.NOT );
-		newRoot.addChildren( this.root );
-		this.root = newRoot;
-		this.inCNF = false;
-		this.postfixExpression = null;
-	}
-	
-	/**
-	 * Negates the expression contained by this ExpressionTree. This
 	 * ExpressionTree is directly modified. The CNF expression is
-	 * automatically rebuilts.
+	 * automatically rebuilt.
 	 */
 	public void negate( SymbolTracker tracker ) {
 		ExpressionNode newRoot = new ExpressionNode( Operator.NOT );
 		newRoot.addChildren( this.root );
 		this.root = newRoot;
-		this.inCNF = false;
-		convertToCNF( tracker );
+		if ( this.inCNF ) {
+			this.eliminateArrowsAndDistributeNots();
+		}
+		else {
+			convertToCNF( tracker );
+		}
 	}
 	
 	/**

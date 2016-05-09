@@ -45,9 +45,9 @@ public class StatementCNF {
 	 * @return					the negated inputed statement
 	 */
 	public static StatementCNF negate( StatementCNF statement , SymbolTracker tracker ) {
-		StatementCNF rtn = statement.clone();
-		rtn.exprTree.negate( tracker );
-		return rtn;
+		ExpressionTree exprTreeCpy = statement.exprTree.clone();
+		exprTreeCpy.negate( tracker );
+		return fromPostfix( exprTreeCpy , tracker );
 	}
 	/**
 	 * Builds a Statement CNF object from an infix logic expression.

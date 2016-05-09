@@ -80,7 +80,6 @@ public class StatementCNF {
 		ArrayList< Disjunction > disjunctions = new ArrayList< Disjunction >();
 
 		//apply an algorithm to evaluate postfix:
-		
 		for ( Symbol s : postfix ) {
 			if ( s.equals( Operator.OR ) ) {
 				
@@ -107,8 +106,16 @@ public class StatementCNF {
 				//in this case, we are ANDing with another
 				//AND statement that has already been added
 				//to the output list
-				else {
+				else if ( evalStack.size() == 1 ) {
 					disjunctions.add( evalStack.pop() );
+				}
+				
+				//in this case, we just processed two disjunctions that
+				//were supposed to be ANDed together, but they've already
+				//been placed onto the disjunctions list. This isn't a flaw
+				//in the algorithm
+				else if ( evalStack.size() == 0 ) {
+					continue;
 				}
 			}
 			

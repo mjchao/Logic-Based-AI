@@ -426,12 +426,10 @@ public class ResolverTest {
 	
 	@Test
 	public void testProveHypothesisBAT1() {
+		//basic modus ponens:
 		//P => Q, P
 		//---------			should yield true
 		//	  Q
-		
-		//(!P OR Q) AND (P) AND (!Q)
-		//(!P OR Q) AND (P) AND (!Q) AND (Q)
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF kb1 = StatementCNF.fromInfixString( "P => Q" , tracker );
 		StatementCNF kb2 = StatementCNF.fromInfixString( "P" , tracker );
@@ -441,15 +439,105 @@ public class ResolverTest {
 	
 	@Test
 	public void testProveHypothesisBAT2() {
+		//basic modus ponens:
 		//P => Q, P
 		//---------			should yield false
 		//	  !Q
-		//(!P OR Q) AND (P) AND (!Q)
-		//AND (Q) AND (!P) 
 		SymbolTracker tracker = new SymbolTracker();
 		StatementCNF kb1 = StatementCNF.fromInfixString( "P => Q" , tracker );
 		StatementCNF kb2 = StatementCNF.fromInfixString( "P" , tracker );
 		StatementCNF hypothesis = StatementCNF.fromInfixString( "!Q" , tracker );
 		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb1 , kb2 ) );
+	}
+	
+	@Test
+	public void testProveHypothesisBAT3() {
+		//test using <=> which will result in many more disjunctions
+		//which makes the resolution algorithm deal with many more clauses
+		//P <=> Q, P
+		//---------			should yield true
+		//	  Q
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF kb1 = StatementCNF.fromInfixString( "P <=> Q" , tracker );
+		StatementCNF kb2 = StatementCNF.fromInfixString( "P" , tracker );
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Q" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb1 , kb2 ) );
+	}
+	
+	@Test
+	public void testProveHypothesisBAT4() {
+		//test using <=> which will result in many more disjunctions
+		//which makes the resolution algorithm deal with many more clauses
+		//P <=> Q, P
+		//---------			should yield false
+		//	  !Q
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF kb1 = StatementCNF.fromInfixString( "P <=> Q" , tracker );
+		StatementCNF kb2 = StatementCNF.fromInfixString( "P" , tracker );
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "!Q" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb1 , kb2 ) );
+	}
+	
+	@Test
+	public void testProveHypothesisBAT5() {
+		//test using irrelevant information
+		//P => Q, P
+		//---------			should yield true, but P => Q is irrelevant
+		//	  P
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF kb1 = StatementCNF.fromInfixString( "P => Q" , tracker );
+		StatementCNF kb2 = StatementCNF.fromInfixString( "P" , tracker );
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "P" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb1 , kb2 ) );
+	}
+	
+	@Test
+	public void testProveHypothesisBAT6() {
+		//test chaining implications
+		//P => Q, Q => R, R => S , P
+		//--------------------------			should yield true
+		//	  		 S
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF kb1 = StatementCNF.fromInfixString( "P => Q" , tracker );
+		StatementCNF kb2 = StatementCNF.fromInfixString( "Q => R" , tracker );
+		StatementCNF kb3 = StatementCNF.fromInfixString( "R => S" , tracker );
+		StatementCNF kb4 = StatementCNF.fromInfixString( "P" , tracker );
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "S" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb1 , kb2 , kb3 , kb4 ) );
+	}
+	
+	@Test
+	public void testProveHypothesisBAT7() {
+		//test chaining implications
+		//P => Q, Q => R, R => S , P
+		//--------------------------			should yield false
+		//	  		 !S
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF kb1 = StatementCNF.fromInfixString( "P => Q" , tracker );
+		StatementCNF kb2 = StatementCNF.fromInfixString( "Q => R" , tracker );
+		StatementCNF kb3 = StatementCNF.fromInfixString( "R => S" , tracker );
+		StatementCNF kb4 = StatementCNF.fromInfixString( "P" , tracker );
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "!S" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb1 , kb2 , kb3 , kb4 ) );
+	}
+	
+	@Test
+	public void testProveHypothesisBAT8() {
+		//test with extra irrelevant information
+		//P => Z , P => Q , Q => A Q => R, 
+		//R => B , R => S S <=> C , P
+		//----------------------------			should yield true
+		//	  		 S
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF kb1 = StatementCNF.fromInfixString( "P => Z" , tracker );
+		StatementCNF kb2 = StatementCNF.fromInfixString( "P => Q" , tracker );
+		StatementCNF kb3 = StatementCNF.fromInfixString( "Q => A" , tracker );
+		StatementCNF kb4 = StatementCNF.fromInfixString( "Q => R" , tracker );
+		StatementCNF kb5 = StatementCNF.fromInfixString( "R => B" , tracker );
+		StatementCNF kb6 = StatementCNF.fromInfixString( "R => S" , tracker );
+		StatementCNF kb7 = StatementCNF.fromInfixString( "S <=> C" , tracker );
+		StatementCNF kb8 = StatementCNF.fromInfixString( "P" , tracker );
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "S" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb1 , kb2 , kb3 , kb4 , kb5 , kb6 , kb7 , kb8 ) );
 	}
 }

@@ -108,6 +108,19 @@ public class StatementCNFTest {
 	}
 	
 	@Test
+	public void testMultipleANDOperators() {
+		//test the case where when we build the statement, there are two
+		//AND operators in a row - e.g. in postfix, we get A B || C D || && P Q || R S || && &&
+		//which is a corner case because two conjunctions "A B || C D || &&" and "P Q || R S || &&" get
+		//pushed onto the output list leaving a && with no operands.
+		//the final && just needs to be ignored
+		String infix = "((A OR B) AND (C OR D)) AND ((P OR Q) AND (R OR S))";
+		SymbolTracker tracker = new SymbolTracker();
+		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
+		Assert.assertEquals( "(?0 OR ?1) AND (?2 OR ?3) AND (?4 OR ?5) AND (?6 OR ?7)" , cnf.toString() );
+	}
+	
+	@Test
 	public void testBuildWithQuantifier1() {
 		//test building with consecutive quantifiers
 		String infix = "(FORALL(x) FORALL(y) x AND y)";

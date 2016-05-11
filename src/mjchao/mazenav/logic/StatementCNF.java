@@ -710,6 +710,21 @@ public class StatementCNF {
 	}
 	
 	/**
+	 * @param term
+	 * @return			if this statement contains the given term
+	 */
+	boolean containsTerm( Disjunction.Term term ) {
+		for ( Disjunction d : disjunctions ) {
+			for ( Disjunction.Term t : d.terms ) {
+				if ( t.equals( term ) || t.containsTerm( term ) ) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+	
+	/**
 	 * Gets a shallow copy of the list of disjunctions in this StatementCNF.
 	 * The list should not be modified and is only used by the Resolver
 	 * in performing the resolution algorithm.

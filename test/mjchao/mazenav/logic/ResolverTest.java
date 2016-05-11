@@ -346,6 +346,8 @@ public class ResolverTest {
 	
 	//-----------------end unification test cases-----------------------------//
 	
+	public static final StatementCNF mockHypothesis = StatementCNF.fromInfixString( "1" , new SymbolTracker() );
+	
 	@Test
 	public void testResolveBAT1() {
 		//test resolving "A" with "!A", which should yield an empty disjunction
@@ -353,7 +355,7 @@ public class ResolverTest {
 		String infix = "A AND !A";
 		List< Disjunction > disjunctions = StatementCNFTest.disjunctionsFromInfix( infix , tracker );
 		List< Disjunction > expected = Arrays.asList( new Disjunction() );
-		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
+		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) , mockHypothesis );
 		Assert.assertTrue( expected.equals( resolveClauses ) );
 	}
 	
@@ -365,7 +367,7 @@ public class ResolverTest {
 		String infix = "T AND F";
 		List< Disjunction > disjunctions = StatementCNFTest.disjunctionsFromInfix( infix , tracker );
 		List< Disjunction > expected = new ArrayList< Disjunction >();
-		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
+		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) , mockHypothesis );
 		Assert.assertEquals( expected , resolveClauses );
 	}
 	
@@ -378,7 +380,7 @@ public class ResolverTest {
 		String infix = "A AND !B";
 		List< Disjunction > disjunctions = StatementCNFTest.disjunctionsFromInfix( infix , tracker );
 		List< Disjunction > expected = new ArrayList< Disjunction >();
-		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
+		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) , mockHypothesis );
 		Assert.assertEquals( expected , resolveClauses );
 	}
 	
@@ -391,7 +393,7 @@ public class ResolverTest {
 		String infix = "A AND B";
 		List< Disjunction > disjunctions = StatementCNFTest.disjunctionsFromInfix( infix , tracker );
 		List< Disjunction > expected = new ArrayList< Disjunction >();
-		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) );
+		List< Disjunction > resolveClauses = Resolver.resolve( disjunctions.get( 0 ) , disjunctions.get( 1 ) , mockHypothesis );
 		Assert.assertEquals( expected , resolveClauses );
 	}
 	
@@ -571,17 +573,17 @@ public class ResolverTest {
 	 */
 	public static class FunctionRelationTester {
 		
-		final public ObjectFOL obj1 = new ObjectFOL( "obj1" , null , "Object" );
+		final public static ObjectFOL obj1 = new ObjectFOL( "obj1" , null , "Object" );
 		public ObjectFOL obj1() {
 			return obj1;
 		}
 		
-		final public ObjectFOL obj2 = new ObjectFOL( "obj2" , null , "Object" );
+		final public static ObjectFOL obj2 = new ObjectFOL( "obj2" , null , "Object" );
 		public ObjectFOL obj2() {
 			return obj2;
 		}
 		
-		final public ObjectFOL obj3 = new ObjectFOL( "obj3" , null , "Object" );
+		final public static ObjectFOL obj3 = new ObjectFOL( "obj3" , null , "Object" );
 		public ObjectFOL obj3() {
 			return obj3;
 		}
@@ -774,6 +776,23 @@ public class ResolverTest {
 	}
 	
 	@Test
+	public void testProveHypothesisFunctionsBAT9() {
+		//test a bunch of irrelevant facts that don't lead to anything
+		//useful
+		//Rel1(obj1) <=> Rel1(obj2), Rel2(obj1,obj2) <=> Rel1(obj1), Rel1(obj3)
+		//---------------------------------------------------------------------------  should yield false
+		//                        Rel2(obj3,obj3)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(obj1) <=> Rel1(obj2)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel2(obj1,obj2) <=> Rel1(obj1)", tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj3)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel2(obj3,obj3)" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
 	public void testProveHypothesisFunctionsNested1() {
 		//test proving hypotheses with nested arguments
 		//that are functions
@@ -841,6 +860,37 @@ public class ResolverTest {
 		};
 		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel3(obj2,Func2(obj2,obj2),Func2(obj2,obj2))" , tracker );
 		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisInvalidSubstitutions1() {
+		//test that we don't mix up constants and variables and accidentally
+		//substitute a variable for a constant
+		//Rel1(obj1) <=> Rel2(obj1,obj1), Rel1(y)
+		//----------------------------------------  should yield false
+		//           Rel2(y,y)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(obj1) <=> Rel2(obj1,obj1)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(y)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel2(y,y)" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );	
+	}
+	
+	@Test
+	public void testProveHypothesisInvalidSubstitutions2() {
+		//test that we don't end up substitutions constants for other constants
+		//Rel1(obj1) <=> Rel2(obj1,obj1), Rel1(obj2)
+		//----------------------------------------  should yield false
+		//           Rel2(obj2,obj2)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(obj1) <=> Rel2(obj1,obj1)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj2)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel2(obj2,obj2)" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );	
 	}
 	
 	public static class Integration1 {

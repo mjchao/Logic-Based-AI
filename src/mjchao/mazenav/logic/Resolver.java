@@ -24,15 +24,11 @@ class Resolver {
 			statements.add( s );
 		}
 		statements.add( StatementCNF.negate( hypothesis , tracker ) );
-		return applyResolution( tracker , StatementCNF.andTogether( statements , tracker ) );
-	}
-	
-	public static boolean applyResolution( SymbolTracker tracker , StatementCNF... statements ) {
-		return applyResolution( tracker , StatementCNF.andTogether( Arrays.asList( statements ) , tracker ) );
+		return applyResolution( tracker , StatementCNF.andTogether( statements , tracker ) , hypothesis );
 	}
 	
 	//TODO test resolution
-	public static boolean applyResolution( SymbolTracker tracker , StatementCNF statement ) {
+	static boolean applyResolution( SymbolTracker tracker , StatementCNF statement , StatementCNF hypothesis ) {
 		List< Disjunction > clauses = new ArrayList< Disjunction >();
 		for ( Disjunction d : statement.getDisjunctions() ) {
 			clauses.add( d );
@@ -47,7 +43,7 @@ class Resolver {
 				for ( int j=i+1 ; j<clauses.size() ; ++j ) {
 					Disjunction c1 = clauses.get( i );
 					Disjunction c2 = clauses.get( j );
-					List< Disjunction > resolvents = resolve( c1 , c2 );
+					List< Disjunction > resolvents = resolve( c1 , c2 , hypothesis );
 					if ( containsEmptyClause( resolvents ) ) {
 						return true;
 					}
@@ -90,13 +86,20 @@ class Resolver {
 	 * @param clause2
 	 * @return
 	 */
-	static List< Disjunction > resolve( Disjunction clause1 , Disjunction clause2 ) {
+	static List< Disjunction > resolve( Disjunction clause1 , Disjunction clause2 , StatementCNF hypothesis ) {
 		List< Disjunction > rtn = new ArrayList< Disjunction >();
 		for ( int i=0 ; i<clause1.size() ; ++i ) {
 			Term t1 = clause1.getTerm( i );
 			for ( int j=0 ; j<clause2.size() ; ++j ) {
 				Term t2 = clause2.getTerm( j ).clone();
 				t2.negate();
+				
+				//we cannot unify terms in the hypothesis with anything
+				//because that would cause us to prove something less general
+				if ( (hypothesis.containsTerm( t1 ) || hypothesis.containsTerm( t2 )) &&
+						!t1.equals( t2 ) ) {
+					continue;
+				}
 
 				//we cannot unify different variables. Suppose we are presented with
 				//P AND Q. Obviously substituting P/!Q will result in the empty

@@ -274,11 +274,11 @@ public class ResolverTest {
 		//test simple unification of a variable with a skolem function
 		//that takes some arguments
 		SymbolTracker tracker = new SymbolTracker();
-		String infixTerms = "FORALL(x,y,z) EXISTS(x) x AND y";
+		String infixTerms = "FORALL(x,y,z) EXISTS(x) x AND w";
 		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
 		
 		List< Substitution > subs = Resolver.unify( terms.get( 0 ) , terms.get( 1 ) , new ArrayList< Substitution >() );
-		Assert.assertTrue( subs.toString().equals( "[?1/$0(?0, ?1, ?2)]" ) );
+		Assert.assertTrue( subs.toString().equals( "[?4/$0(?0, ?1, ?2)]" ) );
 	}
 	
 	@Test
@@ -290,6 +290,22 @@ public class ResolverTest {
 		
 		List< Substitution > subs = Resolver.unify( terms.get( 0 ) , terms.get( 1 ) , new ArrayList< Substitution >() );
 		Assert.assertTrue( subs.toString().equals( "[$0()/$1()]" ) );
+	}
+	
+	@Test
+	public void testUnifySkolemBAT4() {
+		//test occur check for trying to unify a variable with a skolem function
+		//that takes the variable as an argument. This should fail. To see why,
+		//consider the case where we try to unify the x and y in FORALL(y) EXISTS(x).
+		//EXISTS(x) is basically a function that returns a value based on what y
+		//is. Trying to unify y with this function creates a circular dependency
+		//that cannot be resolved.
+		SymbolTracker tracker = new SymbolTracker();
+		String infixTerms = "FORALL(y) EXISTS(x) x AND y";
+		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
+		
+		List< Substitution > subs = Resolver.unify( terms.get( 0 ) , terms.get( 1 ) , new ArrayList< Substitution >() );
+		Assert.assertTrue( subs == null );
 	}
 	
 	@Test
@@ -658,6 +674,136 @@ public class ResolverTest {
 		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
 	
+	@Test
+	public void testProveHypothesisFunctionsBAT3() {
+		//test proofs involving a biconditional, which should yield
+		//multiple disjunctions
+		//Rel1(obj1) <=> Rel1(obj2), Rel1(obj1)
+		//------------------------------------		should yield true
+		//            Rel1(obj2)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(obj1) <=> Rel1(obj2)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj1)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel1(obj2)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisFunctionsBAT4() {
+		//test proofs involving a biconditional, which should yield
+		//multiple disjunctions
+		//Rel1(obj1) <=> Rel1(obj2), Rel1(obj1)
+		//------------------------------------		should yield false
+		//            !Rel1(obj2)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(obj1) <=> Rel1(obj2)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj1)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "!Rel1(obj2)" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisFunctionsBAT5() {
+		//test with irrelevant information
+		//Rel1(obj1) => Rel1(obj2), Rel1(obj1)
+		//------------------------------------        should yield true
+		//         Rel1(obj1)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(obj1) => Rel1(obj2)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj1)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel1(obj1)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisFunctionsBAT6() {
+		//test with irrelevant information
+		//Rel1(obj1) => Rel1(obj2), Rel1(obj1)
+		//------------------------------------        should yield true
+		//         !Rel1(obj1)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(obj1) => Rel1(obj2)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj1)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "!Rel1(obj1)" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisFunctionsBAT7() {
+		//test chaining implications that have been shuffled. The correct
+		//sequence should be Rel1(obj1) --> Rel1(obj2) --> Rel1(obj3) ---> Rel2(obj1)
+		//Rel1(obj2) => Rel1(obj3) , Rel1(obj3) => Rel2(obj1,obj2) , Rel1(obj1) => Rel1(obj2), Rel1(obj1)
+		//-------------------------------------------------------------------------------------------  should yield true
+		//                                 Rel2(obj1,obj2)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(obj2) => Rel1(obj3)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj3) => Rel2(obj1,obj2)", tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj1) => Rel1(obj2)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj1)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel2(obj1,obj2)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisFunctionsBAT8() {
+		//test chaining implications that have been shuffled. The correct
+		//sequence should be Rel1(obj1) --> Rel1(obj2) --> Rel1(obj3) ---> Rel2(obj1)
+		//so !Rel2(obj1,obj2) should be impossible to prove
+		//Rel1(obj2) => Rel1(obj3) , Rel1(obj3) => Rel2(obj1,obj2) , Rel1(obj1) => Rel1(obj2), Rel1(obj1)
+		//-------------------------------------------------------------------------------------------  should yield true
+		//                                 !Rel2(obj1,obj2)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(obj2) => Rel1(obj3)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj3) => Rel2(obj1,obj2)", tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj1) => Rel1(obj2)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj1)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "!Rel2(obj1,obj2)" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisFunctionsNested1() {
+		//test proving hypotheses with nested arguments
+		//that are functions
+		//Rel1(x) => Rel2(x,x), Rel1(Func1(obj1))
+		//-------------------------------------    should yield true
+		//	         Rel2(Func1(obj1),Func1(obj1))
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(x) => Rel2(x,x)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(Func1(obj1))", tracker ) ,
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel2(Func1(obj1),Func1(obj1))" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisFunctionsNested1F() {
+		//test proving hypotheses with nested arguments
+		//that are functions
+		//Rel1(x) => Rel2(x,Func1(x)), Rel1(Func1(obj1))
+		//-------------------------------------------------    should yield false
+		//	         Rel2(Func1(obj1),Func1(obj1))
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(x) => Rel2(x,Func1(x))" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(Func1(obj1))", tracker ) ,
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel2(Func1(obj1),Func1(obj1))" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
 	
 	public static class Integration1 {
 		
@@ -775,7 +921,7 @@ public class ResolverTest {
 		//(the resolution proof is on page 348)
 		
 		//test for potential positive-bias:
-		//if we remove the fact that missiles are weapons, it should not longer
+		//if we remove the fact that missiles are weapons, it should no longer
 		//be possible to prove that west is a criminal
 		SymbolTracker tracker = Integration1.buildTracker();
 		StatementCNF[] kb = new StatementCNF[] {

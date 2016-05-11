@@ -276,7 +276,7 @@ class Resolver {
 		}
 		
 		//perform an occur check. For example, x cannot unify with f(x)
-		if ( var.containsTerm( x ) ) {
+		if ( var.containsTerm( x ) || x.containsTerm( var ) ) {
 			return null;
 		}
 		

@@ -274,6 +274,7 @@ public class SymbolTracker {
 			try {
 				return constants.get( constantName ).operate();
 			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+				e.printStackTrace();
 				return null;
 			}
 		}

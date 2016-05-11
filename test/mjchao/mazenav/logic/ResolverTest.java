@@ -114,7 +114,7 @@ public class ResolverTest {
 	/**
 	 * Mock class for testing with functions
 	 */
-	static class FunctionTester {
+	public static class FunctionTester {
 		
 		public ObjectFOL Func1( ObjectFOL arg1 ) {
 			return null;
@@ -569,19 +569,19 @@ public class ResolverTest {
 	/**
 	 * Mock class for testing with functions and relations
 	 */
-	static class FunctionRelationTester {
+	public static class FunctionRelationTester {
 		
-		final public static ObjectFOL obj1 = new ObjectFOL( "obj1" , null , "Object" );
+		final public ObjectFOL obj1 = new ObjectFOL( "obj1" , null , "Object" );
 		public ObjectFOL obj1() {
 			return obj1;
 		}
 		
-		final public static ObjectFOL obj2 = new ObjectFOL( "obj2" , null , "Object" );
+		final public ObjectFOL obj2 = new ObjectFOL( "obj2" , null , "Object" );
 		public ObjectFOL obj2() {
 			return obj2;
 		}
 		
-		final public static ObjectFOL obj3 = new ObjectFOL( "obj3" , null , "Object" );
+		final public ObjectFOL obj3 = new ObjectFOL( "obj3" , null , "Object" );
 		public ObjectFOL obj3() {
 			return obj3;
 		}
@@ -760,7 +760,7 @@ public class ResolverTest {
 		//sequence should be Rel1(obj1) --> Rel1(obj2) --> Rel1(obj3) ---> Rel2(obj1)
 		//so !Rel2(obj1,obj2) should be impossible to prove
 		//Rel1(obj2) => Rel1(obj3) , Rel1(obj3) => Rel2(obj1,obj2) , Rel1(obj1) => Rel1(obj2), Rel1(obj1)
-		//-------------------------------------------------------------------------------------------  should yield true
+		//------------------------------------------------------------------------------------------------ should yield true
 		//                                 !Rel2(obj1,obj2)
 		SymbolTracker tracker = FunctionRelationTester.buildTracker();
 		StatementCNF[] kb = new StatementCNF[] {
@@ -802,6 +802,44 @@ public class ResolverTest {
 			StatementCNF.fromInfixString( "Rel1(Func1(obj1))", tracker ) ,
 		};
 		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel2(Func1(obj1),Func1(obj1))" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisFunctionsNested2T() {
+		//test proving hypotheses with nested arguments
+		//that are functions
+		//Rel1(x) <=> Rel2(x,Func1(x)), Rel2(x,Func1(x)) => Rel3(x,Func1(x),Func1(x)),
+		//Rel3(x,Func1(x),Func1(x)) => Rel3(x,Func2(x,x),Func2(x,x)), Rel1(obj2)
+		//----------------------------------------------------------------------------- should yield true
+		//                         Rel3(obj2,Func2(obj2,obj2),Func2(obj2,obj2))
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(x) <=> Rel2(x,Func1(x))" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel2(x,Func1(x)) => Rel3(x,Func1(x),Func1(x))" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel3(x,Func1(x),Func1(x)) => Rel3(x,Func2(x,x),Func2(x,x))" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj2)", tracker ) ,
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel3(obj2,Func2(obj2,obj2),Func2(obj2,obj2))" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisFunctionsNested2F() {
+		//test proving hypotheses with nested arguments
+		//that are functions
+		//Rel1(x) <=> Rel2(x,Func1(x)), Rel2(x,Func1(x)) => Rel3(x,Func1(x),Func1(x)),
+		//Rel3(x,Func1(x),Func1(x)) => Rel3(Func1(x),Func2(x,x),Func2(x,x)), Rel1(obj2)
+		//----------------------------------------------------------------------------- should yield false
+		//                         Rel3(obj2,Func2(obj2,obj2),Func2(obj2,obj2))
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(x) <=> Rel2(x,Func1(x))" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel2(x,Func1(x)) => Rel3(x,Func1(x),Func1(x))" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel3(x,Func1(x),Func1(x)) => Rel3(Func1(x),Func2(x,x),Func2(x,x))" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj2)", tracker ) ,
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel3(obj2,Func2(obj2,obj2),Func2(obj2,obj2))" , tracker );
 		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
 	

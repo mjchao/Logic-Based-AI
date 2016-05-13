@@ -33,6 +33,8 @@ class Resolver {
 			clauses.add( d );
 		}
 		
+		List< Disjunction > justAddedClauses = new ArrayList< Disjunction >( clauses );
+		
 		//TODO investigate whether we need to repeat resolution between
 		//old terms (e.g. if we already resolved x and y before, why do we 
 		//need to keep trying to resolve x and y in future iterations)
@@ -43,9 +45,9 @@ class Resolver {
 			//if any of those pairs yields a contradiction (i.e. P AND !P)
 			//then the proof by contradiction succeeds (return true)
 			for ( int i=0 ; i<clauses.size() ; ++i ) {
-				for ( int j=i+1 ; j<clauses.size() ; ++j ) {
+				for ( int j=0 ; j<justAddedClauses.size() ; ++j ) {
 					Disjunction c1 = clauses.get( i );
-					Disjunction c2 = clauses.get( j );
+					Disjunction c2 = justAddedClauses.get( j );
 					List< Disjunction > resolvents = resolve( c1 , c2 , hypothesis );
 					if ( containsEmptyClause( resolvents ) ) {
 						return true;
@@ -55,11 +57,12 @@ class Resolver {
 			}
 			
 			boolean addedClause = false;
-			//justAddedClauses.clear();
+			justAddedClauses.clear();
 			for ( Disjunction d : newClauses ) {
 				if ( !clauses.contains( d ) ) {
 					addedClause = true;
 					clauses.add( d );
+					justAddedClauses.add( d );
 				}
 			}
 			

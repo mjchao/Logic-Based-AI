@@ -118,18 +118,29 @@ class Resolver {
 				
 				List< Substitution > subs = unify( t1 , t2 , new ArrayList< Substitution >() );
 				if ( subs != null ) {
-					
-					//check that we are not making the hypothesis
-					//less general - that is, we cannot unify the hypothesis
-					//or terms in the hypothesis with other terms
-					boolean unifyingHypothesis = false;
+
+					//check that we are making valid unifications with
+					//terms in the hypothesis
+					boolean validHypothesisUnification = true;
 					for ( Substitution sub : subs ) {
-						if ( (hypothesis.containsTerm( sub.original )) ) {
-							unifyingHypothesis = true;
+						
+						//we cannot unify variables in the hypothesis with
+						//other things because that would make the hypothesis
+						//less general
+						if ( (hypothesis.containsTerm( sub.original ) && sub.original.getValue() instanceof Variable) ) {
+							validHypothesisUnification = false;
+							break;
+						}
+						
+						//we cannot unify skolem functions in the knowledgebase
+						//with things in the hypothesis because
+						//we do not know if the hypothesis holds yet.
+						if ( (hypothesis.containsTerm( sub.substitution ) && sub.original.getValue() instanceof SkolemFunction) ) {
+							validHypothesisUnification = false;
 							break;
 						}
 					}
-					if ( unifyingHypothesis ) {
+					if ( !validHypothesisUnification ) {
 						continue;
 					}
 					

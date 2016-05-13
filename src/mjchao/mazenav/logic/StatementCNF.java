@@ -725,6 +725,19 @@ public class StatementCNF {
 	}
 	
 	/**
+	 * @return		if this statement contains more than one term
+	 */
+	boolean containsMoreThanOneTerm() {
+		if ( disjunctions.size() == 0 ) {
+			return false;
+		}
+		if ( disjunctions.size() == 1 && disjunctions.size() == 1 ) {
+			return false;
+		}
+		return true;
+	}
+	
+	/**
 	 * Gets a shallow copy of the list of disjunctions in this StatementCNF.
 	 * The list should not be modified and is only used by the Resolver
 	 * in performing the resolution algorithm.

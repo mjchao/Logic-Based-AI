@@ -1,7 +1,6 @@
 package mjchao.mazenav.logic;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import mjchao.mazenav.logic.StatementCNF.Disjunction;
@@ -33,9 +32,13 @@ class Resolver {
 		for ( Disjunction d : statement.getDisjunctions() ) {
 			clauses.add( d );
 		}
-		List< Disjunction > newClauses = new ArrayList< Disjunction >();
 		
+		//TODO investigate whether we need to repeat resolution between
+		//old terms (e.g. if we already resolved x and y before, why do we 
+		//need to keep trying to resolve x and y in future iterations)
 		while( true ) {
+			List< Disjunction > newClauses = new ArrayList< Disjunction >();
+			
 			//attempt to resolve every pair of clauses
 			//if any of those pairs yields a contradiction (i.e. P AND !P)
 			//then the proof by contradiction succeeds (return true)
@@ -52,6 +55,7 @@ class Resolver {
 			}
 			
 			boolean addedClause = false;
+			//justAddedClauses.clear();
 			for ( Disjunction d : newClauses ) {
 				if ( !clauses.contains( d ) ) {
 					addedClause = true;
@@ -93,15 +97,8 @@ class Resolver {
 			for ( int j=0 ; j<clause2.size() ; ++j ) {
 				Term t2 = clause2.getTerm( j ).clone();
 				t2.negate();
-				
-				//we cannot unify terms in the hypothesis with anything
-				//because that would cause us to prove something less general
-				if ( (hypothesis.containsTerm( t1 ) || hypothesis.containsTerm( t2 )) &&
-						!t1.equals( t2 ) ) {
-					continue;
-				}
 
-				//we cannot unify different variables. Suppose we are presented with
+				//we cannot resolve different variables. Suppose we are presented with
 				//P AND Q. Obviously substituting P/!Q will result in the empty
 				//clause, but that's not valid, so we want to skip this type of
 				//unification
@@ -120,6 +117,20 @@ class Resolver {
 				}
 				List< Substitution > subs = unify( t1 , t2 , new ArrayList< Substitution >() );
 				if ( subs != null ) {
+					
+					//check that we are not making the hypothesis
+					//less general - that is, we cannot unify the hypothesis
+					//or terms in the hypothesis with other terms
+					boolean unifyingHypothesis = false;
+					for ( Substitution sub : subs ) {
+						if ( (hypothesis.containsTerm( sub.original )) ) {
+							unifyingHypothesis = true;
+							break;
+						}
+					}
+					if ( unifyingHypothesis ) {
+						continue;
+					}
 					
 					Disjunction newClause = new Disjunction();
 					for ( int k=0 ; k<clause1.size() ; ++k ) {

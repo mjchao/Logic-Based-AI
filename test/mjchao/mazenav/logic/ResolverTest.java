@@ -266,6 +266,7 @@ public class ResolverTest {
 		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
 		
 		List< Substitution > subs = Resolver.unify( terms.get( 0 ) , terms.get( 1 ) , new ArrayList< Substitution >() );
+		System.out.println( subs );
 		Assert.assertTrue( subs.toString().equals( "[?1/$0()]" ) );
 	}
 	
@@ -863,7 +864,7 @@ public class ResolverTest {
 	}
 	
 	@Test
-	public void testProveHypothesisInvalidSubstitutions1() {
+	public void testProveHypothesisSubstitutions1() {
 		//test that we don't mix up constants and variables and accidentally
 		//substitute a variable for a constant
 		//Rel1(obj1) <=> Rel2(obj1,obj1), Rel1(y)
@@ -879,7 +880,7 @@ public class ResolverTest {
 	}
 	
 	@Test
-	public void testProveHypothesisInvalidSubstitutions2() {
+	public void testProveHypothesisSubstitutions2() {
 		//test that we don't end up substitutions constants for other constants
 		//Rel1(obj1) <=> Rel2(obj1,obj1), Rel1(obj2)
 		//----------------------------------------  should yield false
@@ -891,6 +892,121 @@ public class ResolverTest {
 		};
 		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel2(obj2,obj2)" , tracker );
 		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );	
+	}
+	
+	@Test
+	public void testProveHypothesisSubstitutions3() {
+		//test that variables are interchangeable
+		//Rel1(x) <=> Rel2(x,x), Rel1(y)
+		//----------------------------------------  should yield true
+		//           Rel2(y,y)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(x) <=> Rel2(x,x)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(y)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel2(y,y)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );	
+	}
+	
+	@Test
+	public void testProveHypothesisSkolemFunctionsBAT0T() {
+		//test basic difference between universal and existential quantifiers
+		//"FORALL(x) x" should always allow us to conclude "EXISTS(x) x"
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "FORALL(x) x" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "EXISTS(x) x" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisSkolemFunctionsBAT0F() {
+		//test basic difference between universal and existential quantifiers
+		//"EXISTS(x) x" should never allow us to conclude "FORALL(x) x"
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "EXISTS(x) x" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "FORALL(x) x" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisSkolemFunctionsBAT1T() {
+		//test basic modus ponens with skolem functions
+		//EXISTS(x) Rel1(x) => Rel1(y), Rel1(obj1)
+		//----------------------------------------- should yield true
+		//              Rel1(y)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "EXISTS(x) Rel1(x) => Rel1(y)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj1)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel1(y)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );	
+	}
+	
+	@Test
+	public void testProveHypothesisSkolemFunctionsBAT1F() {
+		//test basic modus ponens with skolem functions
+		//EXISTS(x) Rel1(x) => Rel1(y), !Rel1(obj1)
+		//----------------------------------------- should yield false
+		//              Rel1(y)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "EXISTS(x) Rel1(x) => Rel1(y)" , tracker ) ,
+			StatementCNF.fromInfixString( "!Rel1(obj1)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel1(y)" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );	
+	}
+	
+	@Test
+	public void testProveHypothesisSkolemFunctionsBAT2T() {
+		//test more complicated modus ponens with skolem functions and universal quantifier
+		//FORALL(x)(Rel1(x) => EXISTS(y) Rel2(y,x)), Rel1(x)
+		//--------------------------------------------------- should yield true
+		//         EXISTS(y) Rel2(y,x)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "FORALL(x) (Rel1(x) => EXISTS(y) Rel2(y,x))" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(x)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "EXISTS(y) Rel2(y,x)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );	
+	}
+	
+	@Test
+	public void testProveHypothesisSkolemFunctionsBAT2F() {
+		//test more complicated modus ponens with skolem functions and universal quantifier.
+		//here, we check that EXISTS doesn't get mixed up with FORALL
+		//Rel1(x) => EXISTS(y) Rel2(y,x), Rel1(x)
+		//-------------------------------------- should yield false
+		//              Rel2(y,x)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "Rel1(x) => EXISTS(y) Rel2(y,x)" , tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(x)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel2(y,x)" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );	
+	}
+	
+	@Test
+	public void testProveHypothesisSkolemFunctionsBAT3T() {
+		//test more complicated biconditional with skolem functions and universal quantifiers
+		//FORALL(y) (Rel1(y) <=> EXISTS(x) Rel2(x,y)), FORALL(y) Rel2(obj1,y)
+		//------------------------------------------------------------------- should yield true
+		//                        Rel1(y)
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "FORALL(y) (Rel1(y) <=> EXISTS(x) Rel2(x,y))" , tracker ) ,
+			StatementCNF.fromInfixString( "FORALL(y) Rel2(obj1,y)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel1(y)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
 	
 	public static class Integration1 {

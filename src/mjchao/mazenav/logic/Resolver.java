@@ -104,10 +104,13 @@ class Resolver {
 				//P AND Q. Obviously substituting P/!Q will result in the empty
 				//clause, but that's not valid, so we want to skip this type of
 				//unification
-				if ( t1.getValue() instanceof Variable && 
-						t2.getValue() instanceof Variable &&
-						!t1.getValue().equals( t2.getValue() ) ) {
-					continue;
+				if ( t1.getValue() instanceof Variable &&  t2.getValue() instanceof Variable ) {
+					Variable var1 = (Variable) t1.getValue();
+					Variable var2 = (Variable) t2.getValue();
+					if ( (!var1.universallyQuantified() && !var2.universallyQuantified()) &&
+							!var1.equals( var2 ) ) {
+						continue;
+					}
 				}
 				
 				//we cannot unify two functions if one is negated and the other
@@ -132,18 +135,9 @@ class Resolver {
 							break;
 						}
 						
-						//we cannot resolve non-negated skolem functions. Saying
-						//EXISTS(x) x and then finding out !y does not lead to
-						//any sort of contradictions.
-						//we only get contradictions when we have a negated skolem function.
-						//Saying !EXISTS(x) x and then finding out y is a contradiction.
-						//Note that !EXISTS is basically a FORALL
-						if ( (sub.original.getValue() instanceof SkolemFunction) ) {
-							Term skolem = sub.original.clone();
-							if ( t1.containsTerm( skolem ) || t2.containsTerm( skolem ) ) {
-								validUnification = false;
-								break;
-							}
+						if ( sub.original.getValue() instanceof SkolemFunction && !(sub.substitution.getValue() instanceof Variable) ) {
+							validUnification = false;
+							break;
 						}
 					}
 					if ( !validUnification ) {

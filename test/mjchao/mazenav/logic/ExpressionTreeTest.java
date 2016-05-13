@@ -98,12 +98,12 @@ public class ExpressionTreeTest {
 		}		
 	}
 	
-	public void dropQuantifiers( ExpressionTree tree ) {
+	public void dropQuantifiers( ExpressionTree tree , SymbolTracker tracker ) {
 		Class<?> c = ExpressionTree.class;
 		try {
-			Method f = c.getDeclaredMethod( "dropQuantifiers" );
+			Method f = c.getDeclaredMethod( "dropQuantifiers" , SymbolTracker.class );
 			f.setAccessible( true );
-			f.invoke( tree );
+			f.invoke( tree , tracker );
 		} catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
 			e.printStackTrace();
 			throw new RuntimeException( "Could not apply dropQuantifiers() method to ExpressionTree object." );
@@ -1164,7 +1164,7 @@ public class ExpressionTreeTest {
 		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
+		dropQuantifiers( exprTree , tracker );
 		List< Symbol > found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );
 		Assert.assertTrue( expectedPostfix.equals( found ) );
@@ -1388,7 +1388,7 @@ public class ExpressionTreeTest {
 		eliminateArrowsAndDistributeNots( exprTree );
 		standardize( exprTree , tracker );
 		skolemize( exprTree , tracker );
-		dropQuantifiers( exprTree );
+		dropQuantifiers( exprTree , tracker );
 		distributeOrOverAnd( exprTree );
 		List< Symbol > found = new ArrayList< Symbol >();
 		buildPostfixFromExpressionTree( getRoot(exprTree) , found );

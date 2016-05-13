@@ -440,11 +440,26 @@ class ExpressionTree {
 		}
 	}
 	
-	private void dropQuantifiers() {
+	private void dropQuantifiers( SymbolTracker tracker ) {
+		
+		//reset all variables to being not universally quantified.
+		//we'll re-update whether each variable is universally quantified
+		//as we drop quantifiers
+		for ( int i=0 ; i<tracker.getNumSystemVariables() ; ++i ) {
+			Variable sysVar = tracker.getSystemVariableById( i );
+			sysVar.setUniversallyQuantified( false );
+		}
+		
 		if ( this.root != null ) {
 			
 			//first make sure the root is not a quantifier
 			while ( this.root.getValue() instanceof QuantifierList ) {
+				QuantifierList list = (QuantifierList) this.root.getValue();
+				if ( list.quantifier.equals( Quantifier.FORALL ) ) {
+					for ( Variable v : list.getVariables() ) {
+						v.setUniversallyQuantified( true );
+					}
+				}
 				if ( this.root.getChildren().size() == 1 ) {
 					this.root = this.root.getChildren().get( 0 );
 				}
@@ -488,7 +503,7 @@ class ExpressionTree {
 			eliminateArrowsAndDistributeNots();	
 			standardize( tracker );
 			skolemize( tracker );
-			dropQuantifiers();
+			dropQuantifiers( tracker );
 			distributeOrOverAnd();
 			inCNF = true;
 		}
@@ -909,6 +924,13 @@ class ExpressionTree {
 			boolean droppedChildren = false;
 			for ( int childIdx = 0 ; childIdx < this.children.size() ; ++childIdx ) {
 				if ( children.get( childIdx ).getValue() instanceof QuantifierList ) {
+					QuantifierList list = (QuantifierList) children.get( childIdx ).getValue();
+					if ( list.quantifier.equals( Quantifier.FORALL ) ) {
+						for ( Variable v : list.getVariables() ) {
+							v.setUniversallyQuantified( true );
+						}
+					}
+					
 					ArrayList< ExpressionNode > quantifierChildren = children.get( childIdx ).getChildren();
 					if ( quantifierChildren.size() == 1 ) {
 						children.set( childIdx ,  quantifierChildren.get( 0 ) );

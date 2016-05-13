@@ -37,9 +37,13 @@ public class Variable extends Symbol {
 		return true;
 	}
 	
-	private ObjectFOL unification = null;
-	
 	private long id;
+	
+	/**
+	 * determines if the user explicitly applied a universal quantifier
+	 * to this variable
+	 */
+	private boolean universallyQuantified = false;
 	
 	/**
 	 * Creates a new variable. The unique id
@@ -58,16 +62,16 @@ public class Variable extends Symbol {
 		this.id = id;
 	}
 	
-	public void unify( ObjectFOL obj ) {
-		this.unification = obj;
-	}
-	
-	public ObjectFOL getValue() {
-		return this.unification;
-	}
-	
 	public long getId() {
 		return this.id;
+	}
+	
+	public void setUniversallyQuantified( boolean b ) {
+		this.universallyQuantified = b;
+	}
+	
+	public boolean universallyQuantified() {
+		return this.universallyQuantified;
 	}
 	
 	@Override

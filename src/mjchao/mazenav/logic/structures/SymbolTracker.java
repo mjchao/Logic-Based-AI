@@ -393,6 +393,13 @@ public class SymbolTracker {
 	}
 	
 	/**
+	 * @return		the number of system variables stored in this tracker
+	 */
+	public int getNumSystemVariables() {
+		return systemVariables.size();
+	}
+	
+	/**
 	 * @param var
 	 * @return		if the given variable is system-defined (as opposed
 	 * 				to user-defined).

@@ -1270,7 +1270,7 @@ public class ResolverTest {
 		StatementCNF hypothesis = StatementCNF.fromInfixString( "Kills(Curiosity, Tuna)" , tracker );
 		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
-	
+
 	@Ignore
 	@Test
 	public void integration2F() {

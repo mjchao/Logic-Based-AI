@@ -958,6 +958,34 @@ public class ResolverTest {
 	}
 	
 	@Test
+	public void testProveHypothesisSkolemFunctionsBAT0cT() {
+		//test the program's understanding of existential quantifiers:
+		//the knowledgebase has unnecessary information
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "!Rel1(obj1)", tracker ) ,
+			StatementCNF.fromInfixString( "Rel1(obj2)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "EXISTS(x) Rel1(x)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void testProveHypothesisSkolemFunctionsBAT0cF() {
+		//test the program's understanding of existential quantifiers:
+		//the knowledgebase has unnecessary information - just because
+		//we say Rel1(obj1) does not hold does not mean there
+		//cannot exist another object such that Rel1(x) holds
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "EXISTS(x) Rel1(x)" , tracker ) ,
+			StatementCNF.fromInfixString( "!Rel1(obj1)", tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel1(obj2)" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
 	public void testProveHypothesisSkolemFunctionsBAT1T() {
 		//test basic modus ponens with skolem functions
 		//EXISTS(x) Rel1(x) => Rel1(y), Rel1(obj1)
@@ -965,7 +993,7 @@ public class ResolverTest {
 		//              Rel1(y)
 		SymbolTracker tracker = FunctionRelationTester.buildTracker();
 		StatementCNF[] kb = new StatementCNF[] {
-			StatementCNF.fromInfixString( "EXISTS(x) Rel1(x) => Rel1(y)" , tracker ) ,
+			StatementCNF.fromInfixString( "(EXISTS(x) Rel1(x)) => Rel1(y)" , tracker ) ,
 			StatementCNF.fromInfixString( "Rel1(obj1)" , tracker )
 		};
 		StatementCNF hypothesis = StatementCNF.fromInfixString( "Rel1(y)" , tracker );
@@ -1227,6 +1255,7 @@ public class ResolverTest {
 		}
 	}
 	
+	@Ignore
 	@Test
 	public void integration2T() {
 		SymbolTracker tracker = Integration2.buildTracker();

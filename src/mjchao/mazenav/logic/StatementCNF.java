@@ -312,6 +312,25 @@ public class StatementCNF {
 			}
 			
 			/**
+			 * Determines if another term is contained inside this term. 
+			 * 
+			 * @param t		another term
+			 * @return		if this term contains the given term as an argument or
+			 * 				value
+			 */
+			public boolean containsTerm( Term t ) {
+				if ( this.equals( t ) ) {
+					return true;
+				}
+				for ( Term arg : args ) {
+					if ( arg.equals( t ) || arg.containsTermIgnoringNegated( t ) ) {
+						return true;
+					}
+				}
+				return false;
+			}
+			
+			/**
 			 * Determines if another term is contained inside this term. This
 			 * is used for an occur-check
 			 * 
@@ -319,12 +338,12 @@ public class StatementCNF {
 			 * @return		if this term contains the given term as an argument or
 			 * 				value
 			 */
-			public boolean containsTerm( Term t ) {
+			public boolean containsTermIgnoringNegated( Term t ) {
 				if ( this.equalsIgnoringNegated( t ) ) {
 					return true;
 				}
 				for ( Term arg : args ) {
-					if ( arg.equals( t ) || arg.containsTerm( t ) ) {
+					if ( arg.equals( t ) || arg.containsTermIgnoringNegated( t ) ) {
 						return true;
 					}
 				}
@@ -716,7 +735,7 @@ public class StatementCNF {
 	boolean containsTerm( Disjunction.Term term ) {
 		for ( Disjunction d : disjunctions ) {
 			for ( Disjunction.Term t : d.terms ) {
-				if ( t.equals( term ) || t.containsTerm( term ) ) {
+				if ( t.equals( term ) || t.containsTermIgnoringNegated( term ) ) {
 					return true;
 				}
 			}

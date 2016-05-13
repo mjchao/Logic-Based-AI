@@ -38,7 +38,7 @@ class Resolver {
 		//need to keep trying to resolve x and y in future iterations)
 		while( true ) {
 			List< Disjunction > newClauses = new ArrayList< Disjunction >();
-			
+
 			//attempt to resolve every pair of clauses
 			//if any of those pairs yields a contradiction (i.e. P AND !P)
 			//then the proof by contradiction succeeds (return true)
@@ -96,8 +96,10 @@ class Resolver {
 			Term t1 = clause1.getTerm( i );
 			for ( int j=0 ; j<clause2.size() ; ++j ) {
 				Term t2 = clause2.getTerm( j ).clone();
+				
+				//negate the second term and try to resolve it with the first
 				t2.negate();
-
+				
 				//we cannot resolve different variables. Suppose we are presented with
 				//P AND Q. Obviously substituting P/!Q will result in the empty
 				//clause, but that's not valid, so we want to skip this type of
@@ -119,28 +121,32 @@ class Resolver {
 				List< Substitution > subs = unify( t1 , t2 , new ArrayList< Substitution >() );
 				if ( subs != null ) {
 
-					//check that we are making valid unifications with
-					//terms in the hypothesis
-					boolean validHypothesisUnification = true;
+					boolean validUnification = true;
 					for ( Substitution sub : subs ) {
 						
 						//we cannot unify variables in the hypothesis with
 						//other things because that would make the hypothesis
 						//less general
 						if ( (hypothesis.containsTerm( sub.original ) && sub.original.getValue() instanceof Variable) ) {
-							validHypothesisUnification = false;
+							validUnification = false;
 							break;
 						}
 						
-						//we cannot unify skolem functions in the knowledgebase
-						//with things in the hypothesis because
-						//we do not know if the hypothesis holds yet.
-						if ( (hypothesis.containsTerm( sub.substitution ) && sub.original.getValue() instanceof SkolemFunction) ) {
-							validHypothesisUnification = false;
-							break;
+						//we cannot resolve non-negated skolem functions. Saying
+						//EXISTS(x) x and then finding out !y does not lead to
+						//any sort of contradictions.
+						//we only get contradictions when we have a negated skolem function.
+						//Saying !EXISTS(x) x and then finding out y is a contradiction.
+						//Note that !EXISTS is basically a FORALL
+						if ( (sub.original.getValue() instanceof SkolemFunction) ) {
+							Term skolem = sub.original.clone();
+							if ( t1.containsTerm( skolem ) || t2.containsTerm( skolem ) ) {
+								validUnification = false;
+								break;
+							}
 						}
 					}
-					if ( !validHypothesisUnification ) {
+					if ( !validUnification ) {
 						continue;
 					}
 					
@@ -302,7 +308,7 @@ class Resolver {
 		}
 		
 		//perform an occur check. For example, x cannot unify with f(x)
-		if ( var.containsTerm( x ) || x.containsTerm( var ) ) {
+		if ( var.containsTermIgnoringNegated( x ) || x.containsTermIgnoringNegated( var ) ) {
 			return null;
 		}
 		

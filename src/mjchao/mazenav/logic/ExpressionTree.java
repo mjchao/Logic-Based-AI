@@ -132,6 +132,11 @@ class ExpressionTree {
 				return false;
 			}
 		}
+		
+		@Override
+		public QuantifierList clone() {
+			return new QuantifierList( this.quantifier , new ArrayList< Variable >( this.vars ) );
+		}
 	}
 	
 	/**
@@ -541,15 +546,9 @@ class ExpressionTree {
 	 * automatically rebuilt.
 	 */
 	public void negate( SymbolTracker tracker ) {
-		ExpressionNode newRoot = new ExpressionNode( Operator.NOT );
-		newRoot.addChildren( this.root );
-		this.root = newRoot;
-		if ( this.inCNF ) {
-			this.eliminateArrowsAndDistributeNots();
-		}
-		else {
-			convertToCNF( tracker );
-		}
+		this.inCNF = false;
+		this.postfixExpression.add( Operator.NOT );
+		convertToCNF( tracker );
 	}
 	
 	/**
@@ -799,6 +798,7 @@ class ExpressionTree {
 				}
 			}
 			else if ( this.getValue() instanceof QuantifierList ) {
+				this.value = ((QuantifierList) this.value).clone();
 				
 				ArrayList< Variable > oldVariables = new ArrayList< Variable >();
 				ArrayList< Variable > oldMappings = new ArrayList< Variable >();

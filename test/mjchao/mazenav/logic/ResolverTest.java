@@ -266,7 +266,6 @@ public class ResolverTest {
 		List< Term > terms = StatementCNFTest.termsListFromInfix( infixTerms , tracker );
 		
 		List< Substitution > subs = Resolver.unify( terms.get( 0 ) , terms.get( 1 ) , new ArrayList< Substitution >() );
-		System.out.println( subs );
 		Assert.assertTrue( subs.toString().equals( "[?1/$0()]" ) );
 	}
 	
@@ -910,7 +909,7 @@ public class ResolverTest {
 	}
 	
 	@Test
-	public void testProveHypothesisSkolemFunctionsBAT0T() {
+	public void testProveHypothesisSkolemFunctionsBAT0aT() {
 		//test basic difference between universal and existential quantifiers
 		//"FORALL(x) x" should always allow us to conclude "EXISTS(x) x"
 		SymbolTracker tracker = FunctionRelationTester.buildTracker();
@@ -922,7 +921,7 @@ public class ResolverTest {
 	}
 	
 	@Test
-	public void testProveHypothesisSkolemFunctionsBAT0F() {
+	public void testProveHypothesisSkolemFunctionsBAT0aF() {
 		//test basic difference between universal and existential quantifiers
 		//"EXISTS(x) x" should never allow us to conclude "FORALL(x) x"
 		SymbolTracker tracker = FunctionRelationTester.buildTracker();
@@ -932,6 +931,8 @@ public class ResolverTest {
 		StatementCNF hypothesis = StatementCNF.fromInfixString( "FORALL(x) x" , tracker );
 		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
+	
+
 	
 	@Test
 	public void testProveHypothesisSkolemFunctionsBAT1T() {
@@ -1140,5 +1141,96 @@ public class ResolverTest {
 		};
 		StatementCNF hypothesis = StatementCNF.fromInfixString( "Criminal(West)" , tracker );
 		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	public static class Integration2 {
+		public static final ObjectFOL Jack = new ObjectFOL( "Jack" , null , "Object" , "Person" );
+		public ObjectFOL Jack() {
+			return Jack;
+		}
+		
+		public static final ObjectFOL Curiosity = new ObjectFOL( "Curiosity" , null , "Object" );
+		public ObjectFOL Curiosity() {
+			return Curiosity;
+		}
+		
+		public static final ObjectFOL Tuna = new ObjectFOL( "Tuna" , null , "Object" , "Cat" );
+		public ObjectFOL Tuna() {
+			return Tuna;
+		}
+		
+		public BooleanFOL Animal( ObjectFOL arg0 ) {
+			return null;
+		}
+		
+		public BooleanFOL Loves( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return null;
+		}
+		
+		public BooleanFOL Kills( ObjectFOL arg0 , ObjectFOL arg1 ) {
+			return null;
+		}
+		
+		public BooleanFOL Cat( ObjectFOL arg0 ) {
+			return null;
+		}
+		
+		public static SymbolTracker buildTracker() {
+			SymbolTracker rtn = new SymbolTracker();
+			Integration2 definingInstance = new Integration2();
+			
+			Function Jack = new Function( "Jack" , definingInstance );
+			rtn.addConstant( "Jack" , Jack );
+			
+			Function Curiosity = new Function( "Curiosity" , definingInstance );
+			rtn.addConstant( "Curiosity" , Curiosity );
+			
+			Function Tuna = new Function( "Tuna" , definingInstance );
+			rtn.addConstant( "Tuna" , Tuna );
+			
+			Relation Animal = new Relation( "Animal" , definingInstance , "Object" );
+			rtn.addRelation( "Animal" , Animal );
+			
+			Relation Loves = new Relation( "Loves" , definingInstance , "Object" , "Object" );
+			rtn.addRelation( "Loves" , Loves );
+			
+			Relation Kills = new Relation( "Kills" , definingInstance , "Object" , "Object" );
+			rtn.addRelation( "Kills" , Kills );
+			
+			Relation Cat = new Relation( "Cat" , definingInstance , "Cat" );
+			rtn.addRelation( "Cat" , Cat );
+			
+			return rtn;
+		}
+	}
+	
+	@Test
+	public void integration2T() {
+		SymbolTracker tracker = Integration2.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "FORALL(x)(FORALL(y) Animal(y) => Loves(x,y)) => EXISTS(y) Loves(x,y)" , tracker ) ,
+			StatementCNF.fromInfixString( "FORALL(x)(EXISTS(z) Animal(z) AND Kills(x,z)) => (FORALL(y) !Loves(y,x))", tracker ) ,
+			StatementCNF.fromInfixString( "FORALL(x) Animal(x) => Loves(Jack, x)" , tracker ) ,
+			StatementCNF.fromInfixString( "Kills(Jack, Tuna) OR Kills(Curiosity, Tuna)" , tracker ) ,
+			StatementCNF.fromInfixString( "Cat(Tuna)" , tracker ),
+			StatementCNF.fromInfixString( "FORALL(x) Cat(x) => Animal(x)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Kills(Curiosity, Tuna)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void integration2F() {
+		SymbolTracker tracker = Integration2.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "FORALL(x)(FORALL(y) Animal(y) => Loves(x,y)) => EXISTS(y) Loves(x,y)" , tracker ) ,
+			StatementCNF.fromInfixString( "FORALL(x)(EXISTS(z) Animal(z) AND Kills(x,z)) => (FORALL(y) !Loves(y,x))", tracker ) ,
+			StatementCNF.fromInfixString( "FORALL(x) Animal(x) => Loves(Jack, x)" , tracker ) ,
+			StatementCNF.fromInfixString( "Kills(Jack, Tuna) OR Kills(Curiosity, Tuna)" , tracker ) ,
+			StatementCNF.fromInfixString( "Cat(Tuna)" , tracker ),
+			StatementCNF.fromInfixString( "FORALL(x) Cat(x) => Animal(x)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Kills(Curiosity, Tuna)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
 }

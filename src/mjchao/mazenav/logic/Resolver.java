@@ -115,6 +115,7 @@ class Resolver {
 						t1.negated() != t2.negated() ) {
 					continue;
 				}
+				
 				List< Substitution > subs = unify( t1 , t2 , new ArrayList< Substitution >() );
 				if ( subs != null ) {
 					

@@ -1061,6 +1061,21 @@ public class ResolverTest {
 		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
 	
+	@Test
+	public void testProveHypothesisSkolemFunctionsBAT4T() {
+		//test that arugments to skolem functions get unified
+		//(FORALL(x) EXISTS(y) Rel2(x,y)) AND (FORALL(x) Rel2(obj1,x))
+		//should unify with ?0/obj1. check that the argument to $0 becomes obj1.
+		SymbolTracker tracker = FunctionRelationTester.buildTracker();
+		StatementCNF[] kb = new StatementCNF[] {
+			StatementCNF.fromInfixString( "FORALL(x) EXISTS(y,z) !Rel2(x,y) AND Rel2(z,x)", tracker ) ,
+			StatementCNF.fromInfixString( "FORALL(x) !Rel1(x) OR Rel2(obj1,x)" , tracker ) ,
+			StatementCNF.fromInfixString( "FORALL(x) (EXISTS(y) Rel1(y)) OR (EXISTS(z) Rel2(z,x))", tracker)
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "FORALL(x) EXISTS(y) Rel2(y, obj1)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
 	public static class Integration1 {
 		
 		final public static ObjectFOL Nono = new ObjectFOL( "Nono" , null , "Object" , "Nation" );
@@ -1260,7 +1275,7 @@ public class ResolverTest {
 	public void integration2T() {
 		SymbolTracker tracker = Integration2.buildTracker();
 		StatementCNF[] kb = new StatementCNF[] {
-			StatementCNF.fromInfixString( "FORALL(x)(FORALL(y) Animal(y) => Loves(x,y)) => EXISTS(y) Loves(x,y)" , tracker ) ,
+			StatementCNF.fromInfixString( "FORALL(x)(FORALL(y) Animal(y) => Loves(x,y)) => (EXISTS(y) Loves(y,x))" , tracker ) ,
 			StatementCNF.fromInfixString( "FORALL(x)(EXISTS(z) Animal(z) AND Kills(x,z)) => (FORALL(y) !Loves(y,x))", tracker ) ,
 			StatementCNF.fromInfixString( "FORALL(x) Animal(x) => Loves(Jack, x)" , tracker ) ,
 			StatementCNF.fromInfixString( "Kills(Jack, Tuna) OR Kills(Curiosity, Tuna)" , tracker ) ,

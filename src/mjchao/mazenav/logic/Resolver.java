@@ -26,18 +26,29 @@ class Resolver {
 		return applyResolution( tracker , StatementCNF.andTogether( statements , tracker ) , hypothesis );
 	}
 	
+	/**
+	 * Represents a disjunction in the search tree of the resolution
+	 * algorithm
+	 */
+	static class Resolvent {
+		
+		public final Disjunction disjunction;
+		public final List< Resolvent > parents = new ArrayList< Resolvent >();
+		
+		public Resolvent( Disjunction d ) {
+			this.disjunction = d;
+		}
+	}
+	
 	//TODO test resolution
 	static boolean applyResolution( SymbolTracker tracker , StatementCNF statement , StatementCNF hypothesis ) {
 		List< Disjunction > clauses = new ArrayList< Disjunction >();
 		for ( Disjunction d : statement.getDisjunctions() ) {
-			clauses.add( d );
+			clauses.add( factor(d , hypothesis) );
 		}
 		
 		List< Disjunction > justAddedClauses = new ArrayList< Disjunction >( clauses );
 		
-		//TODO investigate whether we need to repeat resolution between
-		//old terms (e.g. if we already resolved x and y before, why do we 
-		//need to keep trying to resolve x and y in future iterations)
 		while( true ) {
 			List< Disjunction > newClauses = new ArrayList< Disjunction >();
 
@@ -59,10 +70,11 @@ class Resolver {
 			boolean addedClause = false;
 			justAddedClauses.clear();
 			for ( Disjunction d : newClauses ) {
-				if ( !clauses.contains( d ) ) {
+				Disjunction toAdd = factor(d , hypothesis);
+				if ( !isDuplicateClause( clauses , toAdd , hypothesis) ) {
 					addedClause = true;
-					clauses.add( d );
-					justAddedClauses.add( d );
+					clauses.add( toAdd );
+					justAddedClauses.add( toAdd );
 				}
 			}
 			
@@ -72,6 +84,68 @@ class Resolver {
 				return false;
 			}
 		}
+	}
+	
+	/**
+	 * @param clauses
+	 * @param toAdd
+	 * @return				if the current list of clauses already contains
+	 * 						a clause that unified with the clause to be added
+	 */
+	static boolean isDuplicateClause( List< Disjunction > clauses , Disjunction toAdd , StatementCNF hypothesis ) {
+		
+		//clauses.contains checks that terms are identical up to reordering
+		if ( clauses.contains( toAdd ) ) {
+			return true;
+		}
+		
+		//we'll add another check that if terms in the given ordering
+		//all unify together
+		for ( Disjunction d : clauses ) {
+			if ( d.size() != toAdd.size() ) {
+				continue;
+			}
+			
+			boolean allTermsSame = true;
+			for ( int i=0 ; i<d.size() ; ++i ) {
+				if ( findResolveUnification( d.getTerm( i ) , toAdd.getTerm( i ) , hypothesis ) == null ) {
+					allTermsSame = false;
+					break;
+				}
+			}
+			
+			if ( allTermsSame ) {
+				return true;
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * Factors a clause by removing any redundant terms that
+	 * can be unified together
+	 * 
+	 * @param d
+	 * @return		the original clause minus any redundant terms
+	 */
+	static Disjunction factor( Disjunction d , StatementCNF hypothesis ) {
+		Disjunction rtn = new Disjunction();
+		for ( int i=0 ; i<d.size() ; ++i ) {
+			Term t1 = d.getTerm( i );
+			boolean isDuplicate = false;
+			for ( int j=i+1 ; j<d.size() ; ++j ) {
+				Term t2 = d.getTerm( j );
+				if ( findResolveUnification( t1 , t2 , hypothesis ) != null ) {
+					isDuplicate = true;
+					break;
+				}
+			}
+			
+			if ( !isDuplicate ) {
+				rtn.addTerm( t1 );
+			}
+		}
+		return rtn;
 	}
 	
 	static boolean containsEmptyClause( List< Disjunction > clauses ) {
@@ -103,98 +177,139 @@ class Resolver {
 				//negate the second term and try to resolve it with the first
 				t2.negate();
 				
-				//we cannot resolve different variables. Suppose we are presented with
-				//P AND Q. Obviously substituting P/!Q will result in the empty
-				//clause, but that's not valid, so we want to skip this type of
-				//unification
-				if ( t1.getValue() instanceof Variable &&  t2.getValue() instanceof Variable ) {
-					Variable var1 = (Variable) t1.getValue();
-					Variable var2 = (Variable) t2.getValue();
-					if ( (!var1.universallyQuantified() && !var2.universallyQuantified()) &&
-							!var1.equals( var2 ) ) {
-						continue;
-					}
-				}
-				
-				//we cannot unify two functions if one is negated and the other
-				//is not
-				if ( t1.getValue() instanceof Function &&
-						t2.getValue() instanceof Function &&
-						t1.negated() != t2.negated() ) {
-					continue;
-				}
-				
-				List< Substitution > subs = unify( t1 , t2 , new ArrayList< Substitution >() );
+				List< Substitution > subs = findResolveUnification( t1 , t2 , hypothesis );
 				if ( subs != null ) {
-
-					boolean validUnification = true;
-					for ( Substitution sub : subs ) {
-						
-						//we cannot unify variables in the hypothesis with
-						//other things because that would make the hypothesis
-						//less general
-						if ( (hypothesis.containsTerm( sub.original ) && sub.original.getValue() instanceof Variable) ) {
-							validUnification = false;
-							break;
-						}
-						
-						if ( sub.original.getValue() instanceof SkolemFunction && !(sub.substitution.getValue() instanceof Variable) ) {
-							validUnification = false;
-							break;
-						}
-					}
-					if ( !validUnification ) {
-						continue;
-					}
-					
-					Disjunction newClause = new Disjunction();
-					for ( int k=0 ; k<clause1.size() ; ++k ) {
-						if ( k != i ) {
-							Term toAdd = clause1.getTerm( k );
-							for ( Substitution sub : subs ) {
-								if ( sub.original.equalsIgnoringNegated( toAdd ) ) {
-									if ( sub.original.negated() == toAdd.negated() ) {
-										toAdd = sub.substitution;
-									}
-									else {
-										toAdd = sub.substitution.clone();
-										toAdd.negate();
-									}
-								}
-								else {
-									toAdd = toAdd.clone();
-									toAdd.substituteArg( sub.original , sub.substitution );
-								}
-							}
-							newClause.addTerm( toAdd );
-						}
-					}
-					for ( int k=0 ; k<clause2.size() ; ++k ) {
-						if ( k != j ) {
-							Term toAdd = clause2.getTerm( k );
-							for ( Substitution sub : subs ) {
-								if ( sub.original.equalsIgnoringNegated( toAdd ) ) {
-									if ( sub.original.negated() == toAdd.negated() ) {
-										toAdd = sub.substitution.clone();
-									}
-									else {
-										toAdd = sub.substitution.clone();
-										toAdd.negate();
-									}
-								}
-								else {
-									toAdd = toAdd.clone();
-									toAdd.substituteArg( sub.original , sub.substitution );
-								}
-							}
-							newClause.addTerm( toAdd );
-						}
-					}
+					Disjunction newClause = buildResolveClause( clause1 , clause1.getTerm( i ) , clause2 , clause2.getTerm( j ) , subs );
 					rtn.add( newClause );
 				}
 			}
 		}
 		return rtn;
+	}
+	
+	/**
+	 * Reports the unifications necessary to make two terms identical so that
+	 * the clauses to which they belong can be resolved. If the two terms 
+	 * cannot be made identical, then null is returned.
+	 * 
+	 * @param t1
+	 * @param t2
+	 * @param hypothesis		the hypothesis currently being proved.
+	 * 							this information is necessary so that
+	 * 							we do not unify parts of the hypothesis
+	 * 							and make it less general
+	 * @return
+	 */
+	static List< Substitution > findResolveUnification( Term t1 , Term t2 , StatementCNF hypothesis ) {
+		//we cannot resolve different variables. Suppose we are presented with
+		//P AND Q. Obviously substituting P/!Q will result in the empty
+		//clause, but that's not valid, so we want to skip this type of
+		//unification
+		if ( t1.getValue() instanceof Variable &&  t2.getValue() instanceof Variable ) {
+			Variable var1 = (Variable) t1.getValue();
+			Variable var2 = (Variable) t2.getValue();
+			if ( (!var1.universallyQuantified() && !var2.universallyQuantified()) &&
+					!var1.equals( var2 ) ) {
+				return null;
+			}
+		}
+		
+		//we cannot unify two functions if one is negated and the other
+		//is not
+		if ( t1.getValue() instanceof Function &&
+				t2.getValue() instanceof Function &&
+				t1.negated() != t2.negated() ) {
+			return null;
+		}
+		
+		List< Substitution > subs = unify( t1 , t2 , new ArrayList< Substitution >() );
+		if ( subs != null ) {
+
+			boolean validUnification = true;
+			for ( Substitution sub : subs ) {
+				
+				//we cannot unify variables in the hypothesis with
+				//other things because that would make the hypothesis
+				//less general
+				if ( (hypothesis.containsTerm( sub.original ) && sub.original.getValue() instanceof Variable) ) {
+					validUnification = false;
+					break;
+				}
+				
+				
+				if ( sub.original.getValue() instanceof SkolemFunction && !(sub.substitution.getValue() instanceof Variable) ) {
+					validUnification = false;
+					break;
+				}
+			}
+			if ( !validUnification ) {
+				return null;
+			}
+			return subs;
+		}
+		return null;
+	}
+	
+	/**
+	 * Given two clauses and the unifications necessary to resolve two terms
+	 * in those clauses, combines the two clauses into a single resolvent
+	 * that contains the substitutions specified by the unifications.
+	 * 
+	 * @param clause1			the first clause to resolve
+	 * @param resolvedTerm1		the term in the first clause that allows the
+	 * 							two clauses to be resolved
+	 * @param clause2			the second clause to resolve
+	 * @param resolvedTerm2		the term in the second clause that allows the
+	 * 							two clauses to be resolved
+	 * @param subs				substitutions necessary to resolve the two clauses
+	 * @return					a single clause that is the resolvent of
+	 * 							the original two clauses
+	 */
+	static Disjunction buildResolveClause( Disjunction clause1 , Term resolvedTerm1 , Disjunction clause2 , Term resolvedTerm2 , List< Substitution > subs ) {
+		Disjunction newClause = new Disjunction();
+		for ( int k=0 ; k<clause1.size() ; ++k ) {
+			Term toAdd = clause1.getTerm( k );
+			if ( toAdd != resolvedTerm1 ) {
+				for ( Substitution sub : subs ) {
+					if ( sub.original.equalsIgnoringNegated( toAdd ) ) {
+						if ( sub.original.negated() == toAdd.negated() ) {
+							toAdd = sub.substitution;
+						}
+						else {
+							toAdd = sub.substitution.clone();
+							toAdd.negate();
+						}
+					}
+					else {
+						toAdd = toAdd.clone();
+						toAdd.substituteArg( sub.original , sub.substitution );
+					}
+				}
+				newClause.addTerm( toAdd );
+			}
+		}
+		for ( int k=0 ; k<clause2.size() ; ++k ) {
+			Term toAdd = clause2.getTerm( k );
+			if ( toAdd != resolvedTerm2 ) {
+				for ( Substitution sub : subs ) {
+					if ( sub.original.equalsIgnoringNegated( toAdd ) ) {
+						if ( sub.original.negated() == toAdd.negated() ) {
+							toAdd = sub.substitution.clone();
+						}
+						else {
+							toAdd = sub.substitution.clone();
+							toAdd.negate();
+						}
+					}
+					else {
+						toAdd = toAdd.clone();
+						toAdd.substituteArg( sub.original , sub.substitution );
+					}
+				}
+				newClause.addTerm( toAdd );
+			}
+		}
+		return newClause;
 	}
 	
 	/**

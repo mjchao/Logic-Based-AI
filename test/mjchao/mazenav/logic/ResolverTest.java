@@ -1292,12 +1292,12 @@ public class ResolverTest {
 		StatementCNF[] kb = new StatementCNF[] {
 			StatementCNF.fromInfixString( "FORALL(x)(FORALL(y) Animal(y) => Loves(x,y)) => EXISTS(y) Loves(x,y)" , tracker ) ,
 			StatementCNF.fromInfixString( "FORALL(x)(EXISTS(z) Animal(z) AND Kills(x,z)) => (FORALL(y) !Loves(y,x))", tracker ) ,
-			StatementCNF.fromInfixString( "FORALL(x) Animal(x) => Loves(Jack, x)" , tracker ) ,
+			StatementCNF.fromInfixString( "EXISTS(x) Animal(x) => Loves(Jack, x)" , tracker ) ,
 			StatementCNF.fromInfixString( "Kills(Jack, Tuna) OR Kills(Curiosity, Tuna)" , tracker ) ,
 			StatementCNF.fromInfixString( "Cat(Tuna)" , tracker ),
 			StatementCNF.fromInfixString( "FORALL(x) Cat(x) => Animal(x)" , tracker )
 		};
 		StatementCNF hypothesis = StatementCNF.fromInfixString( "Kills(Curiosity, Tuna)" , tracker );
-		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
 }

@@ -1285,7 +1285,6 @@ public class ResolverTest {
 		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
 
-	@Ignore
 	@Test
 	public void integration2F() {
 		SymbolTracker tracker = Integration2.buildTracker();

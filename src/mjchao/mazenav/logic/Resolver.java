@@ -32,49 +32,65 @@ class Resolver {
 	 */
 	static class Resolvent {
 		
-		public final Disjunction disjunction;
-		public final List< Resolvent > parents = new ArrayList< Resolvent >();
+		public Disjunction disjunction;
+		public List< Resolvent > parents = new ArrayList< Resolvent >();
 		
 		public Resolvent( Disjunction d ) {
 			this.disjunction = d;
+		}
+		
+		@Override
+		public String toString() {
+			return this.disjunction.toString();
 		}
 	}
 	
 	//TODO test resolution
 	static boolean applyResolution( SymbolTracker tracker , StatementCNF statement , StatementCNF hypothesis ) {
-		List< Disjunction > clauses = new ArrayList< Disjunction >();
+		List< Resolvent > clauses = new ArrayList< Resolvent >();
 		for ( Disjunction d : statement.getDisjunctions() ) {
-			clauses.add( factor(d , hypothesis) );
+			clauses.add( new Resolvent(factor(d , hypothesis)) );
 		}
 		
-		List< Disjunction > justAddedClauses = new ArrayList< Disjunction >( clauses );
+		List< Resolvent > justAddedClauses = new ArrayList< Resolvent >( clauses );
 		
 		while( true ) {
-			List< Disjunction > newClauses = new ArrayList< Disjunction >();
+			List< Resolvent > newClauses = new ArrayList< Resolvent >();
 
 			//attempt to resolve every pair of clauses
 			//if any of those pairs yields a contradiction (i.e. P AND !P)
 			//then the proof by contradiction succeeds (return true)
 			for ( int i=0 ; i<clauses.size() ; ++i ) {
 				for ( int j=0 ; j<justAddedClauses.size() ; ++j ) {
-					Disjunction c1 = clauses.get( i );
-					Disjunction c2 = justAddedClauses.get( j );
+					if ( !clauses.get( j ).parents.contains( clauses.get( i ) ) &&
+							clauses.get( i ).parents.size() > 0 && clauses.get( j ).parents.size() > 0 ) {
+						continue;
+					}
+					Disjunction c1 = clauses.get( i ).disjunction;
+					Disjunction c2 = justAddedClauses.get( j ).disjunction;
 					List< Disjunction > resolvents = resolve( c1 , c2 , hypothesis );
 					if ( containsEmptyClause( resolvents ) ) {
 						return true;
 					}
-					newClauses.addAll( resolvents );
+					
+					for ( Disjunction d : resolvents ) {
+						Resolvent newSearchState = new Resolvent( d );
+						newSearchState.parents.add( clauses.get( i ) );
+						newSearchState.parents.add( clauses.get( j ) );
+						newClauses.add( newSearchState );
+					}
 				}
 			}
 			
 			boolean addedClause = false;
 			justAddedClauses.clear();
-			for ( Disjunction d : newClauses ) {
-				Disjunction toAdd = factor(d , hypothesis);
+			for ( Resolvent d : newClauses ) {
+				Disjunction toAdd = factor(d.disjunction , hypothesis);
 				if ( !isDuplicateClause( clauses , toAdd , hypothesis) ) {
 					addedClause = true;
-					clauses.add( toAdd );
-					justAddedClauses.add( toAdd );
+					d.disjunction = toAdd;
+					clauses.add( d );
+					justAddedClauses.add( d );
 				}
 			}
 			
@@ -92,7 +108,7 @@ class Resolver {
 	 * @return				if the current list of clauses already contains
 	 * 						a clause that unified with the clause to be added
 	 */
-	static boolean isDuplicateClause( List< Disjunction > clauses , Disjunction toAdd , StatementCNF hypothesis ) {
+	static boolean isDuplicateClause( List< Resolvent > clauses , Disjunction toAdd , StatementCNF hypothesis ) {
 		
 		//clauses.contains checks that terms are identical up to reordering
 		if ( clauses.contains( toAdd ) ) {
@@ -101,7 +117,8 @@ class Resolver {
 		
 		//we'll add another check that if terms in the given ordering
 		//all unify together
-		for ( Disjunction d : clauses ) {
+		for ( Resolvent r : clauses ) {
+			Disjunction d = r.disjunction;
 			if ( d.size() != toAdd.size() ) {
 				continue;
 			}

@@ -1270,7 +1270,6 @@ public class ResolverTest {
 		}
 	}
 	
-	@Ignore
 	@Test
 	public void integration2T() {
 		SymbolTracker tracker = Integration2.buildTracker();

@@ -1,20 +1,20 @@
 # Logic-Based-Maze-Navigation
-In this project, we consider the Wumpus World presented in *Artificial Intelligence A Modern Approach* (Russel and Norvig). Our goal is to implement an intelligent agent who is able to safely explore the world and find a bag of gold without dying. The main purpose of this project is to produce an extendible First-Order Logic (FOL) library. The secondary purpose is to apply this library to the Wumpus World and potentially other "worlds" (e.g. logic could be used to prove theorems in a mathematical world).
+ The main purpose of this project is to produce an extendible First-Order Logic (FOL) manipulator. The secondary purpose is to explore logic applied to the Wumpus World presented in *Artificial Intelligence A Modern Approach* (Russel and Norvig). Our goal is to implement an intelligent agent who is able to safely explore the world and find a bag of gold without dying. It would also be nice to apply this code to the Wumpus World and potentially other "worlds" (e.g. logic could be used to prove theorems in a mathematical world).
 
 #First-Order Logic
 A logic-based AI will typically has a database of known facts, called a knowledgebase. When encountered with a new situation, the logic-based AI will make hypotheses and check if it is consistent with the knowledgebase. If the knowledgebase implies a certain hypotheses, then the agent can be sure that hypotheses is true and add it to the knowledgebase.
 
 ##Flexibility
-We need an flexible method of representing functions, relations, and objects so that any arbitrary function, relation or object can be represented. To achieve this, we combine Java with a package-specific language. Our logic processor scans through files containing the declarations of functions, relations and objects. The interpreter then uses the Java code for definitions of those functions, relations and objects and uses their definitions as specificied in manipulating FOL statements.
+We need an flexible method of representing functions, relations, and objects so that any arbitrary function, relation or object can be represented. To achieve this, we combine Java with an additional simple language specific to this project. The logic processor scans through files containing the declarations of functions, relations and objects. The interpreter then uses the Java code for definitions of those functions, relations and objects and uses their definitions as specificied in manipulating FOL statements.
 
 ##Statements
-One of the challenges of logic-based AIs is representing the statements in the knowledgebase. There are various forms of logic that can be used, such as propositional logic, first-order logic, temporal logic, and other higher orders of logic. This project is an experiment with trying to work with first-order logic (FOL). 
+The first challenge of this logic-based AIs is representing the statements in the knowledgebase. There are various forms of logic that can be used, such as propositional logic, first-order logic, temporal logic, and other higher orders of logic. This project is an experiment with trying to work with first-order logic (FOL). 
 
 There are a few main steps in processing FOL statements:
 
 1. Tokenize statements into functions, relations, and objects
 2. Convert statements into conjunctive normal form
-3. Implement a resolution algorithm which attempts to prove new hypotheses by contradiction.
+3. Apply a resolution algorithm which attempts to prove new hypotheses by contradiction.
 
 ###Tokenizing
 
@@ -34,6 +34,21 @@ This algorithm in Russel and Norvig follows these steps:
 6. Distribute ORs inward over ANDs which gets us to CNF
 
 ###Resolution
+
+The resolution algorithm presented in Russel and Norvig follows these steps:
+
+1. Express the knowledgebase ANDed with the negated hypothesis as a single statement in CNF
+2. Attempting to prove a contradiction in the statement constructed in step 1 as follows. (Note: a clause means a single list of disjunctions in the CNF statement)
+ 1. Factor the statement by removing any redundant terms from clauses. A term is redundant if it unifies with another term in the same clause.
+ 2. For every pair of clauses see if they can be resolved. Two clauses can be resolved if they a term in the first clause unifies with the negation of a term in the second clause. The resolvent is the first clause ORed with the second clause minus the two terms that unified. Add the resolvent to a list of things proved. If the resolvent of any two clauses yields an empty clause, then we return true. We only get the empty clause when resolved something of the form P AND !P, which is a contradiction, and the proof by contradiction succeeds.
+ 3. After checking all pairs of clauses to see if they unify, see if the list of things proved contains any new knowledge - clauses that we didn't know before and don't unify with any clauses from before.
+ 4. If we found new knowledge, factor those clauses and then add them to the giant single conjunction formed in step 1. If we could not find new knowledge, then return false because our proof by contradiction fails - we did not arrive at a contradiction.
+ 5. Go back to step 2ii and repeat.
+ 
+Note that resolution can be tricky because there are certain things you do not want to unify. For example, one issue that test cases exposed was that we cannot unify any variables that appear in the hypothesis because that would prove a less general result. It would be disastrous if the knowledgebase contained "Person(John)" and then we asked "FORALL(x) Person(x)" and the algorithm unified x with John. However, in the opposite case we would need to unify x with John if instead the knowledgebase contained "FORALL(x) Person(x)" and we asked "Person(John)". There were several other subtleties that arose.
+
+##Complexity
+Propositional resolution takes at least exponential time in the worst case. For example, there is a [proof](http://cs.stackexchange.com/questions/2230/resolution-complexity-versus-a-constrained-sat-algorithm) that it must take at exponential time to prove the pigeonhole principle. Therefore, the more general first-order resolution must take at least exponential time as well. To help speed things up somewhat, there are a few optimizations we made. For example, we enforced linear resolution where we only resolve two clauses if at least one clause belongs to the original knowledgebase or one clause is a parent of the other one in the resolution search tree. According to Russel and Norvig, this heuristic maintains completeness. In addition, to filter out as many redundant clauses as possible, we disregard the order of the terms when we check for equality. Furthermore, we flag two clauses as duplicates if the *i*th term of the first clause unifies with the *i*th term of the second clause for all *i*. Unfortunately, we cannot the second check for arbitrary ordering as it would take exponential time to check if some ordering of the first clause allows it to unify term-by-term with the second clause.
 
 #Wumpus World
 The Wumpus World is a very simple n-by-m grid. There are multiple pits, one wumpus, and one bag of gold distributed over the squares. 

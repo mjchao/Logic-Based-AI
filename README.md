@@ -67,8 +67,8 @@ StatementCNF[] kb = new StatementCNF[] {
 StatementCNF hypothesis = StatementCNF.fromInfixString( "Living(Adam)" , tracker );
 Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 
-StatementCNF hypothesis = StatementCNF.fromInfixString( "Dead(Adam)" , tracker );
-Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+StatementCNF hypothesis2 = StatementCNF.fromInfixString( "Dead(Adam)" , tracker );
+Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis2 , kb ) );
 ```
 
 

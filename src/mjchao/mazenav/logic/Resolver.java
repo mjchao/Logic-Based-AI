@@ -79,7 +79,7 @@ class Resolver {
 		
 		while( true ) {
 			List< Resolvent > newClauses = new ArrayList< Resolvent >();
-
+			
 			//attempt to resolve every pair of clauses
 			//if any of those pairs yields a contradiction (i.e. P AND !P)
 			//then the proof by contradiction succeeds (return true)
@@ -267,6 +267,16 @@ class Resolver {
 			return null;
 		}
 		
+		//we cannot unify two skolem functions either if one is negated
+		//and the other is not. we don't unify EXISTS(x) with !EXISTS(y).
+		//we compare t1.negated() == t2.negated() here because
+		//the resolve function negated t2 already.
+		if ( t1.getValue() instanceof SkolemFunction && 
+				t2.getValue() instanceof SkolemFunction && 
+				t1.negated() == t2.negated() ) {
+			return null;
+		}
+		
 		List< Substitution > subs = unify( t1 , t2 , new ArrayList< Substitution >() );
 		if ( subs != null ) {
 
@@ -282,7 +292,8 @@ class Resolver {
 				}
 				
 				
-				if ( sub.original.getValue() instanceof SkolemFunction && !(sub.substitution.getValue() instanceof Variable) ) {
+				if ( sub.original.getValue() instanceof SkolemFunction && 
+						!(sub.substitution.getValue() instanceof Variable || sub.substitution.getValue() instanceof SkolemFunction) ) {
 					validUnification = false;
 					break;
 				}

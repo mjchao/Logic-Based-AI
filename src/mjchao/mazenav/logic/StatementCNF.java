@@ -28,7 +28,7 @@ public class StatementCNF {
 	 * @return					a single statement representing all the inputed
 	 * 							statements ANDed together
 	 */
-	public static StatementCNF andTogether( List< StatementCNF > statements , SymbolTracker tracker ) {
+	static StatementCNF andTogether( List< StatementCNF > statements , SymbolTracker tracker ) {
 		if ( statements.size() == 0 ) {
 			throw new IllegalArgumentException( "No statements to AND together." );
 		}
@@ -44,7 +44,7 @@ public class StatementCNF {
 	 * @param tracker			tracker for recognizing variables and names
 	 * @return					the negated inputed statement
 	 */
-	public static StatementCNF negate( StatementCNF statement , SymbolTracker tracker ) {
+	static StatementCNF negate( StatementCNF statement , SymbolTracker tracker ) {
 		ExpressionTree exprTreeCpy = statement.exprTree.clone();
 		exprTreeCpy.negate( tracker );
 		return fromPostfix( exprTreeCpy , tracker );

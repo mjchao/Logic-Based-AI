@@ -1100,7 +1100,7 @@ public class ResolverTest {
 		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
 
-	@Ignore //Reason: takes about 15 seconds to finish running. XXX Uncomment when running exhaustive tests 
+	//@Ignore //Reason: takes about 15 seconds to finish running. XXX Uncomment when running exhaustive tests 
 	@Test
 	public void integration2F() {
 		SymbolTracker tracker = Integration2.buildTracker();
@@ -1114,5 +1114,20 @@ public class ResolverTest {
 		};
 		StatementCNF hypothesis = StatementCNF.fromInfixString( "Kills(Curiosity, Tuna)" , tracker );
 		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void integration3T() {
+		SymbolTracker tracker = new SymbolTracker();
+		tracker.addFunctions( "Person" , "Heart" , "PartOf" , "Living" );
+		tracker.addConstants( "Adam" );
+		
+		StatementCNF[] kb = new StatementCNF[] {
+		    StatementCNF.fromInfixString( "FORALL(x) Person(x) => (EXISTS(y) Heart(y) AND PartOf(y,x))" , tracker ) ,
+		    StatementCNF.fromInfixString( "EXISTS(x) Heart(x) AND PartOf(x,y) => Living(y)" , tracker ) ,
+		    StatementCNF.fromInfixString( "Person(Adam)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Living(Adam)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
 }

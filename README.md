@@ -54,18 +54,18 @@ You can express the knowledgebase as an array of StatementCNF objects. Each Stat
 Finally, all that's left is to propose a hypothesis and ask the Resolver if it's true or not. You can create a hypothesis by using `StatementCNF.fromInfixString` again. Then, you can call the function ```Resolver.proveHypothesis( SymbolTracker tracker , StatementCNF hypothesis , StatementCNF... kb)``` and it will return true if the hypothesis is always true given the knowledgebase and false otherwise. For example,
 
 ```java
-		SymbolTracker tracker = new SymbolTracker();
-		tracker.addFunctions( "Person" , "Heart" , "PartOf" , "Living" );
-		tracker.addConstants( "Adam" );
-		
-		StatementCNF[] kb = new StatementCNF[] {
-		    StatementCNF.fromInfixString( "FORALL(x) Person(x) => (EXISTS(y) Heart(y) AND PartOf(y,x))" , tracker ) ,
-		    StatementCNF.fromInfixString( "EXISTS(y) Heart(y) AND PartOf(y,x) => Living(x)" , tracker ) ,
-		    StatementCNF.fromInfixString( "Person(Adam)" , tracker )
-		};
-		StatementCNF hypothesis = StatementCNF.fromInfixString( "Living(Adam)" , tracker );
-		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
-		```
+SymbolTracker tracker = new SymbolTracker();
+tracker.addFunctions( "Person" , "Heart" , "PartOf" , "Living" );
+tracker.addConstants( "Adam" );
+
+StatementCNF[] kb = new StatementCNF[] {
+    StatementCNF.fromInfixString( "FORALL(x) Person(x) => (EXISTS(y) Heart(y) AND PartOf(y,x))" , tracker ) ,
+    StatementCNF.fromInfixString( "EXISTS(y) Heart(y) AND PartOf(y,x) => Living(x)" , tracker ) ,
+    StatementCNF.fromInfixString( "Person(Adam)" , tracker )
+};
+StatementCNF hypothesis = StatementCNF.fromInfixString( "Living(Adam)" , tracker );
+Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+```
 
 ##Implementation Detail
 Here, we describe some of the implementation in greater detail.

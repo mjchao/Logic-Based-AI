@@ -2,11 +2,14 @@
 #and relations on integers
 
 #Returns the sum of two integers
-FUNCTION: SumInt( Integer , Integer )
+FUNCTION: SumInt
 
 #Returns the difference of two integers
-FUNCTION: DiffInt( Integer , Integer )
+FUNCTION: DiffInt
 
 #Returns if the first integer is greater
 #than the second integer
-RELATION: GreaterThan( Integer , Integer )
+FUNCTION: GreaterThan
+
+#Some example constants
+CONSTANT: One, Two, Three, Four, Five

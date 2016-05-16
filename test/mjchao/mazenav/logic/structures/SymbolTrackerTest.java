@@ -34,70 +34,35 @@ public class SymbolTrackerTest {
 	
 	@Test 
 	public void fromFile() throws IOException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		IntegerWorld def = new IntegerWorld();
-		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , def );
+		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
+		Assert.assertTrue( test.parseFunction( "SumInt" ) != null );
+		Assert.assertTrue( test.parseFunction( "DiffInt" ) != null );
+		Assert.assertTrue( test.parseFunction( "GreaterThan" ) != null );
+		Assert.assertTrue( test.parseConstant( "One" ) != null );
+		Assert.assertTrue( test.parseConstant( "Two" ) != null );
+		Assert.assertTrue( test.parseConstant( "Three" ) != null );
+		Assert.assertTrue( test.parseConstant( "Four" ) != null );
+		Assert.assertTrue( test.parseConstant( "Five" ) != null );
 		
-		ObjectFOL five = NumbersFOL.fromInt( 5 );
-		ObjectFOL six = NumbersFOL.fromInt( 6 );
-		
-		Function SumInt = test.getFunction( "SumInt" );
-		ObjectFOL eleven = SumInt.operate( five , six );
-		Assert.assertTrue( ( eleven.toString().equals( "11" ) ) );
-		
-		Relation GreaterThan = test.getRelation( "GreaterThan" );
-		BooleanFOL True = GreaterThan.operate( six , five );
-		Assert.assertTrue( True.getValue().booleanValue() == true );
-	}
-	
-	@Test(expected=IllegalStateException.class)
-	public void redefinition() throws IOException {
-		//this test case defines two functions to have the same name
-		IntegerWorldErrorRedefinition def = new IntegerWorldErrorRedefinition();
-		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld_error_redefinition.txt" , def );
-	}
-	
-	@Test(expected=IllegalStateException.class)
-	public void redefinition2() throws IOException {
-		//this test case defines a function and a constant to have the same name
-		IntegerWorldErrorRedefinition2 def = new IntegerWorldErrorRedefinition2();
-		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld_error_redefinition2.txt" , def );
+		//some non-defined constants and functions
+		Assert.assertTrue( test.parseConstant( "Six" ) == null );
+		Assert.assertTrue( test.parseConstant( "Seven" ) == null );
+		Assert.assertTrue( test.parseConstant( "Eight" ) == null );
+		Assert.assertTrue( test.parseFunction( "MultInt" ) == null );
+		Assert.assertTrue( test.parseFunction( "DivInt" ) == null );
 	}
 	
 	@Test
 	public void fromGeometryWorldFile() throws IOException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		GeometryWorld def = new GeometryWorld();
-		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/geometryworld.txt", def );
-		
-		Function Angle = test.getFunction( "Angle" );
-		ObjectFOL angle1 = Angle.operate( NumbersFOL.fromDouble( 25.7) );
-		ObjectFOL angle2 = Angle.operate( NumbersFOL.fromDouble( 25.7 ) );
-		ObjectFOL angle3 = Angle.operate( NumbersFOL.fromDouble( 50.5 ) );
-		ObjectFOL rightAngle = Angle.operate( NumbersFOL.fromInt( 90 ) );
-		
-		Function AngleEquals = test.getRelation( "AngleEquals" );
-		Assert.assertTrue( AngleEquals.operate( angle1 , angle2 ).equals( BooleanFOL.True() ) );
-		Assert.assertTrue( AngleEquals.operate( angle1 , angle3 ).equals( BooleanFOL.False() ) );
-		
-		ObjectFOL rightAngleConstant = test.getConstant( "RightAngle" );
-		Assert.assertTrue( AngleEquals.operate( rightAngle , rightAngleConstant ).equals( BooleanFOL.True() ) );
-		
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void undefinedConstant() throws IOException {
-		IntegerWorldErrorUndefinedConstant def = new IntegerWorldErrorUndefinedConstant();
-		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld_error_undefined_constant.txt" , def );
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void constantMissingType() throws IOException {
-		IntegerWorldErrorConstantMissingType def = new IntegerWorldErrorConstantMissingType();
-		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld_error_constant_missing_type.txt" , def );		
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void constantDefineWithArguments() throws IOException {
-		IntegerWorldErrorConstantDefinedWithArguments def = new IntegerWorldErrorConstantDefinedWithArguments();
-		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld_error_constant_defined_with_arguments.txt" , def );		
+		SymbolTracker test = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/geometryworld.txt" );
+		Assert.assertTrue( test.parseFunction( "Point" ) != null );
+		Assert.assertTrue( test.parseFunction( "LineSegment" ) != null );
+		Assert.assertTrue( test.parseFunction( "Line" ) != null );
+		Assert.assertTrue( test.parseFunction( "Circle" ) != null );
+		Assert.assertTrue( test.parseFunction( "Angle" ) != null );
+		Assert.assertTrue( test.parseFunction( "AngleEquals" ) != null );
+		Assert.assertTrue( test.parseConstant( "RightAngle" ) != null );
+		Assert.assertTrue( test.parseConstant( "AcuteAngle" ) == null );
+		Assert.assertTrue( test.parseConstant( "ObtuseAngle" ) == null );
 	}
 }

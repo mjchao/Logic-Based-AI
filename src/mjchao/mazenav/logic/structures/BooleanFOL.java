@@ -12,28 +12,23 @@ public class BooleanFOL extends ObjectFOL {
 		return b ? True() : False();
 	}
 	public static BooleanFOL True() {
-		return new BooleanFOL( "True" , Boolean.valueOf( true ) );
+		return new BooleanFOL( "True" );
 	}
 	
 	public static BooleanFOL False() {
-		return new BooleanFOL( "False" , Boolean.valueOf( false ) );
+		return new BooleanFOL( "False" );
 	}
 	
-	private BooleanFOL( String name , Object value ) {
-		super( name , value , new String[]{ "Boolean" } );
+	private BooleanFOL( String name ) {
+		super( name );
 	}
 	
 	@Override
 	public boolean equals( Object other ) {
 		if ( other instanceof BooleanFOL ) {
-			return this.getValue().equals( ((BooleanFOL)other).getValue() );
+			return this.name.equals( ((BooleanFOL) other).name );
 		}
 		return false;
-	}
-	
-	@Override
-	public Boolean getValue() {
-		return (Boolean) super.getValue();
 	}
 
 }

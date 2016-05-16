@@ -8,6 +8,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 
 /**
  * Tracks any variables that have been generated
@@ -17,116 +18,6 @@ import java.util.HashMap;
  *
  */
 public class SymbolTracker {
-	
-	private static final Object getDefiningClassInstance( String name , Object... listOfDefiningClasses ) {
-		Object definingClassInstance = null;
-		for ( Object def : listOfDefiningClasses ) {
-			for ( Method m : def.getClass().getMethods() ) {
-				if ( m.getName().equals( name ) ) {
-					if ( definingClassInstance == null ) {
-						definingClassInstance = def;
-					}
-					
-					//if a function name appears twice, we will throw an 
-					//error because parameters are not typed in this
-					//language so we can't overload functions
-					else {
-						throw new IllegalStateException( "Multiple redefinition of function: " + name + "\n" + 
-								"First definition in class: " + definingClassInstance.getClass().getName() + "\n" +
-								"Second definition in class: " + def.getClass().getName() );						
-					}
-				}
-			}
-		}
-		return definingClassInstance;
-	}
-	
-	/**
-	 * Determines if any types in the given list are blank ("")
-	 * 
-	 * @param types
-	 * @return
-	 */
-	private static final boolean containsBlankTypes( String[] types ) {
-		for ( String type : types ) {
-			if ( type.trim().isEmpty() ) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	private static final Function parseFunction( String[] tokens , int lineNum , Object... definitionClasses ) {
-		
-		//read the name of the function
-		String name = tokens[ 0 ];
-		
-		//figure out which definition class contains this function's definition
-		Object definingClassInstance = getDefiningClassInstance( name , definitionClasses );
-		if ( definingClassInstance == null ) {
-			throw new IllegalArgumentException( "Function \"" + name + "\" is never defined." );
-		}
-		
-		//parse the argument types and make sure
-		//they're all defined
-		String[] argTypes = Arrays.copyOfRange( tokens , 1 , tokens.length );
-		if ( containsBlankTypes( argTypes ) ) {
-			throw new IllegalArgumentException( "(Line " + lineNum + ") Function \"" + name + "\" defined with blank types." );
-		}
-		
-		//create the function
-		return new Function( name , definingClassInstance , argTypes );
-	}
-	
-	private static Relation parseRelation( String[] tokens , int lineNum , Object... definingClasses ) {
-		String name = tokens[ 0 ];
-		
-		Object definingClassInstance = getDefiningClassInstance( name , definingClasses );
-		if ( definingClassInstance == null ) {
-			throw new IllegalArgumentException( "Function \"" + name + "\" is never defined." );
-		}
-		
-		String[] argTypes = Arrays.copyOfRange( tokens , 1 , tokens.length );
-		if ( containsBlankTypes( argTypes ) ) {
-			throw new IllegalArgumentException( "(Line " + lineNum + ") Function \"" + name + "\" defined with blank types." );
-		}
-		
-		return new Relation( name , definingClassInstance , argTypes );
-	}
-	
-	private static Function parseConstant( String[] tokens , int lineNum , Object... definingClasses ) {
-		String name = tokens[ 0 ];
-		
-		String[] types = Arrays.copyOfRange( tokens , 1 , tokens.length );
-		if ( containsBlankTypes( types ) ) {
-			throw new IllegalArgumentException( "(Line " + lineNum + ") Object \"" + name + "\" defined with blank types." );
-		}
-		
-		Object definingClassInstance = getDefiningClassInstance( name , definingClasses );
-		if ( definingClassInstance == null ) {
-			throw new IllegalArgumentException( "Constant \"" + name + "\" is never defined." );
-		}
-		
-		//we treat constants a functions that take no parameters
-		Function rtn = new Function( name , definingClassInstance , new String[0] );
-		
-		//check that the function returns an object with the correct types
-		try {
-			ObjectFOL constant = rtn.operate();
-			
-			for ( String type : types ) {
-				if ( !constant.isOfType( type ) ) {
-					throw new IllegalArgumentException( "Constant\"" + name + "\" is not defined properly. " + 
-														"The function that represents \"" + name + "\" should return " + 
-														"an ObjectFOL of type \"" + type + "\"." );
-				}
-			}
-		} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-			throw new IllegalArgumentException( "Constant \"" + name + "\" is not defined properly. " + 
-												"It should be a function that takes 0 arguments." );	
-		}
-		return rtn;
-	}
 	
 	private static final String[] tokenize( String input ) {
 		
@@ -188,18 +79,11 @@ public class SymbolTracker {
 				String[] tokens = tokenize( nextLine );
 				String dataType = tokens[ 0 ];
 				
-				String[] data = Arrays.copyOfRange( tokens , 1 , tokens.length );
 				if ( dataType.equals( "FUNCTION" ) ) {
-					Function func = parseFunction( data , lineNumber , definitionClassInstances );
-					rtn.addFunction( func.getSymbolName() , func );
-				}
-				else if ( dataType.equals( "RELATION" ) ) {
-					Relation rel = parseRelation( data , lineNumber , definitionClassInstances );
-					rtn.addRelation( rel.getSymbolName() , rel );
+					rtn.addFunctions( Arrays.copyOfRange( tokens , 1 , tokens.length ) );
 				}
 				else if ( dataType.equals( "CONSTANT" ) ) {
-					Function obj = parseConstant( data , lineNumber , definitionClassInstances );
-					rtn.addConstant( obj.getSymbolName() , obj );
+					rtn.addConstants( Arrays.copyOfRange( tokens , 1 ,  tokens.length ) );
 				}
 				else {
 					f.close();
@@ -217,9 +101,8 @@ public class SymbolTracker {
 		return rtn;
 	}
 	
-	private HashMap< String , Function > functions = new HashMap< String , Function >();
-	private HashMap< String , Relation > relations = new HashMap< String , Relation >();
-	private HashMap< String , Function > constants = new HashMap< String , Function >();
+	private HashSet< String > functions = new HashSet< String >();
+	private HashSet< String > constants = new HashSet< String >();
 	
 	/**
 	 * A list of user-defined variables.
@@ -247,53 +130,39 @@ public class SymbolTracker {
 		
 	}
 	
-	public void addFunction( String name , Function f ) {
-		this.functions.put( name , f );
-	}
-	
-	public Function getFunction( String functionName ) {
-		if ( functions.containsKey( functionName ) ) {
-			return functions.get( functionName );
+	public void addFunctions( String... names ) {
+		for ( String name : names ) {
+			this.functions.add( name );
 		}
-		return null;
 	}
-	
-	public Relation getRelation( String relationName ) {
-		if ( relations.containsKey( relationName ) ) {
-			return relations.get( relationName );
+
+	public Function parseFunction( String functionName ) {
+		if ( this.functions.contains( functionName ) ) {
+			Function rtn = new Function( functionName );
+			return rtn;
 		}
-		return null;
-	}
-	
-	public void addRelation( String name , Relation r ) {
-		this.relations.put( name , r );
-	}
-	
-	public ObjectFOL getConstant( String constantName ) {
-		if ( constants.containsKey( constantName ) ) {
-			try {
-				return constants.get( constantName ).operate();
-			} catch (IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
-				e.printStackTrace();
-				return null;
-			}
+		else {
+			return null;
 		}
-		return null;
 	}
 	
-	/**
-	 * Adds the given constant to the list of known constants. Constant objects
-	 * are represented as Functions that take no arguments.
-	 * 
-	 * @param name		the name of the object
-	 * @param obj		a function that should return the ObjectFOL this
-	 * 					constant represents
-	 */
-	public void addConstant( String name , Function obj ) {
-		if ( obj.getNumArgs() != 0 ) {
-			throw new IllegalArgumentException( "Objects must be represented as Functions with 0 arguments." );
+	public void addConstants( String... names ) {
+		for ( String name : names ) {
+			this.constants.add( name );
 		}
-		this.constants.put( name , obj );
+	}
+	
+	public ObjectFOL parseConstant( String constantName ) {
+		if ( constants.contains( constantName ) ) {
+			
+			//in FOL, constants are represented as functions
+			//that take no arguments
+			ObjectFOL rtn = new ObjectFOL( constantName );
+			return rtn;
+		}
+		else {
+			return null;
+		}
 	}
 	
 	/**

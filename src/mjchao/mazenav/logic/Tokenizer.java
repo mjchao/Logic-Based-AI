@@ -7,7 +7,6 @@ import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.ObjectFOL;
 import mjchao.mazenav.logic.structures.Operator;
 import mjchao.mazenav.logic.structures.Quantifier;
-import mjchao.mazenav.logic.structures.Relation;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
 import mjchao.mazenav.logic.structures.Variable;
@@ -184,21 +183,14 @@ class Tokenizer {
 			}
 			
 			//check if its a function
-			Function f = tracker.getFunction( token );
+			Function f = tracker.parseFunction( token );
 			if ( f != null ) {
 				tokens.add( f );
 				continue;
 			}
 			
-			//check if its a relation
-			Relation r = tracker.getRelation( token );
-			if ( r != null ) {
-				tokens.add( r );
-				continue;
-			}
-			
 			//check if its a constant object
-			ObjectFOL obj = tracker.getConstant( token );
+			ObjectFOL obj = tracker.parseConstant( token );
 			if ( obj != null ) {
 				tokens.add( obj );
 				continue;

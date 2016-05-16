@@ -1,14 +1,77 @@
-# Logic-Based-Maze-Navigation
+# Logic-Based AI
  The main purpose of this project is to produce an extendible First-Order Logic (FOL) manipulator. The secondary purpose is to explore logic applied to the Wumpus World presented in *Artificial Intelligence A Modern Approach* (Russel and Norvig). Our goal is to implement an intelligent agent who is able to safely explore the world and find a bag of gold without dying. It would also be nice to apply this code to the Wumpus World and potentially other "worlds" (e.g. logic could be used to prove theorems in a mathematical world).
 
 #First-Order Logic
 A logic-based AI will typically has a database of known facts, called a knowledgebase. When encountered with a new situation, the logic-based AI will make hypotheses and check if it is consistent with the knowledgebase. If the knowledgebase implies a certain hypotheses, then the agent can be sure that hypotheses is true and add it to the knowledgebase.
 
 ##Flexibility
-We need an flexible method of representing functions, relations, and objects so that any arbitrary function, relation or object can be represented. To achieve this, we combine Java with an additional simple language specific to this project. The logic processor scans through files containing the declarations of functions, relations and objects. The interpreter then uses the Java code for definitions of those functions, relations and objects and uses their definitions as specificied in manipulating FOL statements.
+We need an flexible method of representing functions, relations, and objects so that any arbitrary function, relation or object can be represented. To achieve this, we create an additional simple language specific to this project. The logic processor scans through files containing the declarations of functions, relations and objects. The interpreter then uses these function delcarations in manipulating FOL statements.
+
+##Using the System
+There are three main classes of which you need to be aware: SymbolTracker, StatementCNF, and Resolver. Most of the other implementation details are package-protected so you don't need to know about them. There are three steps to using the system:
+
+1. Load the SymbolTracker with the relevant information.
+2. Build your knowledgebase of StatementCNF objects.
+3. Apply the Resolver to a StatementCNF statement you wish to prove.
+
+###Loading the SymbolTracker
+You can call `SymbolTracker.fromDataFile` to load all predefined functions and constants from a text file. In the text file, you just need a line that states "FUNCTION: <function 1 name>, <function 2 name>, ..." and a line that states "CONSTANT: <constant 1 name>, <constant 2 name>,...". Please note that you should only use letters and numbers in your functions (the program will soon be updated to enforce this). For example,
+
+```text
+file "test.txt":
+FUNCTION: Func1, Func2, Func3
+CONSTANT: const1, const2, const3
+```
+
+```java
+SymbolTracker tracker = SymbolTracker.fromDataFile( "test.txt" );
+```
+
+Alternatively, you can create a new `SymbolTracker` yourself and manually add in the functions and constants. For example,
+
+```java
+SymbolTracker tracker = new SymbolTracker();
+tracker.addFunctions( "Func1" , "Func2" , "Func3" );
+tracker.addConstants( "const1" , "const2" , "const3" );
+```
+
+###Building the Knowledgebase
+You can express the knowledgebase as an array of StatementCNF objects. Each StatementCNF object can be built from a valid logic infix expression by calling `StatementCNF.fromInfixString( String infix , SymbolTracker tracker )`. For example,
+
+```java
+		SymbolTracker tracker = new SymbolTracker();
+		tracker.addFunctions( "Person" , "Heart" , "PartOf" , "Living" );
+		tracker.addConstants( "Adam" );
+		
+		StatementCNF[] kb = new StatementCNF[] {
+		    StatementCNF.fromInfixString( "FORALL(x) Person(x) => (EXISTS(y) Heart(y) AND PartOf(y,x))" , tracker ) ,
+		    StatementCNF.fromInfixString( "EXISTS(y) Heart(y) AND PartOf(y,x) => Living(x)" , tracker ) ,
+		    StatementCNF.fromInfixString( "Person(Adam)" , tracker )
+		};
+```
+
+###Calling the Resolver
+Finally, all that's left is to propose a hypothesis and ask the Resolver if it's true or not. You can create a hypothesis by using `StatementCNF.fromInfixString` again. Then, you can call the function ```Resolver.proveHypothesis( SymbolTracker tracker , StatementCNF hypothesis , StatementCNF... kb)``` and it will return true if the hypothesis is always true given the knowledgebase and false otherwise. For example,
+
+```java
+		SymbolTracker tracker = new SymbolTracker();
+		tracker.addFunctions( "Person" , "Heart" , "PartOf" , "Living" );
+		tracker.addConstants( "Adam" );
+		
+		StatementCNF[] kb = new StatementCNF[] {
+		    StatementCNF.fromInfixString( "FORALL(x) Person(x) => (EXISTS(y) Heart(y) AND PartOf(y,x))" , tracker ) ,
+		    StatementCNF.fromInfixString( "EXISTS(y) Heart(y) AND PartOf(y,x) => Living(x)" , tracker ) ,
+		    StatementCNF.fromInfixString( "Person(Adam)" , tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Living(Adam)" , tracker );
+		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+		```
+
+##Implementation Detail
+Here, we describe some of the implementation in greater detail.
 
 ##Statements
-The first challenge of this logic-based AIs is representing the statements in the knowledgebase. There are various forms of logic that can be used, such as propositional logic, first-order logic, temporal logic, and other higher orders of logic. This project is an experiment with trying to work with first-order logic (FOL). 
+The first challenge of this logic-based AI is representing the statements in the knowledgebase. There are various forms of logic that can be used, such as propositional logic, first-order logic, temporal logic, and other higher orders of logic. This project is an experiment with trying to work with first-order logic (FOL). 
 
 There are a few main steps in processing FOL statements:
 

@@ -6,8 +6,6 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 
-import mjchao.mazenav.logic.structures.GeometryWorld;
-import mjchao.mazenav.logic.structures.IntegerWorld;
 import mjchao.mazenav.logic.structures.NumbersFOL;
 import mjchao.mazenav.logic.structures.Operator;
 import mjchao.mazenav.logic.structures.Quantifier;
@@ -308,40 +306,37 @@ public class TokenizerTest {
 	public void tokenizeWithStructures() throws IOException {
 		Tokenizer test;
 		String logicStatement;
-		Object def = new IntegerWorld();
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , def );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		List<Symbol> tokens;
 		List<Symbol> expected;
 		
 		//basic acceptance test
 		logicStatement = "FORALL(y) GreaterThan(y, 0)";
-		def = new IntegerWorld();
-		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , def );
+		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , Symbol.LEFT_PAREN , 
 				tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN ,
-				tracker.getRelation( "GreaterThan" ) , Symbol.LEFT_PAREN , 
+				tracker.parseFunction( "GreaterThan" ) , Symbol.LEFT_PAREN , 
 				tracker.getVariableByName( "y" ) , Symbol.COMMA , 
 				NumbersFOL.fromInt( 0 ) , Symbol.RIGHT_PAREN);
 		Assert.assertTrue( tokens.equals( expected ) );
 		
 		//a bit more complicated statement
 		logicStatement = "FORALL(x, y) GreaterThan(y, 0) => GreaterThan(SumInt(x,y), x)";
-		def = new IntegerWorld();
-		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , def );
+		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , Symbol.LEFT_PAREN , 
 				tracker.getVariableByName( "x" ) , Symbol.COMMA ,
 				tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN ,
-				tracker.getRelation( "GreaterThan" ) , Symbol.LEFT_PAREN , 
+				tracker.parseFunction( "GreaterThan" ) , Symbol.LEFT_PAREN , 
 				tracker.getVariableByName( "y" ) , Symbol.COMMA , 
 				NumbersFOL.fromInt( 0 ) , Symbol.RIGHT_PAREN ,
-				Operator.IMPLICATION , tracker.getRelation( "GreaterThan" ) ,
-				Symbol.LEFT_PAREN , tracker.getFunction( "SumInt" ) ,
+				Operator.IMPLICATION , tracker.parseFunction( "GreaterThan" ) ,
+				Symbol.LEFT_PAREN , tracker.parseFunction( "SumInt" ) ,
 				Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) ,
 				Symbol.COMMA , tracker.getVariableByName( "y" ) , 
 				Symbol.RIGHT_PAREN , Symbol.COMMA ,
@@ -350,19 +345,18 @@ public class TokenizerTest {
 		
 		//check that undefined functions just become variables
 		logicStatement = "FORALL(x, y) GreaterThan(y, 0) => GreaterThn(SumInt(x,y), x)";
-		def = new IntegerWorld();
-		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , def );
+		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
 		expected = Arrays.asList( Quantifier.FORALL , Symbol.LEFT_PAREN , 
 				tracker.getVariableByName( "x" ) , Symbol.COMMA ,
 				tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN ,
-				tracker.getRelation( "GreaterThan" ) , Symbol.LEFT_PAREN , 
+				tracker.parseFunction( "GreaterThan" ) , Symbol.LEFT_PAREN , 
 				tracker.getVariableByName( "y" ) , Symbol.COMMA , 
 				NumbersFOL.fromInt( 0 ) , Symbol.RIGHT_PAREN ,
 				Operator.IMPLICATION , tracker.getVariableByName( "GreaterThn" ) ,
-				Symbol.LEFT_PAREN , tracker.getFunction( "SumInt" ) ,
+				Symbol.LEFT_PAREN , tracker.parseFunction( "SumInt" ) ,
 				Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) ,
 				Symbol.COMMA , tracker.getVariableByName( "y" ) , 
 				Symbol.RIGHT_PAREN , Symbol.COMMA ,
@@ -371,14 +365,13 @@ public class TokenizerTest {
 		
 		//try using constant objects as well
 		logicStatement = "AngleEquals( RightAngle , Angle(90) )";
-		def = new GeometryWorld();
-		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/geometryworld.txt" , def );
+		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/geometryworld.txt" );
 		test = new Tokenizer( logicStatement , tracker );
 		tokenize( test );
 		tokens = getTokens( test );
-		expected = Arrays.asList( tracker.getRelation( "AngleEquals" ) , Symbol.LEFT_PAREN ,
-					tracker.getConstant( "RightAngle" ) , Symbol.COMMA ,
-					tracker.getFunction( "Angle" ) , Symbol.LEFT_PAREN , 
+		expected = Arrays.asList( tracker.parseFunction( "AngleEquals" ) , Symbol.LEFT_PAREN ,
+					tracker.parseConstant( "RightAngle" ) , Symbol.COMMA ,
+					tracker.parseFunction( "Angle" ) , Symbol.LEFT_PAREN , 
 					NumbersFOL.fromInt( 90 ) , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN );
 		Assert.assertTrue( tokens.equals( expected ) );
 	}

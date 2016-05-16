@@ -223,7 +223,7 @@ class Tokenizer {
 			tokens.add( var );
 			continue;
 		}
-		
+
 		//go through and count the number of arguments to each function
 		for ( int i=0 ; i<tokens.size() ; ++i ) {
 			if ( tokens.get( i ) instanceof Function ) {
@@ -253,7 +253,7 @@ class Tokenizer {
 						//whenever we reach a comma that is at one level
 						//of nested parenthesis, we know it delimits another
 						//argument to the function
-						if ( tokens.get( j ).equals( Symbol.COMMA ) ) {
+						if ( parenDepth == 1 && tokens.get( j ).equals( Symbol.COMMA ) ) {
 							++numArgs;
 						}
 					}

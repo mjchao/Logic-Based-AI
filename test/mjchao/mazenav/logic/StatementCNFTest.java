@@ -6,9 +6,6 @@ import java.util.List;
 
 import mjchao.mazenav.logic.StatementCNF.Disjunction;
 import mjchao.mazenav.logic.StatementCNF.Disjunction.Term;
-import mjchao.mazenav.logic.structures.Function;
-import mjchao.mazenav.logic.structures.IntegerWorld;
-import mjchao.mazenav.logic.structures.ObjectFOL;
 import mjchao.mazenav.logic.structures.SymbolTracker;
 
 import org.junit.Assert;
@@ -142,7 +139,7 @@ public class StatementCNFTest {
 	public void testBuildWithFunction1() throws IOException {
 		//test using an existential quantifier on function arguments
 		String infix = "EXISTS(x,y,z) GreaterThan(SumInt(x,y),SumInt(y,z))";
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
 		Assert.assertEquals( "GreaterThan(SumInt($0(), $1()), SumInt($1(), $2()))" , cnf.toString() );
 	}
@@ -152,26 +149,9 @@ public class StatementCNFTest {
 		//test using a universal quantifier and existential quantifiers
 		//on function arguments
 		String infix = "FORALL(x) EXISTS(y,z) GreaterThan(SumInt(x,y),SumInt(x,z))";
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
 		Assert.assertEquals( "GreaterThan(SumInt(?0, $0(?0)), SumInt(?0, $1(?0)))" , cnf.toString() );
-	}
-	
-	/**
-	 * Mock class for third test case involving functions
-	 */
-	public class BuildWithFunction3 {
-		public ObjectFOL FunctionWithNoArgs() {
-			return null;
-		}
-		
-		public ObjectFOL FunctionWithOneArg( ObjectFOL arg1 ) {
-			return null;
-		}
-		
-		public ObjectFOL FunctionWithThreeArgs( ObjectFOL arg1 , ObjectFOL arg2 , ObjectFOL arg3 ) {
-			return null;
-		}
 	}
 	
 	@Test
@@ -179,14 +159,8 @@ public class StatementCNFTest {
 		//test building with functions with varying number of arguments
 		//and also a negated arguments
 		String infix = "FunctionWithNoArgs() OR FunctionWithOneArg(x) OR FORALL(x,y,z) FunctionWithThreeArgs(!x,!!y,!!!!!z)";
-		BuildWithFunction3 definingInstance = new BuildWithFunction3();
-		Function f0 = new Function( "FunctionWithNoArgs" , definingInstance );
-		Function f1 = new Function( "FunctionWithOneArg" , definingInstance , "Object" );
-		Function f3 = new Function( "FunctionWithThreeArgs" , definingInstance , "Boolean" , "Boolean" , "Boolean" );
 		SymbolTracker tracker = new SymbolTracker();
-		tracker.addFunction( "FunctionWithNoArgs" , f0 );
-		tracker.addFunction( "FunctionWithOneArg" , f1 );
-		tracker.addFunction( "FunctionWithThreeArgs" , f3 );
+		tracker.addFunctions( "FunctionWithNoArgs" , "FunctionWithOneArg" , "FunctionWithThreeArgs" );
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
 		Assert.assertEquals( "FunctionWithNoArgs() OR FunctionWithOneArg(?0) OR FunctionWithThreeArgs(!?1, ?2, !?3)", cnf.toString() );
 	}
@@ -195,7 +169,7 @@ public class StatementCNFTest {
 	public void testBuildWithFunction4() throws IOException {
 		//test negated functions
 		String infix = "FORALL(x) EXISTS(y,z) !GreaterThan(SumInt(x,y),!SumInt(x,z))";
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
 		Assert.assertEquals( "!GreaterThan(SumInt(?0, $0(?0)), !SumInt(?0, $1(?0)))" , cnf.toString() );
 	}
@@ -209,7 +183,7 @@ public class StatementCNFTest {
 		//this kind of unification is NP-Complete, so we will not attempt to
 		//deal with it.
 		String infix = "FORALL(x) EXISTS(y,z) GreaterThan(SumInt(x OR y,y OR z),!SumInt(x,z))";
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		StatementCNF cnf = StatementCNF.fromInfixString( infix , tracker );
 		cnf.toString();
 	}
@@ -278,7 +252,7 @@ public class StatementCNFTest {
 	@Test
 	public void testTermEqualsFunction1() throws IOException {
 		//check that functions arguments are compared correctly
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		String list = "GreaterThan(x,x) AND GreaterThan(x,x)";
 		List< Term > terms = termsListFromInfix( list , tracker );
 		Assert.assertTrue( terms.get( 0 ).equals( terms.get( 1 ) ) );
@@ -287,7 +261,7 @@ public class StatementCNFTest {
 	@Test
 	public void testTermEqualsFunction2() throws IOException {
 		//check that function arguments are compared correctly
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		String list = "GreaterThan(x,x) AND GreaterThan(x,y)";
 		List< Term > terms = termsListFromInfix( list , tracker );
 		Assert.assertFalse( terms.get( 0 ).equals( terms.get( 1 ) ) );
@@ -296,7 +270,7 @@ public class StatementCNFTest {
 	@Test
 	public void testTermEqualsFunction3() throws IOException {
 		//check that function arguments are explored recursively
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		String list = "GreaterThan(SumInt(SumInt(x,x),SumInt(x,x)),x) AND GreaterThan(SumInt(SumInt(x,x),SumInt(x,x)),x)";
 		List< Term > terms = termsListFromInfix( list , tracker );
 		Assert.assertTrue( terms.get( 0 ).equals( terms.get( 1 ) ) );
@@ -305,7 +279,7 @@ public class StatementCNFTest {
 	@Test
 	public void testTermEqualsFunction4() throws IOException {
 		//check that function arguments are explored recursively
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		String list = "GreaterThan(SumInt(SumInt(x,x),SumInt(x,x)),x) AND GreaterThan(SumInt(SumInt(x,x),SumInt(x,y)),x)";
 		List< Term > terms = termsListFromInfix( list , tracker );
 		Assert.assertFalse( terms.get( 0 ).equals( terms.get( 1 ) ) );
@@ -314,7 +288,7 @@ public class StatementCNFTest {
 	@Test
 	public void testTermEqualsFunction5() throws IOException {
 		//check that function arguments are explored recursively
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		String list = "GreaterThan(SumInt(SumInt(x,x),SumInt(x,x)),x) AND GreaterThan(x,y)";
 		List< Term > terms = termsListFromInfix( list , tracker );
 		Assert.assertFalse( terms.get( 0 ).equals( terms.get( 1 ) ) );
@@ -324,7 +298,7 @@ public class StatementCNFTest {
 	public void testTermEqualsFunction6() throws IOException {
 		//check that function arguments are explored recursively
 		//and an inner negation is noticed
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		String list = "GreaterThan(SumInt(SumInt(x,x),SumInt(x,x)),x) AND GreaterThan(SumInt(SumInt(x,x),SumInt(x,!x)),x)";
 		List< Term > terms = termsListFromInfix( list , tracker );
 		Assert.assertFalse( terms.get( 0 ).equals( terms.get( 1 ) ) );
@@ -457,7 +431,7 @@ public class StatementCNFTest {
 	@Test
 	public void testDisjunctionEqualsFunction1() throws IOException {
 		//test disjunctions with two functions each
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		String infix = "(GreaterThan(x,x) OR GreaterThan(x,x)) AND (GreaterThan(x,x) OR GreaterThan(x,x))";
 		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
 		Assert.assertTrue( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
@@ -466,7 +440,7 @@ public class StatementCNFTest {
 	@Test
 	public void testDisjunctionEqualsFunction2() throws IOException {
 		//test disjunctions with two functions each
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		String infix = "(GreaterThan(x,x) OR GreaterThan(x,x)) AND (GreaterThan(x,x) OR GreaterThan(x,y))";
 		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
 		Assert.assertFalse( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );
@@ -475,7 +449,7 @@ public class StatementCNFTest {
 	@Test
 	public void testDisjunctionEqualsFunction3() throws IOException {
 		//test disjunctions with multiple functions
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		String infix = "(GreaterThan(x,x) OR GreaterThan(y,y) OR GreaterThan(SumInt(z,z),SumInt(u,u))) AND (GreaterThan(x,x) OR GreaterThan(SumInt(z,z),SumInt(u,u)) OR GreaterThan(y,y))";
 		List< Disjunction > disjunctions = disjunctionsFromInfix( infix , tracker );
 		Assert.assertTrue( disjunctions.get( 0 ).equals( disjunctions.get( 1 ) ) );

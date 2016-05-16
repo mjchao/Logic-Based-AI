@@ -10,7 +10,6 @@ import mjchao.mazenav.logic.StatementCNF.Disjunction.Term;
 import mjchao.mazenav.logic.structures.BooleanFOL;
 import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.ObjectFOL;
-import mjchao.mazenav.logic.structures.Relation;
 import mjchao.mazenav.logic.structures.SymbolTracker;
 
 import org.junit.Assert;
@@ -117,29 +116,19 @@ public class ResolverTest {
 	 */
 	public static class FunctionTester {
 		
-		public ObjectFOL Func1( ObjectFOL arg1 ) {
-			return null;
-		}
-		
-		public ObjectFOL Func2( ObjectFOL arg1 , ObjectFOL arg2 ) {
-			return null;
-		}
-		
-		public ObjectFOL Func3( ObjectFOL arg1 , ObjectFOL arg2 , ObjectFOL arg3 ) {
-			return null;
-		}
-		
+		/**
+		 * Creates a SymbolTracker with the following functions:
+		 * <ul>
+		 * 	<li> Func1, a function that takes 1 argument
+		 *  <li> Func2, a function that takes 2 arguments
+		 *  <li> Func3, a function that takes 3 arguments
+		 * </ul>
+		 * @return
+		 */
 		public static SymbolTracker buildTracker() {
 			SymbolTracker tracker = new SymbolTracker();
-			FunctionTester definingInstance = new FunctionTester();
-			Function Func1 = new Function( "Func1" , definingInstance , "Object" );
-			tracker.addFunction( "Func1" , Func1 );
-			
-			Function Func2 = new Function( "Func2" , definingInstance , "Object" , "Object" );
-			tracker.addFunction( "Func2" , Func2 );
-			
-			Function Func3 = new Function( "Func3" , definingInstance , "Object" , "Object" , "Object" );
-			tracker.addFunction( "Func3" , Func3 );
+			//Func1 takes one argument, Func2 takes 2 arguments and Func3 takes 3 arguments
+			tracker.addFunctions( "Func1" , "Func2" , "Func3" );
 			
 			return tracker;
 		}
@@ -574,74 +563,31 @@ public class ResolverTest {
 	 */
 	public static class FunctionRelationTester {
 		
-		final public static ObjectFOL obj1 = new ObjectFOL( "obj1" , null , "Object" );
-		public ObjectFOL obj1() {
-			return obj1;
-		}
-		
-		final public static ObjectFOL obj2 = new ObjectFOL( "obj2" , null , "Object" );
-		public ObjectFOL obj2() {
-			return obj2;
-		}
-		
-		final public static ObjectFOL obj3 = new ObjectFOL( "obj3" , null , "Object" );
-		public ObjectFOL obj3() {
-			return obj3;
-		}
-		
-		public ObjectFOL Func1( ObjectFOL arg1 ) {
-			return null;
-		}
-		
-		public ObjectFOL Func2( ObjectFOL arg1 , ObjectFOL arg2 ) {
-			return null;
-		}
-		
-		public ObjectFOL Func3( ObjectFOL arg1 , ObjectFOL arg2 , ObjectFOL arg3 ) {
-			return null;
-		}
-		
-		public BooleanFOL Rel1( ObjectFOL arg1 ){
-			return null;
-		}
-		
-		public BooleanFOL Rel2( ObjectFOL arg1 , ObjectFOL arg2 ) {
-			return null;
-		}
-		
-		public BooleanFOL Rel3( ObjectFOL arg1 , ObjectFOL arg2 , ObjectFOL arg3 ) {
-			return null;
-		}
-		
+		/**
+		 * Creates a SymbolTracker with the following functions and
+		 * constants defined:
+		 * <ul>
+		 * 	<li> Func1, a function that takes 1 argument
+		 *  <li> Func2, a function that takes 2 arguments
+		 *  <li> Func3, a function that takes 3 arguments
+		 *  <li> Rel1, a function that takes 1 argument
+		 *  <li> Rel2, a function that takes 2 arguments
+		 *  <li> Rel3, a function that takes 3 arguments
+		 *  <li> obj1, a constant
+		 *  <li> obj2, a constant
+		 *  <li> obj3, a constant
+		 * </ul>
+		 * Note: Rel1, Rel2, Rel3 used to be Relations, but after
+		 * some changes, we merged the concept of a Relation into a Function
+		 * and Rel1, Rel2, Rel3 should work just like normal functions
+		 * (theoretically, relations are functions that only return booleans)
+		 * 
+		 * @return
+		 */
 		public static SymbolTracker buildTracker() {
 			SymbolTracker tracker = new SymbolTracker();
-			FunctionRelationTester definingInstance = new FunctionRelationTester();
-			Function Func1 = new Function( "Func1" , definingInstance , "Object" );
-			tracker.addFunction( "Func1" , Func1 );
-			
-			Function Func2 = new Function( "Func2" , definingInstance , "Object" , "Object" );
-			tracker.addFunction( "Func2" , Func2 );
-			
-			Function Func3 = new Function( "Func3" , definingInstance , "Object" , "Object" , "Object" );
-			tracker.addFunction( "Func3" , Func3 );
-			
-			Relation Rel1 = new Relation( "Rel1" , definingInstance , "Object" );
-			tracker.addRelation( "Rel1" , Rel1 );
-			
-			Relation Rel2 = new Relation( "Rel2" , definingInstance , "Object" , "Object" );
-			tracker.addRelation( "Rel2" , Rel2 );
-			
-			Relation Rel3 = new Relation( "Rel3" , definingInstance , "Object"  , "Object" , "Object" );
-			tracker.addRelation( "Rel3" , Rel3 );
-			
-			Function obj1 = new Function( "obj1" , definingInstance );
-			tracker.addConstant( "obj1" , obj1 );
-			
-			Function obj2 = new Function( "obj2" , definingInstance );
-			tracker.addConstant( "obj2" , obj2 );
-			
-			Function obj3 = new Function( "obj3" , definingInstance );
-			tracker.addConstant( "obj3" , obj3 );
+			tracker.addFunctions( "Func1" , "Func2" , "Func3" , "Rel1" , "Rel2" , "Rel3" );
+			tracker.addConstants( "obj1" , "obj2" , "obj2" );
 			
 			return tracker;
 		}
@@ -1078,91 +1024,11 @@ public class ResolverTest {
 	
 	public static class Integration1 {
 		
-		final public static ObjectFOL Nono = new ObjectFOL( "Nono" , null , "Object" , "Nation" );
-		final public ObjectFOL Nono() {
-			return Nono;
-		}
-		
-		final public static ObjectFOL M1 = new ObjectFOL( "M1" , null , "Object" , "Missile" );
-		final public ObjectFOL M1() {
-			return M1;
-		}
-		
-		final public static ObjectFOL West = new ObjectFOL( "West" , null , "Object" , "American" );
-		final public ObjectFOL West() {
-			return West;
-		}
-		
-		public BooleanFOL American( ObjectFOL arg0 ) {
-			return null;
-		}
-		
-		public BooleanFOL Missile( ObjectFOL arg0 ) {
-			return null;
-		}
-		
-		//Functions and Relations that do not need to be defined:
-		public BooleanFOL Weapon( ObjectFOL arg0 ) {
-			return null;
-		}
-		
-		public BooleanFOL Sells( ObjectFOL arg0 , ObjectFOL arg1 , ObjectFOL arg2 ) {
-			return null;
-		}
-		
-		public BooleanFOL Hostile( ObjectFOL arg0 ) {
-			return null;
-		}
-		
-		public BooleanFOL Criminal( ObjectFOL arg0 ) {
-			return null;
-		}
-		
-		public BooleanFOL Owns( ObjectFOL arg0 , ObjectFOL arg1 ) {
-			return null;
-		}
-		
-		public BooleanFOL Enemy( ObjectFOL arg0 , ObjectFOL arg1 ) {
-			return null;
-		}
-		
 		public static SymbolTracker buildTracker() {
 			SymbolTracker rtn = new SymbolTracker();
-			Integration1 definingInstance = new Integration1();
-			
-			Function Nono = new Function( "Nono" , definingInstance );
-			rtn.addConstant( "Nono" , Nono );
-			
-			Function M1 = new Function( "M1" , definingInstance );
-			rtn.addConstant( "M1" , M1 );
-			
-			Function West = new Function( "West" , definingInstance );
-			rtn.addConstant( "West" , West );
-			
-			Relation American = new Relation( "American" , definingInstance , "Object" );
-			rtn.addRelation( "American" , American );
-			
-			Relation Missile = new Relation( "Missile" , definingInstance , "Object" );
-			rtn.addRelation( "Missile" , Missile );
-			
-			Relation Weapon = new Relation( "Weapon" , definingInstance , "Object" );
-			rtn.addRelation( "Weapon" , Weapon );
-			
-			Relation Sells = new Relation( "Sells" , definingInstance , "Object" , "Object" , "Object" );
-			rtn.addRelation( "Sells" , Sells );
-			
-			Relation Hostile = new Relation( "Hostile" , definingInstance , "Object" );
-			rtn.addRelation( "Hostile" , Hostile );
-			
-			Relation Criminal = new Relation( "Criminal" , definingInstance , "Object" );
-			rtn.addRelation( "Criminal" , Criminal );
-			
-			Relation Owns = new Relation( "Owns" , definingInstance , "Object" , "Object" );
-			rtn.addRelation( "Owns" , Owns );
-			
-			Relation Enemy = new Relation( "Enemy" , definingInstance , "Object" , "Object" );
-			rtn.addRelation( "Enemy" , Enemy );
-			
+			rtn.addConstants( "Nono" , "M1" , "West" );
+			rtn.addFunctions( "American" , "Missile" , "Weapon" , "Sells" , 
+					"Hostile" , "Criminal" , "Owns" , "Enemy" );	
 			return rtn;
 		}
 	}
@@ -1210,62 +1076,11 @@ public class ResolverTest {
 	}
 	
 	public static class Integration2 {
-		public static final ObjectFOL Jack = new ObjectFOL( "Jack" , null , "Object" , "Person" );
-		public ObjectFOL Jack() {
-			return Jack;
-		}
-		
-		public static final ObjectFOL Curiosity = new ObjectFOL( "Curiosity" , null , "Object" );
-		public ObjectFOL Curiosity() {
-			return Curiosity;
-		}
-		
-		public static final ObjectFOL Tuna = new ObjectFOL( "Tuna" , null , "Object" , "Cat" );
-		public ObjectFOL Tuna() {
-			return Tuna;
-		}
-		
-		public BooleanFOL Animal( ObjectFOL arg0 ) {
-			return null;
-		}
-		
-		public BooleanFOL Loves( ObjectFOL arg0 , ObjectFOL arg1 ) {
-			return null;
-		}
-		
-		public BooleanFOL Kills( ObjectFOL arg0 , ObjectFOL arg1 ) {
-			return null;
-		}
-		
-		public BooleanFOL Cat( ObjectFOL arg0 ) {
-			return null;
-		}
 		
 		public static SymbolTracker buildTracker() {
 			SymbolTracker rtn = new SymbolTracker();
-			Integration2 definingInstance = new Integration2();
-			
-			Function Jack = new Function( "Jack" , definingInstance );
-			rtn.addConstant( "Jack" , Jack );
-			
-			Function Curiosity = new Function( "Curiosity" , definingInstance );
-			rtn.addConstant( "Curiosity" , Curiosity );
-			
-			Function Tuna = new Function( "Tuna" , definingInstance );
-			rtn.addConstant( "Tuna" , Tuna );
-			
-			Relation Animal = new Relation( "Animal" , definingInstance , "Object" );
-			rtn.addRelation( "Animal" , Animal );
-			
-			Relation Loves = new Relation( "Loves" , definingInstance , "Object" , "Object" );
-			rtn.addRelation( "Loves" , Loves );
-			
-			Relation Kills = new Relation( "Kills" , definingInstance , "Object" , "Object" );
-			rtn.addRelation( "Kills" , Kills );
-			
-			Relation Cat = new Relation( "Cat" , definingInstance , "Cat" );
-			rtn.addRelation( "Cat" , Cat );
-			
+			rtn.addConstants( "Jack" , "Curiosity" , "Tuna" );
+			rtn.addFunctions( "Animal" , "Loves" , "Kills" , "Cat" );
 			return rtn;
 		}
 	}

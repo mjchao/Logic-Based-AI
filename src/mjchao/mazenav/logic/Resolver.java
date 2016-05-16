@@ -292,7 +292,8 @@ class Resolver {
 				}
 				
 				
-				if ( sub.original.getValue() instanceof SkolemFunction && !(sub.substitution.getValue() instanceof Variable) ) {
+				if ( sub.original.getValue() instanceof SkolemFunction && 
+						!(sub.substitution.getValue() instanceof Variable || sub.substitution.getValue() instanceof SkolemFunction ) ) {
 					validUnification = false;
 					break;
 				}

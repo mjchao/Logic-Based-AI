@@ -1285,7 +1285,7 @@ public class ResolverTest {
 		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
 
-	@Ignore //Reason: takes about 15 seconds to finish running. XXX Uncomment when running exhaustive tests 
+	//@Ignore //Reason: takes about 15 seconds to finish running. XXX Uncomment when running exhaustive tests 
 	@Test
 	public void integration2F() {
 		SymbolTracker tracker = Integration2.buildTracker();
@@ -1300,4 +1300,5 @@ public class ResolverTest {
 		StatementCNF hypothesis = StatementCNF.fromInfixString( "Kills(Curiosity, Tuna)" , tracker );
 		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
+	
 }

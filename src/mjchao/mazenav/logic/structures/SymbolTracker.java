@@ -3,8 +3,6 @@ package mjchao.mazenav.logic.structures;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -39,8 +37,8 @@ public class SymbolTracker {
 	 * @throws IOException
 	 * @see {@link SymbolTracker#fromDataFiles(String[], Object...)}
 	 */
-	public static final SymbolTracker fromDataFile( String filename , Object... definitionClassInstances ) throws IOException {
-		return fromDataFiles( new String[]{ filename } , definitionClassInstances );
+	public static final SymbolTracker fromDataFile( String filename ) throws IOException {
+		return fromDataFiles( new String[]{ filename } );
 	}
 	
 	/**
@@ -51,13 +49,11 @@ public class SymbolTracker {
 	 * 
 	 * @param filenames						the filenames that specify the
 	 * 										functions, relations and objects in FOL
-	 * @param definitionClassInstances		the objects that have implemented
-	 * 										the functions, relations and objects in Java
 	 * @return								a SymbolTracker loaded with all the functions
 	 * 										relations and objects
 	 * @throws IOException
 	 */
-	public static final SymbolTracker fromDataFiles( String[] filenames , Object... definitionClassInstances ) throws IOException {
+	public static final SymbolTracker fromDataFiles( String[] filenames ) throws IOException {
 		SymbolTracker rtn = new SymbolTracker();
 		for ( String filename : filenames ) {
 			BufferedReader f = new BufferedReader( new FileReader( filename ) );

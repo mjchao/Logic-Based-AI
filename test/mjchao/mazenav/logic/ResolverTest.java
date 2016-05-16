@@ -1119,15 +1119,32 @@ public class ResolverTest {
 	@Test
 	public void integration3T() {
 		SymbolTracker tracker = new SymbolTracker();
-		tracker.addFunctions( "Person" , "Heart" , "PartOf" , "Living" );
+		tracker.addFunctions( "Person" , "Heart" , "PartOf" , "Living" , "Dead" );
 		tracker.addConstants( "Adam" );
 		
 		StatementCNF[] kb = new StatementCNF[] {
 		    StatementCNF.fromInfixString( "FORALL(x) Person(x) => (EXISTS(y) Heart(y) AND PartOf(y,x))" , tracker ) ,
 		    StatementCNF.fromInfixString( "EXISTS(x) Heart(x) AND PartOf(x,y) => Living(y)" , tracker ) ,
-		    StatementCNF.fromInfixString( "Person(Adam)" , tracker )
+		    StatementCNF.fromInfixString( "Person(Adam)" , tracker ) ,
+		    StatementCNF.fromInfixString( "Dead(x) <=> !Living(x)", tracker )
 		};
 		StatementCNF hypothesis = StatementCNF.fromInfixString( "Living(Adam)" , tracker );
 		Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+	}
+	
+	@Test
+	public void integration3F() {
+		SymbolTracker tracker = new SymbolTracker();
+		tracker.addFunctions( "Person" , "Heart" , "PartOf" , "Living" , "Dead" );
+		tracker.addConstants( "Adam" );
+		
+		StatementCNF[] kb = new StatementCNF[] {
+		    StatementCNF.fromInfixString( "FORALL(x) Person(x) => (EXISTS(y) Heart(y) AND PartOf(y,x))" , tracker ) ,
+		    StatementCNF.fromInfixString( "EXISTS(x) Heart(x) AND PartOf(x,y) => Living(y)" , tracker ) ,
+		    StatementCNF.fromInfixString( "Person(Adam)" , tracker ) ,
+		    StatementCNF.fromInfixString( "Dead(x) <=> !Living(x)", tracker )
+		};
+		StatementCNF hypothesis = StatementCNF.fromInfixString( "Dead(Adam)" , tracker );
+		Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 	}
 }

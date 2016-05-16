@@ -17,6 +17,17 @@ import mjchao.mazenav.logic.structures.Variable;
  */
 class Resolver {
 
+	/**
+	 * Determines if the given hypothesis is always true given
+	 * our knowledgebase of known facts.
+	 * 
+	 * @param tracker			keeps track of symbols
+	 * @param hypothesis		the hypothesis to try and prove
+	 * @param kb				the statements in our knowledgebase that
+	 * 							we know to be true
+	 * @return					true if the hypothesis is always true given
+	 * 							the knowledgebase. false otherwise.
+	 */
 	public static boolean proveHypothesis( SymbolTracker tracker , StatementCNF hypothesis , StatementCNF... kb ) {
 		List< StatementCNF > statements = new ArrayList< StatementCNF >();
 		for ( StatementCNF s : kb ) {
@@ -45,7 +56,19 @@ class Resolver {
 		}
 	}
 	
-	//TODO test resolution
+	/**
+	 * Applies the resolution algorithm combined with factoring
+	 * to try and prove a hypothesis by contradiction 
+	 * 
+	 * @param tracker		keeps track of symbols
+	 * @param statement		a single statement that is KB AND !Hypothesis
+	 * @param hypothesis	the hypothesis we're trying to prove. this is
+	 * 						required because we need to check that terms
+	 * 						we unify do not appear in the hypothesis
+	 * @return				true if KB AND !Hypothesis is always false (i.e.
+	 * 						the proof by contradiction succeeds). false if
+	 * 						we could not complete the proof by contradiction
+	 */
 	static boolean applyResolution( SymbolTracker tracker , StatementCNF statement , StatementCNF hypothesis ) {
 		List< Resolvent > clauses = new ArrayList< Resolvent >();
 		for ( Disjunction d : statement.getDisjunctions() ) {
@@ -165,6 +188,11 @@ class Resolver {
 		return rtn;
 	}
 	
+	/**
+	 * @param clauses		
+	 * @return			if any of the given clauses is the empty clause
+	 *					(i.e. contains no terms)
+	 */
 	static boolean containsEmptyClause( List< Disjunction > clauses ) {
 		for ( Disjunction clause : clauses ) {
 			if ( clause.size() == 0 ) {
@@ -373,14 +401,6 @@ class Resolver {
 			
 			//a skolem function can be treated as a
 			//normal variable.
-			
-			//the difference between a skolem function and a variable is that
-			//a skolem function can have different values for
-			//different settings of its function arguments.
-			
-			//However, unification should still work the same
-			//because we can a skolem function with a specific
-			//setting of its function arguments as a variable
 			return unifyVar( t1 , t2 , substitutions );
 		}
 		else if ( t2.getValue() instanceof SkolemFunction ) {
@@ -446,34 +466,4 @@ class Resolver {
 		substitutions.add( newSubstitution );
 		return substitutions;
 	}
-	
-	/*
-	static List< Substitution > unifySkolem( Term skolem , Term x , List< Substitution > substitutions ) {
-		SkolemFunction toUnify = (SkolemFunction) skolem.getValue();
-		//check if the skolem function has already been substituted by
-		//something else and if so, unify that with the skolem function
-		for ( Substitution sub : substitutions ) {
-			if ( sub.original.getValue() instanceof SkolemFunction ) {
-				SkolemFunction f = (SkolemFunction) sub.original.getValue();
-				if ( f.getID() == toUnify.getID() ) {
-					//check if the previous substitution was for a skolem function
-					//was at least as general as the skolem function we're trying
-					//to unify. For example, if there was already a substitution
-					//for "$0(?0,?1,?2)" and now we are unifying "$0(CONST1, CONST2, CONST3)"
-					//we want to automatically use the more general substitution "$0(?0,?1,?2)"
-					//and not create a new substitution
-					boolean isCandidateGeneralized = false;
-					Term[] toUnifyArgs = skolem.getArgs();
-					Term[] candidateArgs = sub.original.getArgs();
-					for ( int i=0 ; i<skolem.getArgs().length ; ++i ) {
-						if ( toUnifyArgs[ i ].getValue() instanceof Variable )
-					}
-				}
-			}
-		}
-		//otherwise, we just directly substitute the x for the skolem function
-		Substitution newSubstitution = new Substitution( skolem , x );
-		substitutions.add( newSubstitution );
-		return substitutions;
-	}*/
 }

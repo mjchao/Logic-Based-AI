@@ -55,17 +55,23 @@ Finally, all that's left is to propose a hypothesis and ask the Resolver if it's
 
 ```java
 SymbolTracker tracker = new SymbolTracker();
-tracker.addFunctions( "Person" , "Heart" , "PartOf" , "Living" );
+tracker.addFunctions( "Person" , "Heart" , "PartOf" , "Living" , "Dead" );
 tracker.addConstants( "Adam" );
 
 StatementCNF[] kb = new StatementCNF[] {
     StatementCNF.fromInfixString( "FORALL(x) Person(x) => (EXISTS(y) Heart(y) AND PartOf(y,x))" , tracker ) ,
-    StatementCNF.fromInfixString( "EXISTS(y) Heart(y) AND PartOf(y,x) => Living(x)" , tracker ) ,
-    StatementCNF.fromInfixString( "Person(Adam)" , tracker )
+    StatementCNF.fromInfixString( "EXISTS(x) Heart(x) AND PartOf(x,y) => Living(y)" , tracker ) ,
+    StatementCNF.fromInfixString( "Person(Adam)" , tracker ) ,
+    StatementCNF.fromInfixString( "Dead(x) <=> !Living(x)", tracker )
 };
 StatementCNF hypothesis = StatementCNF.fromInfixString( "Living(Adam)" , tracker );
 Assert.assertTrue( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
+
+StatementCNF hypothesis = StatementCNF.fromInfixString( "Dead(Adam)" , tracker );
+Assert.assertFalse( Resolver.proveHypothesis( tracker , hypothesis , kb ) );
 ```
+
+
 
 ##Implementation Detail
 Here, we describe some of the implementation in greater detail.

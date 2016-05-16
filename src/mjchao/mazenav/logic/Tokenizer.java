@@ -183,8 +183,13 @@ class Tokenizer {
 			}
 			
 			//check if its a function
+			//functions must be followed by a left parenthesis.
+			//otherwise, it must be an object or variable. This way,
+			//we let the user have duplicate names for functions and
+			//constants, which might be convenient.
 			Function f = tracker.parseFunction( token );
-			if ( f != null ) {
+			if ( f != null && i<stringTokens.length-1 && 
+					Symbol.parseSymbol( stringTokens[i+1] ).equals( Symbol.LEFT_PAREN ) ) {
 				tokens.add( f );
 				continue;
 			}
@@ -217,6 +222,45 @@ class Tokenizer {
 			
 			tokens.add( var );
 			continue;
+		}
+		
+		//go through and count the number of arguments to each function
+		for ( int i=0 ; i<tokens.size() ; ++i ) {
+			if ( tokens.get( i ) instanceof Function ) {
+				int parenDepth = 0;
+				int numArgs = 0;
+				boolean readArgs = false;
+				for ( int j=i+1 ; j<tokens.size() ; ++j ) {
+					if ( tokens.get( j ).equals( Symbol.LEFT_PAREN ) ) {
+						++parenDepth;
+					}
+					else if ( tokens.get( j ).equals( Symbol.RIGHT_PAREN ) ) {
+						--parenDepth;
+						if ( parenDepth == 0 ) {
+							if ( readArgs ) {
+								
+								//add 1 to account for the last argument
+								//right before the closing parenthesis that
+								//did not have a comma following it
+								++numArgs;
+							}
+							break;
+						}
+					}
+					else {
+						readArgs = true;
+						
+						//whenever we reach a comma that is at one level
+						//of nested parenthesis, we know it delimits another
+						//argument to the function
+						if ( tokens.get( j ).equals( Symbol.COMMA ) ) {
+							++numArgs;
+						}
+					}
+				}
+				
+				((Function) tokens.get( i )).setNumArgs( numArgs );
+			}
 		}
 		return tokens;
 	}

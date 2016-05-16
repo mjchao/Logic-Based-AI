@@ -6,6 +6,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.List;
 
+import mjchao.mazenav.logic.structures.Function;
 import mjchao.mazenav.logic.structures.NumbersFOL;
 import mjchao.mazenav.logic.structures.Operator;
 import mjchao.mazenav.logic.structures.Quantifier;
@@ -40,7 +41,7 @@ public class TokenizerTest {
 	}
 	
 	/**
-	 * Accessor to the private tokens field of the Processor
+	 * Accessor to the private tokens field of the Tokenizer
 	 * class.
 	 * 
 	 * @param p

@@ -11,11 +11,9 @@ import java.util.List;
 import mjchao.mazenav.logic.ExpressionTree.ExpressionNode;
 import mjchao.mazenav.logic.structures.BooleanFOL;
 import mjchao.mazenav.logic.structures.Function;
-import mjchao.mazenav.logic.structures.IntegerWorld;
 import mjchao.mazenav.logic.structures.ObjectFOL;
 import mjchao.mazenav.logic.structures.Operator;
 import mjchao.mazenav.logic.structures.Quantifier;
-import mjchao.mazenav.logic.structures.Relation;
 import mjchao.mazenav.logic.structures.SkolemFunction;
 import mjchao.mazenav.logic.structures.Symbol;
 import mjchao.mazenav.logic.structures.SymbolTracker;
@@ -260,20 +258,20 @@ public class ExpressionTreeTest {
 		//test expression with functions
 		// "GreaterThan(SumInt( x , y ), DiffInt( x , y )) 
 		// <=>  "x y SumInt x y DiffInt GreaterThan"
-		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		input = Arrays.asList( 
-				tracker.getRelation( "GreaterThan" ) , Symbol.LEFT_PAREN ,
-				tracker.getFunction( "SumInt" ) , Symbol.LEFT_PAREN , 
+				tracker.parseFunction( "GreaterThan" ) , Symbol.LEFT_PAREN ,
+				tracker.parseFunction( "SumInt" ) , Symbol.LEFT_PAREN , 
 				tracker.getNewVariable( "x" ) , Symbol.COMMA , tracker.getNewVariable( "y" ) ,
-				Symbol.RIGHT_PAREN , Symbol.COMMA , tracker.getFunction( "DiffInt" ) ,
+				Symbol.RIGHT_PAREN , Symbol.COMMA , tracker.parseFunction( "DiffInt" ) ,
 				Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) , Symbol.COMMA ,
 				tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
 			);
 		expected = Arrays.asList(
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
-				tracker.getFunction( "SumInt" ) , 
+				tracker.parseFunction( "SumInt" ) , 
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
-				tracker.getFunction( "DiffInt" ) , tracker.getRelation( "GreaterThan" )
+				tracker.parseFunction( "DiffInt" ) , tracker.parseFunction( "GreaterThan" )
 			);
 		found = convertToPostfix( input );
 		Assert.assertTrue( expected.equals( found ) );	
@@ -419,20 +417,20 @@ public class ExpressionTreeTest {
 		//test expression with functions and quantifiers
 		// "EXISTS(x,y) S.T. GreaterThan(SumInt( x , y ), DiffInt( x , y )) 
 		// <=>  "x y SumInt x y DiffInt GreaterThan EXISTS(x,y)"
-		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		input = Arrays.asList( 
 				Quantifier.EXISTS , Symbol.LEFT_PAREN , tracker.getNewVariable( "x" ) , Symbol.COMMA ,
 				tracker.getNewVariable( "y" ) , Symbol.RIGHT_PAREN , Symbol.SUCH_THAT ,
-				tracker.getRelation( "GreaterThan" ) , Symbol.LEFT_PAREN , tracker.getFunction( "SumInt" ) ,
+				tracker.parseFunction( "GreaterThan" ) , Symbol.LEFT_PAREN , tracker.parseFunction( "SumInt" ) ,
 				Symbol.LEFT_PAREN , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
-				Symbol.RIGHT_PAREN , Symbol.COMMA , tracker.getFunction( "DiffInt" ) , Symbol.LEFT_PAREN ,
+				Symbol.RIGHT_PAREN , Symbol.COMMA , tracker.parseFunction( "DiffInt" ) , Symbol.LEFT_PAREN ,
 				tracker.getVariableByName( "x" ) , Symbol.COMMA , tracker.getVariableByName( "y" ) , Symbol.RIGHT_PAREN , Symbol.RIGHT_PAREN
 			);
 		expected = Arrays.asList(
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
-				tracker.getFunction( "SumInt" ) , 
+				tracker.parseFunction( "SumInt" ) , 
 				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) ,
-				tracker.getFunction( "DiffInt" ) , tracker.getRelation( "GreaterThan" ) ,
+				tracker.parseFunction( "DiffInt" ) , tracker.parseFunction( "GreaterThan" ) ,
 				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "y" ) )
 			);
 		found = convertToPostfix( input );
@@ -884,7 +882,7 @@ public class ExpressionTreeTest {
 	
 	@Test
 	public void testDistributeNotsFunctions() throws IOException {
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
 		
 		//test distributing nots with functions
 		//it is important that we do not distribute NOTs into a function
@@ -892,18 +890,24 @@ public class ExpressionTreeTest {
 		// 				"FORALL(y) FORALL(x) !GreaterThan(SumInt(y,y), DiffInt(x,x))"
 		//[in postfix]	"y y SumInt x x DiffInt GreaterThan EXISTS(x) ! FORALL(y)"		<=>
 		//				"y y SumInt x x DiffInt GreaterThan ! FORALL(x) FORALL(y)"
+		Function GreaterThan = new Function( "GreaterThan" );
+		GreaterThan.setNumArgs( 2 );
+		Function SumInt = new Function( "SumInt" );
+		SumInt.setNumArgs( 2 );
+		Function DiffInt = new Function( "DiffInt" );
+		DiffInt.setNumArgs( 2 );
 		
 		List< Symbol > input = Arrays.asList(
-				tracker.getNewVariable( "y" ) , tracker.getVariableByName( "y" ) , tracker.getFunction( "SumInt" ) ,
-				tracker.getNewVariable( "x" ) , tracker.getVariableByName( "x" ) , tracker.getFunction( "DiffInt" ) ,
-				tracker.getRelation( "GreaterThan" ) , 
+				tracker.getNewVariable( "y" ) , tracker.getVariableByName( "y" ) , SumInt ,
+				tracker.getNewVariable( "x" ) , tracker.getVariableByName( "x" ) , DiffInt ,
+				GreaterThan , 
 				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) , Operator.NOT ,
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "y" ) )
 			);		
 		List< Symbol > expected = Arrays.asList( 
-				tracker.getVariableByName( "y" ) , tracker.getVariableByName( "y" ) , tracker.getFunction( "SumInt" ) ,
-				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , tracker.getFunction( "DiffInt" ) ,
-				tracker.getRelation( "GreaterThan" ) ,  Operator.NOT ,
+				tracker.getVariableByName( "y" ) , tracker.getVariableByName( "y" ) , SumInt ,
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , DiffInt ,
+				GreaterThan ,  Operator.NOT ,
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) ) ,
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "y" ) )				
 			);
@@ -1082,8 +1086,15 @@ public class ExpressionTreeTest {
 		// x x GreaterThan x x SumInt x x DiffInt GreaterThan EXISTS(x) x x GreaterThan FORALL(x) OR AND FORALL(x)
 		//and this standardizes to
 		// ?0 ?0 GreaterThan ?1 ?1 SumInt ?1 ?1 DiffInt GreaterThan EXISTS(?1) ?2 ?2 GreaterThan FORALL(?2) OR AND FORALL(?0) 
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
+		Function GreaterThan = new Function( "GreaterThan" );
+		GreaterThan.setNumArgs( 2 );
 		
+		Function SumInt = new Function( "SumInt" );
+		SumInt.setNumArgs( 2 );
+		
+		Function DiffInt = new Function( "DiffInt" );
+		DiffInt.setNumArgs( 2 );
 		//test standardizing arguments to functions
 		//[in infix]	"FORALL(x) GreaterThan(x,x) AND (EXISTS(x) GreaterThan(SumInt(x,x), DiffInt(x,x)) OR FORALL(x) GreaterThan(x,x))"		<=>
 		//				"FORALL(?0) GreaterThan(?0,?0) AND (EXISTS(?1) GreaterThan(SumInt(?1,?1), DiffInt(?1,?1)) OR FORALL(?2) GreaterThan(?2,?2))"
@@ -1091,20 +1102,20 @@ public class ExpressionTreeTest {
 		//[in postfix]	"x x GreaterThan x x SumInt x x DiffInt GreaterThan EXISTS(x) x x GreaterThan FORALL(x) OR AND FORALL(x)"				<=>
 		//				"?0 ?0 GreaterThan ?1 ?1 SumInt ?1 ?1 DiffInt GreaterThan EXISTS(?1) ?2 ?2 GreaterThan FORALL(?2) OR AND FORALL (?0)
 		List< Symbol > input = Arrays.asList(
-				tracker.getNewVariable( "x" ) , tracker.getVariableByName( "x" ) , tracker.getRelation( "GreaterThan" ) ,
-				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , tracker.getFunction( "SumInt" ) ,
-				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , tracker.getFunction( "DiffInt" ) ,
-				tracker.getRelation( "GreaterThan" ) , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
-				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , tracker.getRelation( "GreaterThan" ) ,
+				tracker.getNewVariable( "x" ) , tracker.getVariableByName( "x" ) , GreaterThan ,
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , SumInt ,
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , DiffInt ,
+				GreaterThan , newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) ,
+				tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) , GreaterThan ,
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) ) , Operator.OR , Operator.AND ,
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) )
 			);		
 		List< Symbol > expected = Arrays.asList( 
-				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 0 ) , tracker.getRelation( "GreaterThan" ) ,
-				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 1 ) , tracker.getFunction( "SumInt" ) ,
-				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 1 ) , tracker.getFunction( "DiffInt" ) ,
-				tracker.getRelation( "GreaterThan" ) , newQuantifierList( Quantifier.EXISTS , getMockSystemVariableById( 1 ) ) ,
-				getMockSystemVariableById( 2 ) , getMockSystemVariableById( 2 ) , tracker.getRelation( "GreaterThan" ) ,
+				getMockSystemVariableById( 0 ) , getMockSystemVariableById( 0 ) , GreaterThan ,
+				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 1 ) , SumInt ,
+				getMockSystemVariableById( 1 ) , getMockSystemVariableById( 1 ) , DiffInt ,
+				GreaterThan , newQuantifierList( Quantifier.EXISTS , getMockSystemVariableById( 1 ) ) ,
+				getMockSystemVariableById( 2 ) , getMockSystemVariableById( 2 ) , GreaterThan ,
 				newQuantifierList( Quantifier.FORALL , getMockSystemVariableById( 2 ) ) , Operator.OR , Operator.AND ,
 				newQuantifierList( Quantifier.FORALL , getMockSystemVariableById( 0 ) )
 			);
@@ -1315,8 +1326,12 @@ public class ExpressionTreeTest {
 		//x x x x DiffInt GreaterThan EXISTS(x) AND FORALL(x)
 		//which standardizes and skolemizes to
 		//?0 $0(?0) $0(?0) $0(?0) DiffInt GreaterThan AND
-		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" , new IntegerWorld() );
+		SymbolTracker tracker = SymbolTracker.fromDataFile( "test/mjchao/mazenav/logic/structures/integerworld.txt" );
+		Function GreaterThan = new Function( "GreaterThan" );
+		GreaterThan.setNumArgs( 2 );
 		
+		Function DiffInt =  new Function( "DiffInt" );
+		DiffInt.setNumArgs( 2 );
 		//test skolemizing variables inside functions
 		//[in infix]		"FORALL(x) x AND EXISTS(x) GreaterThan(x, DiffInt(x,x))"		<=>
 		//					"FORALL(?0) ?0 AND EXISTS(?1) GreaterThan(?1, DiffInt(?1,?1))"	<=>
@@ -1325,14 +1340,14 @@ public class ExpressionTreeTest {
 		//					"?0 $0(?0) $0?(?0) $0(?0) DiffInt GreaterThan AND"
 		List< Symbol > input = Arrays.asList(
 				tracker.getNewVariable( "x" ) , tracker.getVariableByName( "x" ) , tracker.getVariableByName( "x" ) ,
-				tracker.getVariableByName( "x" ) , tracker.getFunction( "DiffInt" ) , tracker.getRelation( "GreaterThan" ) ,
+				tracker.getVariableByName( "x" ) , DiffInt , GreaterThan ,
 				newQuantifierList( Quantifier.EXISTS , tracker.getVariableByName( "x" ) ) , Operator.AND ,
 				newQuantifierList( Quantifier.FORALL , tracker.getVariableByName( "x" ) )
 			);		
 		List< Symbol > expected = Arrays.asList( 
 				getMockSystemVariableById( 0 ) , new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) ,
 				new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) , new SkolemFunction( 0 , getMockSystemVariableById( 0 ) ) ,
-				tracker.getFunction( "DiffInt" ) , tracker.getRelation( "GreaterThan" ) ,
+				DiffInt , GreaterThan ,
 				Operator.AND
 				);
 		testSkolemizeAndDropQuantifiers( tracker , input , expected );
@@ -1534,28 +1549,6 @@ public class ExpressionTreeTest {
 	}
 	
 	/**
-	 * Mock class that does nothing. It's methods are used to 
-	 * define functions for integration test 1.
-	 * 
-	 * @author mjchao
-	 *
-	 */
-	private class Integration1 {
-		
-		public Integration1() {
-			
-		}
-		
-		public BooleanFOL Animal( ObjectFOL obj ) {
-			return BooleanFOL.True();
-		}
-		
-		public BooleanFOL Loves( ObjectFOL arg1 , ObjectFOL arg2 ) {
-			return BooleanFOL.True();
-		}
-	}
-	
-	/**
 	 * Applies the test 
 	 * ∀x (∀y Animal(y) => Loves(x,y)) => (∃y Loves(y,x))
 	 * 
@@ -1570,13 +1563,14 @@ public class ExpressionTreeTest {
 	 */
 	@Test
 	public void integration1() {
-		Integration1 definingInstance = new Integration1();
-		Relation Animal = new Relation( "Animal" , definingInstance , "Object" );
-		Relation Loves = new Relation( "Loves" , definingInstance , "Object" , "Object" );
 		
 		SymbolTracker tracker = new SymbolTracker();
-		tracker.addRelation( "Animal" , Animal );
-		tracker.addRelation( "Loves" , Loves );
+		tracker.addFunctions( "Animal" , "Loves" );
+		
+		Function Animal = tracker.parseFunction( "Animal" );
+		Animal.setNumArgs( 1 );
+		Function Loves = tracker.parseFunction( "Loves" );
+		Loves.setNumArgs( 2 );
 		
 		Variable x = tracker.getNewVariable( "x" );
 		Variable y = tracker.getNewVariable( "y" );
@@ -1603,31 +1597,6 @@ public class ExpressionTreeTest {
 	}
 	
 	/**
-	 * Mock class that does nothing. It's methods are used
-	 * to define functions for integration test 2
-	 * @author mjchao
-	 *
-	 */
-	private class Integration2 {
-		
-		public Integration2() {
-			
-		}
-		
-		public BooleanFOL Person( ObjectFOL arg0 ) {
-			return BooleanFOL.True();
-		}
-		
-		public ObjectFOL Heart( ObjectFOL arg0 ) {
-			return null;
-		}
-		
-		public BooleanFOL Has( ObjectFOL arg0 , ObjectFOL arg1 ) {
-			return BooleanFOL.True();
-		}
-	}
-	
-	/**
 	 * We test converting the expression
 	 * "Every person has a heart":
 	 * 
@@ -1646,15 +1615,14 @@ public class ExpressionTreeTest {
 	 */
 	@Test
 	public void integration2() {
-		Integration2 definingInstance = new Integration2();
-		Relation Person = new Relation( "Person" , definingInstance , "Object" );
-		Function Heart = new Function( "Heart" , definingInstance , "Person" );
-		Relation Has = new Relation( "Has" , definingInstance , "Person" , "Heart" );
-		
 		SymbolTracker tracker = new SymbolTracker();
-		tracker.addRelation( "Person" , Person );
-		tracker.addFunction( "Heart" , Heart );
-		tracker.addRelation( "Has" , Has );
+		tracker.addFunctions( "Person" , "Heart" , "Has" );
+		Function Person = tracker.parseFunction( "Person" );
+		Person.setNumArgs( 1 );
+		Function Heart = tracker.parseFunction( "Heart" );
+		Heart.setNumArgs( 1 );
+		Function Has = tracker.parseFunction( "Has" );
+		Has.setNumArgs( 2 );
 		
 		Variable x = tracker.getNewVariable( "x" );
 		Variable y = tracker.getNewVariable( "y" );
@@ -1682,34 +1650,6 @@ public class ExpressionTreeTest {
 		Assert.assertTrue( expected.equals( output ) );	
 	}
 	
-	private class Integration3 {
-		
-		public Integration3() {
-			
-		}
-		
-		public BooleanFOL Philosopher( ObjectFOL arg0 ) {
-			return BooleanFOL.True();
-		}
-		
-		public BooleanFOL StudentOf( ObjectFOL arg0 , ObjectFOL arg1 ) {
-			return BooleanFOL.True();
-		}
-		
-		public BooleanFOL Book( ObjectFOL arg0 ) {
-			return BooleanFOL.True();
-		}
-		
-		public BooleanFOL Write( ObjectFOL arg0 , ObjectFOL arg1 ) {
-			return BooleanFOL.True();
-		}
-		
-		public BooleanFOL Read( ObjectFOL arg0 , ObjectFOL arg1 ) {
-			return BooleanFOL.True();
-		}
-		
-	}
-	
 	/**
 	 * We test converting the expression
 	 * "All students of philosophy read one of their teacher's books":
@@ -1729,19 +1669,20 @@ public class ExpressionTreeTest {
 	 */
 	@Test
 	public void integration3() {
-		Integration3 definingInstance = new Integration3();
-		Relation Philosopher = new Relation( "Philosopher" , definingInstance , "Object" );
-		Relation StudentOf = new Relation( "StudentOf" , definingInstance , "Object" , "Object" );
-		Relation Book = new Relation( "Book" , definingInstance , "Object" );
-		Relation Write = new Relation( "Write" , definingInstance , "Object" , "Object" );
-		Relation Read = new Relation( "Read" , definingInstance , "Object" , "Object" );
 		
 		SymbolTracker tracker = new SymbolTracker();
-		tracker.addRelation( "Philospher" , Philosopher );
-		tracker.addRelation( "StudentOf" , StudentOf );
-		tracker.addRelation( "Book" , Book );
-		tracker.addRelation( "Write" , Write );
-		tracker.addRelation( "Read" , Read );
+		tracker.addFunctions( "Philosopher" , "StudentOf" , "Book" , "Write" , "Read" );
+		
+		Function Philosopher = tracker.parseFunction( "Philosopher" );
+		Philosopher.setNumArgs( 1 );
+		Function StudentOf = tracker.parseFunction( "StudentOf" );
+		StudentOf.setNumArgs( 2 );
+		Function Book = tracker.parseFunction( "Book" );
+		Book.setNumArgs( 1 );
+		Function Write = tracker.parseFunction( "Write" );
+		Write.setNumArgs( 2 );
+		Function Read = tracker.parseFunction( "Read" );
+		Read.setNumArgs( 2 );
 		
 		Variable x = tracker.getNewVariable( "x" );
 		Variable y = tracker.getNewVariable( "y" );
@@ -1774,21 +1715,6 @@ public class ExpressionTreeTest {
 		Assert.assertTrue( expected.equals( output ) );	
 	}
 	
-	class Integration4 {
-		
-		public Integration4() {
-			
-		}
-		
-		public BooleanFOL Philosopher( ObjectFOL arg0 ) {
-			return BooleanFOL.True();
-		}
-		
-		public BooleanFOL StudentOf( ObjectFOL arg0 , ObjectFOL arg1 ) {
-			return BooleanFOL.True();
-		}
-	}
-	
 	/**
 	 * Test converting the expression 
 	 * "There exists a philosopher with students":
@@ -1807,13 +1733,13 @@ public class ExpressionTreeTest {
 	 */
 	@Test
 	public void integration4() {
-		Integration4 definingInstance = new Integration4();
-		Relation Philosopher = new Relation( "Philosopher" , definingInstance , "Object" );
-		Relation StudentOf = new Relation( "StudentOf" , definingInstance , "Object" , "Object" );
-		
 		SymbolTracker tracker = new SymbolTracker();
-		tracker.addRelation( "Philosopher" , Philosopher );
-		tracker.addRelation( "StudentOf" , StudentOf );
+		tracker.addFunctions( "Philosopher" , "StudentOf" );
+		
+		Function Philosopher = tracker.parseFunction( "Philosopher" );
+		Philosopher.setNumArgs( 1 );
+		Function StudentOf = tracker.parseFunction( "StudentOf" );
+		StudentOf.setNumArgs( 2 );
 		
 		Variable x = tracker.getNewVariable( "x" );
 		Variable y = tracker.getNewVariable( "y" );
@@ -1836,22 +1762,7 @@ public class ExpressionTreeTest {
 			);
 		Assert.assertTrue( output.equals( expected ) );
 	}
-	
-	private class Integration5 {
-		
-		public Integration5() {
-			
-		}
-		
-		public BooleanFOL Person( ObjectFOL arg0 ) {
-			return BooleanFOL.True();
-		}
-		
-		public BooleanFOL Likes( ObjectFOL arg0 , ObjectFOL arg1 ) {
-			return BooleanFOL.True();
-		}
-	}
-	
+
 	/**
 	 * Test converting the expression
 	 * "There exists a person who likes someone else but dislikes someone that someone else likes:"
@@ -1872,13 +1783,14 @@ public class ExpressionTreeTest {
 	 */
 	@Test
 	public void integration5() {
-		Integration5 definingInstance = new Integration5();
-		Relation Person = new Relation( "Person" , definingInstance , "Object" );
-		Relation Likes = new Relation( "Likes" , definingInstance , "Object" , "Object" );
 		
 		SymbolTracker tracker = new SymbolTracker();
-		tracker.addRelation( "Person" , Person );
-		tracker.addRelation( "Likes" ,  Likes );
+		tracker.addFunctions( "Person" , "Likes" );
+		
+		Function Person = tracker.parseFunction( "Person" );
+		Person.setNumArgs( 1 );
+		Function Likes = tracker.parseFunction( "Likes" );
+		Likes.setNumArgs( 2 );
 		
 		Variable x = tracker.getNewVariable( "x" );
 		Variable y = tracker.getNewVariable( "y" );
@@ -1909,21 +1821,6 @@ public class ExpressionTreeTest {
 		Assert.assertTrue( output.equals( expected ) );
 	}
 	
-	private class Integration6 {
-		
-		public BooleanFOL P( ObjectFOL arg0 ) {
-			return BooleanFOL.True();
-		}
-		
-		public BooleanFOL Q( ObjectFOL arg0 , ObjectFOL arg1 ) {
-			return BooleanFOL.True();
-		}
-		
-		public ObjectFOL f( ObjectFOL arg0 , ObjectFOL arg1 ) {
-			return null;
-		}
-	}
-	
 	/**
 	 * Test converting the expression
 	 * 
@@ -1938,17 +1835,16 @@ public class ExpressionTreeTest {
 	 * http://pages.cs.wisc.edu/~dyer/cs540/notes/fopc.html
 	 */
 	@Test
-	public void integration6() {
-		Integration6 definingInstance = new Integration6();
-		
-		Relation P = new Relation( "P" , definingInstance , "Object" );
-		Relation Q = new Relation( "Q" , definingInstance , "Object" , "Object" );
-		Function f = new Function( "f" , definingInstance , "Object" , "Object" );
-		
+	public void integration6() {	
 		SymbolTracker tracker = new SymbolTracker();
-		tracker.addRelation( "P" , P );
-		tracker.addRelation( "Q" , Q );
-		tracker.addFunction( "f" , f );
+		tracker.addFunctions( "P" , "Q" , "f" );
+		
+		Function P = tracker.parseFunction( "P" );
+		P.setNumArgs( 1 );
+		Function Q = tracker.parseFunction( "Q" );
+		Q.setNumArgs( 2 );
+		Function f = tracker.parseFunction( "f" );
+		f.setNumArgs( 2 );
 		
 		Variable x = tracker.getNewVariable( "x" );
 		Variable y = tracker.getNewVariable( "y" );

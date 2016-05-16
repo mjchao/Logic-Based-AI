@@ -39,15 +39,15 @@ tracker.addConstants( "const1" , "const2" , "const3" );
 You can express the knowledgebase as an array of StatementCNF objects. Each StatementCNF object can be built from a valid logic infix expression by calling `StatementCNF.fromInfixString( String infix , SymbolTracker tracker )`. For example,
 
 ```java
-		SymbolTracker tracker = new SymbolTracker();
-		tracker.addFunctions( "Person" , "Heart" , "PartOf" , "Living" );
-		tracker.addConstants( "Adam" );
-		
-		StatementCNF[] kb = new StatementCNF[] {
-		    StatementCNF.fromInfixString( "FORALL(x) Person(x) => (EXISTS(y) Heart(y) AND PartOf(y,x))" , tracker ) ,
-		    StatementCNF.fromInfixString( "EXISTS(y) Heart(y) AND PartOf(y,x) => Living(x)" , tracker ) ,
-		    StatementCNF.fromInfixString( "Person(Adam)" , tracker )
-		};
+SymbolTracker tracker = new SymbolTracker();
+tracker.addFunctions( "Person" , "Heart" , "PartOf" , "Living" );
+tracker.addConstants( "Adam" );
+
+StatementCNF[] kb = new StatementCNF[] {
+    StatementCNF.fromInfixString( "FORALL(x) Person(x) => (EXISTS(y) Heart(y) AND PartOf(y,x))" , tracker ) ,
+    StatementCNF.fromInfixString( "EXISTS(y) Heart(y) AND PartOf(y,x) => Living(x)" , tracker ) ,
+    StatementCNF.fromInfixString( "Person(Adam)" , tracker )
+};
 ```
 
 ###Calling the Resolver
